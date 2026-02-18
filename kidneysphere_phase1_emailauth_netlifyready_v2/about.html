@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>关于 · KidneySphere</title>
+  <meta name="description" content="KidneySphere × KidneySphere AI">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphere</b>
+          <span>GlomCon China × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html">首页 <span class="en">Home</span></a>
+        <a data-nav href="community.html">社区讨论 <span class="en">Community</span></a>
+        <a data-nav href="learning.html">学习中心 <span class="en">Learning</span></a>
+        <a data-nav href="frontier.html">前沿进展 <span class="en">Frontier</span></a>
+        <a data-nav href="events.html">会议/事件 <span class="en">Events</span></a>
+        <a data-nav href="about.html">关于 <span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+<section class="hero">
+  <div class="container">
+    <div class="card">
+      <span class="badge">关于我们</span>
+      <h2 style="margin-top:10px">GlomCon 中国 · KidneySphere AI</h2>
+
+      <div class="grid cols-2" style="margin-top:14px">
+        <div class="card soft">
+          <h3>GlomCon 中国简介（重点）</h3>
+          <p>GlomCon 中国是面向中国肾脏病学界的开放型学术与教育社区，聚焦肾小球疾病及相关领域，连接国际与国内专家，推动病例讨论、循证更新与高质量继续教育。</p>
+          <p>我们通过<strong>每周线上学术会议</strong>、<strong>系统培训项目</strong>与<strong>年度线下大会</strong>，构建一个覆盖肾小球病、肾移植内科、重症肾内与透析、儿童肾病等方向的长期学习网络。</p>
+        </div>
+
+        <div class="card soft">
+          <h3>KidneySphere AI 简介</h3>
+          <p>KidneySphere AI 是 GlomCon 中国教育体系的数字化平台与 AI 能力底座：包括病例讨论、学习中心、前沿进展聚合与未来的智能助手。</p>
+          <div class="note" style="margin-top:12px">
+            <b>路线图（概览）：</b><br/>
+            Phase 1：注册/登录稳定 + 可发布病例 + 前沿进展卡片化<br/>
+            Phase 2：医生审核 + 评论/回复 + 附件上传 + 后台内容管理<br/>
+            Phase 3：会员费/赞助模块 + AI 辅助检索与摘要
+          </div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="section-title">
+        <div>
+          <h3>展示区（管理员可增删）</h3>
+          <p>旗舰中心 · 共建单位/合作伙伴 · 核心专家</p>
+        </div>
+        <span class="badge">Admin-editable</span>
+      </div>
+
+      <div class="grid cols-3" data-about-showcase>
+        <div class="card soft">
+          <h3>旗舰中心 <span class="en">Flagship</span></h3>
+          <div class="small" style="margin-top:6px">用于展示 GlomCon 中国旗舰分中心标准化建设与落地情况。</div>
+          <div class="hr" style="margin:12px 0"></div>
+          <div class="stack" data-showcase-list="flagship"></div>
+          <div class="admin" data-admin-panel="flagship" hidden>
+            <div class="hr" style="margin:12px 0"></div>
+            <div class="small"><b>管理员操作：</b>添加/删除条目</div>
+            <form class="form" data-showcase-form="flagship" style="margin-top:10px">
+              <label>名称 <input name="title" placeholder="例如：暨南大学第一附属医院" required></label>
+              <label>简介 <textarea name="description" rows="3" placeholder="一句话介绍（可选）"></textarea></label>
+              <label>链接 <input name="link" placeholder="https://...（可选）"></label>
+              <button class="btn primary" type="submit">添加</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="card soft">
+          <h3>共建单位/合作伙伴 <span class="en">Partners</span></h3>
+          <div class="small" style="margin-top:6px">医院/高校/企业合作伙伴的展示区。</div>
+          <div class="hr" style="margin:12px 0"></div>
+          <div class="stack" data-showcase-list="partners"></div>
+          <div class="admin" data-admin-panel="partners" hidden>
+            <div class="hr" style="margin:12px 0"></div>
+            <div class="small"><b>管理员操作：</b>添加/删除条目</div>
+            <form class="form" data-showcase-form="partners" style="margin-top:10px">
+              <label>名称 <input name="title" placeholder="例如：某某医院" required></label>
+              <label>简介 <textarea name="description" rows="3" placeholder="合作类型/项目简介（可选）"></textarea></label>
+              <label>链接 <input name="link" placeholder="https://...（可选）"></label>
+              <button class="btn primary" type="submit">添加</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="card soft">
+          <h3>核心专家 <span class="en">Experts</span></h3>
+          <div class="small" style="margin-top:6px">核心专家、学术委员会、国际顾问等。</div>
+          <div class="hr" style="margin:12px 0"></div>
+          <div class="stack" data-showcase-list="experts"></div>
+          <div class="admin" data-admin-panel="experts" hidden>
+            <div class="hr" style="margin:12px 0"></div>
+            <div class="small"><b>管理员操作：</b>添加/删除条目</div>
+            <form class="form" data-showcase-form="experts" style="margin-top:10px">
+              <label>姓名/机构 <input name="title" placeholder="例如：Dr. Richard J. Glassock" required></label>
+              <label>简介 <textarea name="description" rows="3" placeholder="方向/头衔（可选）"></textarea></label>
+              <label>链接 <input name="link" placeholder="主页/简历链接（可选）"></label>
+              <button class="btn primary" type="submit">添加</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+      <div class="note">
+        <b>隐私与合规（下一轮要补齐）：</b>《数据隐私政策》《平台使用授权》《AI 试点接入指南》《社区规范》。这些我会按你之前的标准放到页脚链接里。
+      </div>
+    </div>
+  </div>
+</section>
+
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">Phase 1 Stable · 以“注册/登录 + 可发布病例 + 前沿进展吸引赞助”为核心。</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

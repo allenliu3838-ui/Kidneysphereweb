@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>学习中心 · KidneySphere</title>
+  <meta name="description" content="KidneySphere × KidneySphere AI">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+<section class="hero">
+  <div class="container">
+    <div class="card">
+      <span class="badge">学习中心 · Learning</span>
+      <h2 style="margin-top:10px">学习中心：培训项目 + 免费视频库</h2>
+      <p class="small">
+        这里汇总培训项目与学习资源入口，便于系统学习与回顾。<br/>
+        培训项目将持续更新，部分项目正在进行中/规划中，欢迎关注。
+      </p>
+
+      <div class="hr"></div>
+
+      <!-- v7.2: Hot Articles moved into Learning Center -->
+      <div class="section-title" id="hot-articles">
+        <div>
+          <h3>文献库（UpToDate 风格）</h3>
+          <p>像公众号一样沉淀：会议纪要 / 综述解读 / 指南要点 / 临床研究进展。首页会动态推荐最新文章。</p>
+        </div>
+        <span class="badge">Articles</span>
+      </div>
+
+        <div class="grid cols-2" style="margin-top:12px">
+        <div class="card soft">
+          <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+            <h3 style="margin:0">最新文章</h3>
+            <span class="badge" style="border-color:rgba(99,225,255,.45);background:rgba(99,225,255,.08)">自动推送</span>
+          </div>
+          <p class="small muted" style="margin-top:8px">展示已发布内容（管理员可在后台发布/置顶）。</p>
+          <div id="hotArticlesList" style="margin-top:12px">
+            <div class="muted small">加载中…</div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+            <a class="btn" href="articles.html">查看全部</a>
+            <a class="btn primary" href="article-editor.html" data-admin-only hidden>写文章</a>
+          </div>
+        </div>
+
+        <div class="card soft">
+          <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+            <h3 style="margin:0">内容形式</h3>
+            <span class="badge">图片 / mp4</span>
+          </div>
+          <p class="small" style="margin-top:8px">
+            文章支持上传 <b>图片</b> 或 <b>短视频（mp4 ≤ 50MB）</b>，便于把会议摘要、讲课要点、病例随访做成可传播的内容。
+          </p>
+          <p class="small muted" style="margin-top:10px">
+            分享方式：文章页提供“复制链接”，你可以粘贴到微信群或朋友圈。
+          </p>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="section-title">
+        <div>
+          <h3>培训项目</h3>
+          <p>管理员可在后台编辑（首页与本页自动同步展示）。</p>
+        </div>
+        <span class="badge">Programs</span>
+      </div>
+
+      <div class="grid cols-2" id="trainingProgramsGrid" style="margin-top:12px">
+        <div class="muted small">加载中…</div>
+      </div>
+      <div class="note" id="trainingProgramsHint" style="margin-top:12px" hidden></div>
+
+	<div class="note small" style="margin-top:12px" data-superadmin-only hidden>
+        <b>管理员提示：</b>培训项目的“课程/章节/单集”与会员/付费授权为后续扩展位（不影响当前学习与管理）。
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="section-title">
+        <div>
+          <h3>免费视频库（注册后观看）</h3>
+          <p>注册登录后可在站内直接观看。</p>
+        </div>
+        <span class="badge">Free</span>
+      </div>
+
+      <div class="card soft" id="videoAdminPanel" data-admin-only hidden style="margin-top:12px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div>
+            <h3 style="margin:0">管理员：新增视频（B站/腾讯/链接/MP4）</h3>
+            <div class="small muted" style="margin-top:6px">新增后会自动出现在“免费视频库”对应频道中（方案2：按频道归类）。</div>
+          </div>
+          <span class="badge">Admin</span>
+        </div>
+
+        <div class="hr"></div>
+
+        <form id="videoAddForm" class="form" style="max-width:860px">
+          <div class="form-row">
+            <div style="flex:1;min-width:240px">
+              <label>视频名称</label>
+              <input class="input" id="videoTitle" required placeholder="例如：IgA 肾病病例讨论（第1期）" />
+            </div>
+            <div style="min-width:220px">
+              <label>频道</label>
+              <select class="input" id="videoCategory" required></select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div style="flex:1;min-width:240px">
+              <label>视频链接（B站/腾讯/其他）</label>
+              <input class="input" id="videoUrl" placeholder="粘贴 B站 或 腾讯会议/腾讯视频 链接（可选）" />
+              <div class="small muted" style="margin-top:6px">二选一：填链接 或 上传 mp4（≤50MB）。</div>
+            </div>
+            <div style="min-width:240px">
+              <label>或上传 mp4（≤50MB）</label>
+              <input class="input" id="videoMp4" type="file" accept="video/mp4" />
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center">
+            <button class="btn primary" type="submit" id="videoSubmit">保存并上架</button>
+            <span class="small muted" id="videoHint"></span>
+          </div>
+        </form>
+
+        <div class="hr"></div>
+
+        <div>
+          <div class="section-title" style="margin:0">
+            <div>
+              <h3 style="margin:0">最近添加的视频</h3>
+              <p class="small muted">可在此删除（软删除）。</p>
+            </div>
+          </div>
+          <div id="videoAdminList" style="margin-top:10px">
+            <div class="muted small">加载中…</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid cols-2" style="margin-top:12px">
+        <div class="card soft">
+          <h3 style="margin:0">按频道查看</h3>
+          <p class="small" style="margin-top:8px">肾小球与间质性肾病 / 肾移植内科 / 重症肾内（电解质/酸碱）与透析 / 儿童肾脏病 / 罕见肾脏病 / 病例讨论会议 / 肾脏病理等。</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+            <a class="btn primary" href="videos.html">进入免费视频库</a>
+            <a class="btn" href="register.html">注册后观看</a>
+          </div>
+        </div>
+
+        <div class="card soft">
+          <h3 style="margin:0">老视频：登录后免费观看</h3>
+          <p class="small" style="margin-top:8px">你提供的公开视频链接会持续增加。后续也可扩展为“专家 PPT / 综述分享”。</p>
+          <div class="note" style="margin-top:12px">
+            建议：把每个视频统一归档（标题/讲者/频道/关键词），便于搜索与沉淀。
+          </div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="section-title">
+        <div>
+          <h3>专家 PPT 与综述分享</h3>
+          <p>未来也按五大社区方向分类：肾小球与间质性肾病 / 肾移植内科 / 重症肾内（电解质/酸碱）与透析 / 儿童肾脏病 / 罕见肾脏病。</p>
+        </div>
+        <span class="badge">PPT/笔记 已开放</span>
+      </div>
+
+      <div class="grid cols-2" style="margin-top:12px">
+        <a class="card soft" href="expert-ppt.html" style="text-decoration:none">
+          <h3>专家 PPT</h3>
+          <p class="small">可上传 PDF/图片；按主题归档；支持关键词搜索。</p>
+          <span class="badge">进入</span>
+        </a>
+        <a class="card soft" href="notes.html" style="text-decoration:none">
+          <h3>综述/笔记（内科）</h3>
+          <p class="small">沉淀长文与参考文献（默认展示标签「内科笔记」的内容）。</p>
+          <span class="badge">进入</span>
+        </a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">当前版本 · 以“注册/登录 + 病例讨论 + 学习中心内容入口”为核心，持续迭代完善。</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js?v=20260128_030"></script>
+  <script type="module" src="learning-center.js?v=20260118_001"></script>
+  <script type="module" src="trainingPrograms.js?v=20260121_001"></script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>动态详情 · KidneySphere</title>
+  <meta name="description" content="KidneySphere 社区动态详情页" />
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=12.5" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="card" style="max-width:980px;margin:0 auto">
+          <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
+            <div>
+              <span class="badge">动态详情</span>
+              <h1 style="margin:10px 0 0">社区动态（朋友圈）</h1>
+              <div class="small muted" id="detailHint" style="margin-top:6px">加载中...</div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <a class="btn" href="moments.html">返回动态列表</a>
+            </div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div id="postBox"></div>
+
+          <div class="hr"></div>
+
+          <h3 style="margin:0 0 6px">评论</h3>
+          <div class="small muted" id="commentHint">加载中...</div>
+
+          <div id="commentList" style="margin-top:12px;display:flex;flex-direction:column;gap:10px"></div>
+
+          <form id="commentForm" style="margin-top:12px">
+            <label>发表评论</label>
+            <textarea class="input" id="commentBody" rows="4" placeholder="写下你的讨论要点..." required></textarea>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px">
+              <button class="btn primary" type="submit" id="commentSubmit">发布评论</button>
+              <span class="small muted" id="commentSubmitHint"></span>
+            </div>
+          </form>
+
+          <div class="note" style="margin-top:14px">
+            <b>提醒：</b>评论区仅供学术交流。请避免任何可识别患者身份的信息。
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="share-help" id="shareHelp" aria-hidden="true">
+    <div class="bubble">
+      <div class="arrow">↗</div>
+      <b>在微信里分享</b>
+      <div class="small">请点击右上角 “…” → 分享到朋友圈。</div>
+      <div class="small muted" style="margin-top:8px">已为你复制分享链接（如复制失败，请手动复制）。</div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn tiny" id="shareHelpClose" type="button">知道了</button>
+        <button class="btn tiny" id="shareHelpCopy" type="button">再次复制链接</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js?v=12.5"></script>
+  <script type="module" src="moment.js?v=12.5"></script>
+</body>
+</html>

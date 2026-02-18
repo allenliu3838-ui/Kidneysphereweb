@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>发布病例 · KidneySphere</title>
+  <meta name="description" content="KidneySphere × KidneySphere AI">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphere</b>
+          <span>GlomCon China × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html">首页 <span class="en">Home</span></a>
+        <a data-nav href="community.html">社区讨论 <span class="en">Community</span></a>
+        <a data-nav href="learning.html">学习中心 <span class="en">Learning</span></a>
+        <a data-nav href="frontier.html">前沿进展 <span class="en">Frontier</span></a>
+        <a data-nav href="events.html">会议/事件 <span class="en">Events</span></a>
+        <a data-nav href="about.html">关于 <span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+<section class="hero">
+  <div class="container">
+    <div class="card" style="max-width:860px;margin:0 auto">
+      <span class="badge">发布病例</span>
+      <h2 style="margin-top:10px">登录后可立即发布（Phase 1）</h2>
+      <p>目前只做“最小但稳定”的病例发布：标题 + 简要摘要 + 标签。第二轮我们接：全文详情、图片/附件上传、评论回复、引用文献、模板化结构（主诉/现病史/化验/病理/治疗/结局）。</p>
+
+      <form id="caseForm">
+        <label>选择板块</label>
+        <select class="input" name="board" id="sectionSelect">
+          <option value="glom">肾小球病</option>
+          <option value="tx">肾移植内科</option>
+          <option value="icu">重症肾内</option>
+          <option value="peds">儿童肾病</option>
+        </select>
+        <div class="small" id="sectionHint" style="margin-top:6px">分区可由管理员扩容；新增后会自动出现在这里。</div>
+
+        <label>病例标题</label>
+        <input class="input" name="title" placeholder="例如：IgAN 合并肾病综合征，免疫治疗决策" required />
+
+        <label>简要摘要（200-600 字为佳）</label>
+        <textarea class="input" name="summary" rows="6" placeholder="请写出病例亮点：背景、关键检查、诊断难点、治疗策略、随访结局…" required></textarea>
+
+        <label>标签（用逗号分隔）</label>
+        <input class="input" name="tags" placeholder="例如：IgAN, 新药, 补体, 病理" />
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px">
+          <button class="btn primary" type="submit">发布</button>
+          <a class="btn" href="community.html">返回社区</a>
+        </div>
+      </form>
+
+      <div class="hr"></div>
+      <div class="note">
+        <b>上线策略建议：</b>先开放“注册即可发帖”，快速积累内容；第二阶段上线“医生审核 + 病例讨论权限”，再引入会员费与赞助展示。
+      </div>
+    </div>
+  </div>
+</section>
+
+<script type="module">
+  import { supabase, ensureAuthed, isConfigured, toast } from './supabaseClient.js';
+
+  const form = document.getElementById('caseForm');
+  const sectionSelect = document.getElementById('sectionSelect');
+  const sectionHint = document.getElementById('sectionHint');
+
+  // require login
+  await ensureAuthed('login.html?next=post-case.html');
+
+  // Load sections dynamically (optional). Falls back to 4 default options.
+  async function loadSections(){
+    if(!isConfigured() || !supabase) return;
+    try{
+      const { data, error } = await supabase
+        .from('sections')
+        .select('key, title_zh, status, sort, created_at')
+        .eq('channel_id','case')
+        .eq('status','active')
+        .order('sort', { ascending: true })
+        .order('created_at', { ascending: false });
+      if(error) throw error;
+      if(data && data.length){
+        sectionSelect.innerHTML = data.map(s=>`<option value="${s.key}">${s.title_zh || s.key}</option>`).join('');
+        if(sectionHint) sectionHint.textContent = '分区列表由管理员维护；新增/调整后会自动同步。';
+      }
+    }catch(_e){
+      // ignore (table may not exist yet)
+    }
+  }
+
+  loadSections();
+
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+
+    const fd = new FormData(form);
+    const board = fd.get('board').toString();
+    const title = fd.get('title').toString().trim();
+    const summary = fd.get('summary').toString().trim();
+    const tags = fd.get('tags').toString().split(',').map(x=>x.trim()).filter(Boolean).slice(0,8);
+
+    if(!isConfigured()){
+      toast('Supabase 还未配置','请先在 assets/config.js 填入 SUPABASE_URL 与 SUPABASE_ANON_KEY。','err');
+      return;
+    }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
+    if(!user){
+      toast('未登录','请先登录。','err');
+      location.href='login.html?next=post-case.html';
+      return;
+    }
+
+    const payload = {
+      title,
+      board,
+      summary,
+      tags,
+      author_id: user.id,
+      author_name: user.user_metadata?.full_name || user.phone || user.email || 'Member'
+    };
+
+    const { error } = await supabase.from('cases').insert(payload);
+    if(error){
+      toast('发布失败', '请检查 Supabase 是否已建表 cases，并设置好 RLS。错误：' + error.message, 'err');
+      return;
+    }
+
+    toast('发布成功','已发布到对应板块，正在跳转…','ok');
+    setTimeout(()=> location.href = `board.html?b=${board}`, 700);
+  });
+</script>
+
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">Phase 1 Stable · 以“注册/登录 + 可发布病例 + 前沿进展吸引赞助”为核心。</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

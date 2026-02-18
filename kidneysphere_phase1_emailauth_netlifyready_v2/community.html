@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>社区讨论 · KidneySphere</title>
+  <meta name="description" content="KidneySphere × KidneySphere AI">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphere</b>
+          <span>GlomCon China × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html">首页 <span class="en">Home</span></a>
+        <a data-nav href="community.html">社区讨论 <span class="en">Community</span></a>
+        <a data-nav href="learning.html">学习中心 <span class="en">Learning</span></a>
+        <a data-nav href="frontier.html">前沿进展 <span class="en">Frontier</span></a>
+        <a data-nav href="events.html">会议/事件 <span class="en">Events</span></a>
+        <a data-nav href="about.html">关于 <span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+<section class="hero">
+  <div class="container">
+    <div class="card">
+      <span class="badge">社区讨论 · Community</span>
+      <h2 style="margin-top:10px">病例讨论是核心，其他板块逐步开放</h2>
+      <p>Phase 1：先把<strong>注册/登录</strong>与<strong>病例发布</strong>跑稳定。病例讨论下的分区支持后续扩容（管理员可新增），为未来 App 与更多讨论板块打好地基。</p>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+        <a class="btn primary" href="post-case.html">+ 发布病例</a>
+        <a class="btn" href="frontier.html">查看前沿进展</a>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="section-title">
+        <div>
+          <h3>讨论板块（Channels）</h3>
+          <p>Web 与未来 App 共用同一套频道结构；Phase 1 仅开放“病例讨论”。</p>
+        </div>
+        <span class="badge">App-ready</span>
+      </div>
+
+      <div class="grid cols-2" id="channelGrid"></div>
+
+      <div class="hr"></div>
+
+      <div class="section-title">
+        <div>
+          <h3>病例讨论分区（Sections）</h3>
+          <p>先预置四大分区，并预留“可新增”的空间。</p>
+        </div>
+        <span class="badge">Phase 1</span>
+      </div>
+
+      <div class="grid cols-2" id="sectionGrid"></div>
+
+      <div class="admin" id="sectionAdmin" hidden>
+        <div class="hr"></div>
+        <div class="note">
+          <b>管理员：新增/删除病例讨论分区</b><br/>
+          建议 key 使用英文小写（如 glom, tx, icu, peds, dialysis, genetics）。
+        </div>
+
+        <form class="form" id="addSectionForm" style="margin-top:12px">
+          <div class="form-row">
+            <div>
+              <label>Key（英文小写） <input name="key" placeholder="e.g. glom" required></label>
+            </div>
+            <div>
+              <label>中文标题 <input name="title_zh" placeholder="例如：透析与通路" required></label>
+            </div>
+          </div>
+          <label>一句话简介（可选） <textarea name="description" rows="3" placeholder="例如：HD/HDF、通路、抗凝、并发症…"></textarea></label>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+            <button class="btn primary" type="submit">添加分区</button>
+            <button class="btn" type="button" id="seedDefaultBtn">一键写入默认 4 分区</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="note">
+        <b>后续计划：</b>临床研究讨论、基础研究讨论、English Discussion 将逐步开放；同时会推出 App，用于更便捷地浏览病例讨论与前沿进展。
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<script type="module" src="community.js"></script>
+
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">Phase 1 Stable · 以“注册/登录 + 可发布病例 + 前沿进展吸引赞助”为核心。</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>站点自检 · KidneySphere</title>
+  <meta name="description" content="KidneySphere health check" />
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphere</b>
+          <span>Health / Debug</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html">首页 <span class="en">Home</span></a>
+        <a data-nav href="community.html">社区讨论 <span class="en">Community</span></a>
+        <a data-nav href="learning.html">学习中心 <span class="en">Learning</span></a>
+        <a data-nav href="frontier.html">前沿进展 <span class="en">Frontier</span></a>
+        <a data-nav href="events.html">会议/事件 <span class="en">Events</span></a>
+        <a data-nav href="about.html">关于 <span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="card" style="max-width:980px;margin:0 auto">
+          <h2 style="margin:0 0 6px">站点自检（Health / Debug）</h2>
+          <p class="small muted" style="margin:0 0 16px">
+            用于快速排查：Netlify 部署是否更新、Supabase 是否配置、是否已登录、session 是否存在。
+          </p>
+
+          <div class="note" style="margin:12px 0 18px">
+            <b>注意：</b>此页不会显示你的匿名 Key 全量，仅显示长度与首尾片段。
+          </div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin:12px 0 18px">
+            <a class="btn" href="login.html">去登录</a>
+            <a class="btn" href="post-case.html">去发布病例</a>
+            <button class="btn" id="refreshBtn" type="button">刷新状态</button>
+            <button class="btn danger" id="signOutBtn" type="button">退出登录</button>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap:14px">
+            <div class="card" style="padding:14px">
+              <b>配置</b>
+              <div class="small" id="cfg"></div>
+            </div>
+            <div class="card" style="padding:14px">
+              <b>当前访问</b>
+              <div class="small" id="loc"></div>
+            </div>
+            <div class="card" style="padding:14px">
+              <b>Session / User</b>
+              <div class="small" id="sess"></div>
+            </div>
+            <div class="card" style="padding:14px">
+              <b>Profile（可选）</b>
+              <div class="small" id="profile"></div>
+            </div>
+          </div>
+
+          <div class="hr"></div>
+
+          <details>
+            <summary><b>原始数据（调试用）</b> <span class="small muted">（展开查看 JSON，便于截图反馈）</span></summary>
+            <pre id="raw" style="white-space:pre-wrap; word-break:break-word; margin-top:10px"></pre>
+          </details>
+
+        </div>
+      </div>
+    </section>
+
+    <script type="module">
+      import { SUPABASE_URL, SUPABASE_ANON_KEY } from './assets/config.js';
+      import { supabase, isConfigured, getSession, getCurrentUser, getUserProfile, signOut } from './supabaseClient.js';
+
+      const elCfg = document.getElementById('cfg');
+      const elLoc = document.getElementById('loc');
+      const elSess = document.getElementById('sess');
+      const elProfile = document.getElementById('profile');
+      const elRaw = document.getElementById('raw');
+
+      function maskKey(k){
+        const s = String(k || '');
+        if(!s) return '(empty)';
+        if(s.length <= 12) return s;
+        return `${s.slice(0, 6)}…${s.slice(-4)} (len=${s.length})`;
+      }
+
+      function fmtTime(ts){
+        if(!ts) return '-';
+        const d = new Date(ts * 1000);
+        return `${d.toLocaleString()} (epoch=${ts})`;
+      }
+
+      function esc(str){
+        return String(str).replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]));
+      }
+
+      async function refresh(){
+        const cfgOk = isConfigured();
+
+        elCfg.innerHTML = `
+          <div>Supabase 已配置：<b>${cfgOk ? '是' : '否'}</b></div>
+          <div>SUPABASE_URL：<code>${esc(SUPABASE_URL || '(empty)')}</code></div>
+          <div>SUPABASE_ANON_KEY：<code>${esc(maskKey(SUPABASE_ANON_KEY))}</code></div>
+        `;
+
+        elLoc.innerHTML = `
+          <div>URL：<code>${esc(location.href)}</code></div>
+          <div>UserAgent：<code>${esc(navigator.userAgent)}</code></div>
+        `;
+
+        if(!cfgOk || !supabase){
+          elSess.innerHTML = `<div class="muted">Supabase 未配置，无法读取 session。</div>`;
+          elProfile.innerHTML = `<div class="muted">Supabase 未配置。</div>`;
+          elRaw.textContent = '';
+          return;
+        }
+
+        try{
+          const session = await getSession();
+          const user = await getCurrentUser();
+          const profile = user ? await getUserProfile(user) : null;
+
+          elSess.innerHTML = `
+            <div>已登录：<b>${session ? '是' : '否'}</b></div>
+            <div>expires_at：<code>${esc(fmtTime(session?.expires_at))}</code></div>
+            <div>user.id：<code>${esc(user?.id || '-')}</code></div>
+            <div>user.phone：<code>${esc(user?.phone || '-')}</code></div>
+            <div>user.email：<code>${esc(user?.email || '-')}</code></div>
+          `;
+
+          elProfile.innerHTML = profile
+            ? `
+              <div>full_name：<code>${esc(profile.full_name || '-')}</code></div>
+              <div>role：<code>${esc(profile.role || '-')}</code></div>
+              <div>avatar_url：<code>${esc(profile.avatar_url || '-')}</code></div>
+            `
+            : `<div class="muted">未读取到 profiles（可能还未建表，或未写入该用户资料）。</div>`;
+
+          const raw = { configured: cfgOk, url: location.href, session, user, profile };
+          elRaw.textContent = JSON.stringify(raw, null, 2);
+        }catch(e){
+          const msg = (e && (e.message || e.error_description)) ? String(e.message || e.error_description) : String(e || '未知错误');
+          elSess.innerHTML = `<div class="muted">读取 session 失败：</div><div><code>${esc(msg)}</code></div>`;
+          elProfile.innerHTML = `<div class="muted">Profile 读取被跳过（session 异常）。</div>`;
+          elRaw.textContent = JSON.stringify({ configured: cfgOk, url: location.href, error: msg }, null, 2);
+        }
+      }
+
+      document.getElementById('refreshBtn').addEventListener('click', refresh);
+      document.getElementById('signOutBtn').addEventListener('click', async ()=>{ await signOut(); });
+
+      refresh();
+    </script>
+
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">Health / Debug · 仅用于测试阶段快速定位问题。</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

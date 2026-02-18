@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GlomCon中国临床研究中心 · KidneySphere</title>
+  <meta name="description" content="GlomCon中国临床研究中心 · KidneySphere">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="card">
+          <span class="badge">Research · 临床研究中心</span>
+          <h1 style="margin-top:10px">GlomCon中国临床研究中心</h1>
+          <p>
+            目标：以高质量病例讨论为基础，逐步建立可协作、可复用、可追踪的中国肾脏病临床研究体系。<br/>
+            本页面先提供“项目库（Project Library）”的框架与展示入口，后续将逐步接入协作流程、模板与资源库。
+          </p>
+
+          <div class="kpi">
+            <div class="item">
+              <b>项目库</b>
+              <div class="small muted">筹备 / 启动 / 招募 / 进行 / 完成</div>
+            </div>
+            <div class="item">
+              <b>多中心协作</b>
+              <div class="small muted">共建单位与合作伙伴联动</div>
+            </div>
+            <div class="item">
+              <b>合规与透明</b>
+              <div class="small muted">隐私保护、利益冲突披露、编辑独立</div>
+            </div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="section-title">
+            <div>
+              <h3>研究项目库</h3>
+              <p>展示牵头或参与的临床研究项目（可按社区方向扩展）。</p>
+            </div>
+            <span class="badge">Projects</span>
+          </div>
+
+          
+          <div class="card soft" id="researchInfoCard" style="margin-top:12px">
+            <div class="section-title">
+              <div>
+                <h3>中心信息</h3>
+                <p class="small muted">公开展示。管理员可在后台更新此区域内容。</p>
+              </div>
+              <span class="badge">Info</span>
+            </div>
+            <div id="researchInfo" class="small" style="line-height:1.75">
+              <div class="small muted">加载中…</div>
+            </div>
+          </div>
+
+<div id="projectGrid" class="grid cols-2" style="margin-top:12px"></div>
+
+          <div class="admin" id="adminBox" hidden>
+            <div class="hr"></div>
+            <div class="note">
+              <b>管理员/超级管理员：</b>可在此添加、编辑、隐藏研究项目（基础版）。
+            </div>
+
+
+            <div class="section-title" style="margin-top:12px">
+              <div>
+                <h3>中心信息编辑</h3>
+                <p>修改后会显示在“中心信息”卡片中。</p>
+              </div>
+              <span class="badge">Admin</span>
+            </div>
+
+            <form class="form" id="settingsForm" style="margin-top:12px">
+              <label>中心介绍（可多行）<textarea class="input" name="intro" rows="4" placeholder="例如：研究中心定位、目标、流程等"></textarea></label>
+              <label>联系方式（可多行）<textarea class="input" name="contact" rows="2" placeholder="例如：联系人、邮箱、电话"></textarea></label>
+              <label>地址（可多行）<textarea class="input" name="address" rows="2" placeholder="例如：单位、城市"></textarea></label>
+              <button class="btn primary" type="submit">保存中心信息</button>
+              <div class="small muted" style="margin-top:8px">提示：只有管理员/超级管理员可保存。</div>
+            </form>
+
+            <div class="hr"></div>
+
+            <form class="form" id="projectForm" style="margin-top:12px">
+              <div class="form-row">
+                <div>
+                  <label>项目名称 <input class="input" name="title" placeholder="例如：IgAN 多中心回顾性队列" required></label>
+                </div>
+                <div>
+                  <label>状态
+                    <select class="input" name="status">
+                      <option value="planning">筹备中</option>
+                      <option value="starting">启动中</option>
+                      <option value="recruiting">招募中</option>
+                      <option value="ongoing">进行中</option>
+                      <option value="completed">已完成</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div>
+                  <label>研究类型 <input class="input" name="study_type" placeholder="回顾性 / 前瞻性 / 登记 / 队列 / 试验（可选）"></label>
+                </div>
+                <div>
+                  <label>负责人（PI） <input class="input" name="pi" placeholder="姓名（可选）"></label>
+                </div>
+              </div>
+
+              <label>一句话摘要 <textarea class="input" name="summary" rows="3" placeholder="研究目的/主要终点/协作方式（可选）"></textarea></label>
+
+              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center">
+                <button class="btn primary" type="submit">添加项目</button>
+                <span class="small muted">提示：添加后可在下方“项目管理”中调整排序/状态。</span>
+              </div>
+            </form>
+
+            <div class="hr"></div>
+            <div class="section-title">
+              <div>
+                <h3 style="margin:0">项目管理</h3>
+                <p>仅管理员可见：支持编辑字段、隐藏/恢复、排序（sort_order 越小越靠前）。</p>
+              </div>
+              <span class="badge">Admin</span>
+            </div>
+            <div id="adminProjectsList" class="stack" style="margin-top:12px"></div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="section-title">
+            <div>
+              <h3>合作与联系</h3>
+              <p>欢迎共建单位/研究者加入协作（后续将提供标准化合作流程与模板）。</p>
+            </div>
+            <span class="badge">Collaboration</span>
+          </div>
+
+          <div class="grid cols-2" style="margin-top:12px">
+            <div class="card soft">
+              <h3>合作方式</h3>
+              <p class="small">
+                • 多中心协作与共建<br/>
+                • 项目方案讨论与统计支持（规划中）<br/>
+                • 注册研究与队列（规划中）
+              </p>
+            </div>
+            <div class="card soft">
+              <h3>联系</h3>
+              <p class="small">
+                邮箱：<a href="mailto:china@glomcon.org">china@glomcon.org</a><br/>
+                备注：请注明“临床研究中心合作/项目意向”。
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" data-toast></div>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>GlomCon中国临床研究中心</b>
+        </div>
+        <div class="small">以学术独立与透明披露为原则，逐步建设可持续的协作研究体系。</div>
+      </div>
+      <div class="small">
+        <div>© 2025–2026 KidneySphere</div>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="research.js?v=20260118_001"></script>
+  <script type="module" src="app.js?v=20260128_030"></script>
+</body>
+</html>

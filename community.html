@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>社区讨论 · KidneySphere</title>
+  <meta name="description" content="KidneySphere × KidneySphere AI">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+<section class="hero">
+  <div class="container">
+    <div class="card">
+      <span class="badge">社区讨论 · Community</span>
+      <h2 style="margin-top:10px">病例讨论是核心：文献学习与科研讨论已开放</h2>
+      <p>我们把<strong>病例讨论</strong>做成“可沉淀、可检索、可扩展”的知识库；同时开放<strong>文献学习（Journal Club）</strong>与<strong>科研讨论</strong>，让讨论不止于病例。</p>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+        <a class="btn primary" href="#channelsTop">进入讨论板块</a>
+        <a class="btn" href="post-case.html">+ 发布病例（需登录）</a>
+        <a class="btn" href="post-case.html?c=literature">+ 发布文献讨论（需登录）</a>
+        <a class="btn" href="post-case.html?c=research">+ 发布科研讨论（需登录）</a>
+      </div>
+
+      <div class="note" style="margin-top:14px">
+        <b>提示：</b>已开放「病例讨论 / 文献学习 / 科研讨论」；<b>国际讨论专区（英语）</b>将于后续开放。所有时间统一为<b>北京时间</b>。
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="section-title" id="channelsTop">
+        <div>
+          <h3>讨论板块（Channels）</h3>
+          <p>病例讨论分区 + 文献学习 + 科研讨论。国际讨论专区（英语）敬请期待。</p>
+        </div>
+        <span class="badge">导航</span>
+      </div>
+
+      <div class="grid cols-2" id="channelGrid"></div>
+
+      <div class="hr"></div>
+
+      <div class="section-title" id="sectionsTop">
+        <div>
+          <h3>病例讨论分区（选择分区进入）</h3>
+          <p>进入分区 → 浏览病例 → 回复讨论（时间统一为北京时间）。</p>
+        </div>
+        <span class="badge">已开放</span>
+      </div>
+
+      <div class="grid cols-2" id="sectionGrid"></div>
+
+      <div class="admin" id="sectionAdmin" hidden>
+        <div class="hr"></div>
+        <div class="note">
+          <b>管理员：新增/删除核心社区分区</b><br/>
+          建议 key 使用英文小写（如 glom, tx, icu, peds, rare, path 等）。
+        </div>
+
+        <form class="form" id="addSectionForm" style="margin-top:12px">
+          <div class="form-row">
+            <div>
+              <label>Key（英文小写） <input name="key" placeholder="e.g. glom" required></label>
+            </div>
+            <div>
+              <label>中文标题 <input name="title_zh" placeholder="例如：透析与通路" required></label>
+            </div>
+          </div>
+          <label>一句话简介（可选） <textarea name="description" rows="3" placeholder="例如：HD/HDF、通路、抗凝、并发症…"></textarea></label>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+            <button class="btn primary" type="submit">添加分区</button>
+            <button class="btn" type="button" id="seedDefaultBtn">一键写入默认 5 分区</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="note">
+        <b>后续计划：</b>临床研究讨论、基础研究讨论、English Discussion 将逐步开放；同时会推出 App，用于更便捷地浏览病例讨论与前沿进展。
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<script type="module" src="community.js?v=20260123_001"></script>
+
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">以病例讨论与学习体系为核心，逐步建设可沉淀、可检索的肾脏病知识社区。</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js?v=20260128_030"></script>
+</body>
+</html>

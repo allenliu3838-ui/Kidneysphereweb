@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>发布病例 · KidneySphere</title>
+  <meta name="description" content="KidneySphere × KidneySphere AI">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+<section class="hero">
+  <div class="container">
+    <div class="card" style="max-width:860px;margin:0 auto">
+      <span class="badge" id="postBadge">发布病例</span>
+      <h2 style="margin-top:10px" id="postTitle">登录后可立即发布</h2>
+      <p id="postIntro">目前提供“最小但稳定”的发布：标题 + 简要摘要 + 标签 + 附件（可拖拽/粘贴）。已支持详情页与评论回复（最小版）。后续会逐步加入：模板化结构（主诉/现病史/化验/病理/治疗/结局）、引用文献等。</p>
+
+      <!-- Doctor verification gate (Channel A: invite code). Filled by JS. -->
+      <div id="doctorGate" class="note" style="display:none; margin-top:12px"></div>
+
+      <form id="caseForm">
+        <label>选择板块</label>
+        <select class="input" name="board" id="sectionSelect">
+          <option value="glom">肾小球与间质性肾病社区</option>
+          <option value="tx">肾移植内科社区</option>
+          <option value="icu">重症肾内（电解质/酸碱）与透析社区</option>
+          <option value="peds">儿童肾脏病社区</option>
+          <option value="rare">罕见肾脏病社区</option>
+        </select>
+        <div class="small" id="sectionHint" style="margin-top:6px">分区可由管理员扩容；新增后会自动出现在这里。</div>
+
+        <label id="titleLabel">病例标题</label>
+        <input class="input" name="title" placeholder="例如：IgAN 合并肾病综合征，免疫治疗决策" required />
+
+        <label id="summaryLabel">简要摘要（200-600 字为佳）</label>
+        <textarea class="input" name="summary" rows="6" placeholder="请写出病例亮点：背景、关键检查、诊断难点、治疗策略、随访结局…" required></textarea>
+
+        <div id="aiPostTools" style="margin-top:12px" hidden></div>
+
+        <label>标签（用逗号分隔）</label>
+        <input class="input" name="tags" placeholder="例如：IgAN, 新药, 补体, 病理" />
+
+        <div class="attach-tools" style="margin-top:12px">
+          <input id="casePostAttachInput" type="file" multiple hidden accept="image/*,application/pdf,.pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+          <button class="btn tiny" type="button" id="casePostPickAttachBtn">📎 添加图片/文件</button>
+          <button class="btn tiny" type="button" id="casePostClearAttachBtn">清空</button>
+          <span class="attach-hint">支持图片 / PDF / Word（单个≤20MB，最多 9 个；可直接拖拽/粘贴到摘要输入框）</span>
+        </div>
+        <div id="casePostAttachPreview" class="attach-list"></div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px">
+          <button class="btn primary" type="submit">发布</button>
+          <a class="btn" id="backBtn" href="community.html">返回社区</a>
+        </div>
+      </form>
+
+      <div class="hr"></div>
+      <div class="note">
+        <b>上线策略建议：</b>医生认证现已支持：<b>邀请码快速认证</b> 与 <b>人工审核认证</b>。
+        有邀请码的医生建议优先用邀请码；没有邀请码可上传材料提交审核。
+      </div>
+    </div>
+  </div>
+</section>
+
+<script type="module">
+  import { supabase, ensureAuthed, isConfigured, toast, getSession, getUserProfile, normalizeRole, isAdminRole } from './supabaseClient.js?v=20260128_030';
+  import { mountKSEditor } from './ks_editor.js?v=20260213_001';
+
+  const form = document.getElementById('caseForm');
+  const sectionSelect = document.getElementById('sectionSelect');
+  const sectionHint = document.getElementById('sectionHint');
+
+  // Mode: case (default) / research / literature
+  const qs = new URLSearchParams(location.search);
+  const mode = (qs.get('c') || 'case').toString().toLowerCase();
+  const presetBoard = (qs.get('board') || qs.get('b') || '').toString().trim();
+
+  const postBadge = document.getElementById('postBadge');
+  const postTitle = document.getElementById('postTitle');
+  const postIntro = document.getElementById('postIntro');
+  const titleLabel = document.getElementById('titleLabel');
+  const summaryLabel = document.getElementById('summaryLabel');
+  const backBtn = document.getElementById('backBtn');
+
+  const aiPostTools = document.getElementById('aiPostTools');
+
+  function ensureBoardOption(value, label){
+    if(!sectionSelect) return;
+    const exists = Array.from(sectionSelect.options || []).some(o => String(o.value) === String(value));
+    if(exists) return;
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = label || value;
+    sectionSelect.appendChild(opt);
+  }
+
+  // Apply mode-specific UI (keep posting pipeline统一走 cases 表)
+  (function applyMode(){
+    if(mode === 'research'){
+      postBadge && (postBadge.textContent = '发布科研讨论');
+      postTitle && (postTitle.textContent = '发布一条科研讨论主题');
+      postIntro && (postIntro.textContent = '用于临床/基础研究的方案讨论、统计解读、数据复现与想法碰撞。支持附件（图片/PDF/Word），可拖拽/粘贴。');
+      titleLabel && (titleLabel.textContent = '主题标题');
+      summaryLabel && (summaryLabel.textContent = '简要摘要（建议 200-800 字）');
+      ensureBoardOption('research', '科研讨论');
+      sectionSelect && (sectionSelect.value = 'research');
+      // Hide board picker (固定到 research)
+      if(sectionSelect){
+        const lb = sectionSelect.previousElementSibling;
+        if(lb && lb.tagName === 'LABEL') lb.style.display = 'none';
+        sectionSelect.style.display = 'none';
+      }
+      if(sectionHint) sectionHint.style.display = 'none';
+      if(backBtn) backBtn.href = 'board.html?c=research';
+    }else if(mode === 'literature'){
+      postBadge && (postBadge.textContent = '发布文献讨论');
+      postTitle && (postTitle.textContent = '发布一条文献学习（Journal Club）主题');
+      postIntro && (postIntro.textContent = '可分享指南/综述/临床试验/新药机制并组织讨论。支持上传 PDF/图片，支持拖拽/粘贴。');
+      titleLabel && (titleLabel.textContent = '文献/主题标题');
+      summaryLabel && (summaryLabel.textContent = '要点摘要（建议 200-800 字）');
+      ensureBoardOption('literature', '文献学习（Journal Club）');
+      sectionSelect && (sectionSelect.value = 'literature');
+      // Hide board picker (固定到 literature)
+      if(sectionSelect){
+        const lb = sectionSelect.previousElementSibling;
+        if(lb && lb.tagName === 'LABEL') lb.style.display = 'none';
+        sectionSelect.style.display = 'none';
+      }
+      if(sectionHint) sectionHint.style.display = 'none';
+      if(backBtn) backBtn.href = 'board.html?c=literature';
+    }else{
+      // Default: case
+      postBadge && (postBadge.textContent = '发布病例');
+      if(backBtn) backBtn.href = 'community.html';
+    }
+  })();
+
+	  // Attachments picker (for the case itself)
+	  const attachInput = document.getElementById('casePostAttachInput');
+	  const attachPickBtn = document.getElementById('casePostPickAttachBtn');
+	  const attachClearBtn = document.getElementById('casePostClearAttachBtn');
+	  const attachPreview = document.getElementById('casePostAttachPreview');
+	  const summaryInput = form?.querySelector('textarea[name="summary"]');
+
+	  // Word-like rich editor (sync plain text back to textarea for legacy logic)
+	  const summaryEditor = summaryInput ? mountKSEditor(summaryInput, {
+	    mode: 'comment',
+	    placeholder: '请在这里写摘要 / 讨论内容（支持加粗、颜色、列表；从 Word 粘贴可自动排版）',
+	    syncToTextarea: true,
+	  }) : null;
+	  const summaryDropEl = summaryEditor ? summaryEditor.surface : summaryInput;
+	  const summaryHoverEl = summaryEditor ? summaryEditor.root : summaryInput;
+
+	  let attachPicks = []; // {id, file}
+
+	  function safeFilename(name){
+	    // Supabase Storage object keys should be URL-safe (ASCII). Non-ASCII characters
+	    // (e.g. Chinese) can trigger "Invalid key" errors in supabase-js.
+	    const raw = String(name || 'file').trim();
+	    const dot = raw.lastIndexOf('.');
+	    const stemRaw = dot > 0 ? raw.slice(0, dot) : raw;
+	    const extRaw = dot > 0 ? raw.slice(dot + 1) : '';
+	    let stem = stemRaw
+	      .normalize('NFKD')
+	      .replace(/\s+/g, '_')
+	      .replace(/[^a-zA-Z0-9_-]/g, '_')
+	      .replace(/_+/g, '_')
+	      .replace(/^_+|_+$/g, '')
+	      .slice(0, 80);
+	    if(!stem) stem = 'file';
+	    const ext = extRaw.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 10);
+	    return ext ? `${stem}.${ext}` : stem;
+	  }
+
+	  function guessKindFromMime(mime, name){
+	    const m = String(mime || '').toLowerCase();
+	    const n = String(name || '').toLowerCase();
+	    if(m.startsWith('image/')) return 'image';
+	    if(m === 'application/pdf' || n.endsWith('.pdf')) return 'pdf';
+	    if(m.includes('word') || n.endsWith('.doc') || n.endsWith('.docx')) return 'doc';
+	    return 'file';
+	  }
+
+	  function renderAttachDraft(){
+	    if(!attachPreview) return;
+	    if(!attachPicks.length){
+	      attachPreview.innerHTML = '';
+	      return;
+	    }
+	    attachPreview.innerHTML = attachPicks.map(p=>{
+	      const f = p.file;
+	      const kind = guessKindFromMime(f?.type, f?.name);
+	      const icon = kind === 'image' ? '🖼️' : (kind === 'pdf' ? '📄' : (kind === 'doc' ? '📝' : '📎'));
+	      const sizeMB = f && f.size ? (f.size/1024/1024).toFixed(1) : '';
+	      const label = `${icon} ${f?.name || '附件'}${sizeMB ? ` · ${sizeMB}MB` : ''}`;
+	      return `<span class="file-chip">${label} <button type="button" class="btn tiny" data-attach-remove="${p.id}" style="margin-left:6px">移除</button></span>`;
+	    }).join(' ');
+	  }
+
+	  function clearAttachDraft(){
+	    attachPicks = [];
+	    if(attachInput) attachInput.value = '';
+	    renderAttachDraft();
+	    if(attachClearBtn) attachClearBtn.disabled = true;
+	  }
+
+	  function addAttachFiles(files){
+	    const arr = Array.from(files || []).filter(Boolean);
+	    if(!arr.length) return;
+	    const MAX = 9;
+	    const MAX_BYTES = 20 * 1024 * 1024;
+	    let added = 0;
+	    for(const f of arr){
+	      if(attachPicks.length >= MAX) break;
+	      if(f.size && f.size > MAX_BYTES){
+	        toast('附件过大', `${f.name || '文件'} 超过 20MB，已跳过。`, 'err');
+	        continue;
+	      }
+	      const id = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+	      attachPicks.push({ id, file: f });
+	      added++;
+	    }
+	    if(added){
+	      renderAttachDraft();
+	      if(attachClearBtn) attachClearBtn.disabled = false;
+	    }
+	  }
+
+	  // Bind picker UI
+	  if(attachClearBtn) attachClearBtn.disabled = true;
+	  attachPickBtn?.addEventListener('click', ()=> attachInput?.click());
+	  attachClearBtn?.addEventListener('click', clearAttachDraft);
+	  attachInput?.addEventListener('change', (e)=> addAttachFiles(e.target.files));
+	  attachPreview?.addEventListener('click', (e)=>{
+	    const btn = e.target?.closest?.('[data-attach-remove]');
+	    if(!btn) return;
+	    const id = String(btn.getAttribute('data-attach-remove') || '');
+	    attachPicks = attachPicks.filter(x=>x.id !== id);
+	    renderAttachDraft();
+	    if(attachClearBtn) attachClearBtn.disabled = !attachPicks.length;
+	  });
+
+	  // Drag & drop / paste to summary input
+	  (function bindPasteDrop(){
+	    if(!summaryDropEl) return;
+	    const targets = [summaryDropEl, attachPreview, form].filter(Boolean);
+	    const setHover = (on)=>{
+	      try{ (summaryHoverEl || summaryDropEl).classList.toggle('drop-hover', !!on); }catch(_e){}
+	    };
+	    targets.forEach(t=>{
+	      t.addEventListener('dragover', (e)=>{
+	        const types = Array.from(e.dataTransfer?.types || []);
+	        if(types.includes('Files')){
+	          e.preventDefault();
+	          setHover(true);
+	        }
+	      });
+	      t.addEventListener('dragleave', ()=> setHover(false));
+	      t.addEventListener('drop', (e)=>{
+	        const files = e.dataTransfer?.files;
+	        if(files && files.length){
+	          e.preventDefault();
+	          setHover(false);
+	          addAttachFiles(files);
+	          toast('已添加附件', `已添加 ${files.length} 个文件`, 'ok');
+	        }
+	      });
+	    });
+	    summaryDropEl.addEventListener('paste', (e)=>{
+	      const dt = e.clipboardData;
+	      if(!dt) return;
+	      const files = [];
+	      for(const item of Array.from(dt.items || [])){
+	        if(item.kind === 'file'){
+	          const f = item.getAsFile();
+	          if(f) files.push(f);
+	        }
+	      }
+	      if(!files.length) return;
+	      const hasText = Boolean(dt.getData('text/plain'));
+	      if(!hasText) e.preventDefault();
+	      addAttachFiles(files);
+	      toast('已添加附件', '已从剪贴板添加', 'ok');
+	    });
+	  })();
+
+
+
+  // --- AI Assist (Stage1 Free) for posting ---
+
+  function detectPrivacyFlags(text){
+    const s = String(text || '');
+    const flags = [];
+    // Mainland China mobile numbers
+    if(/(?:\+?86)?1[3-9]\d{9}/.test(s)) flags.push('疑似手机号');
+    // PRC ID number (rough)
+    if(/\b\d{17}[0-9Xx]\b/.test(s)) flags.push('疑似身份证号');
+    // Hospitalization number keywords
+    if(/(住院号|门诊号|病案号|就诊号|ID[:：]?)/i.test(s)) flags.push('疑似就诊/住院编号');
+    return flags;
+  }
+
+  async function copyText(text){
+    const t = String(text || '');
+    if(!t.trim()) return false;
+    try{
+      await navigator.clipboard.writeText(t);
+      return true;
+    }catch(_e){
+      try{
+        const ta = document.createElement('textarea');
+        ta.value = t;
+        ta.style.position = 'fixed';
+        ta.style.top = '-1000px';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return ok;
+      }catch(_e2){
+        return false;
+      }
+    }
+  }
+
+  function modeLabel(){
+    if(mode === 'research') return '科研讨论';
+    if(mode === 'literature') return '文献学习（Journal Club）';
+    return '病例讨论';
+  }
+
+  function selectedBoardLabel(){
+    try{
+      const opt = sectionSelect?.options?.[sectionSelect.selectedIndex];
+      return String(opt?.textContent || sectionSelect?.value || '').trim();
+    }catch(_e){
+      return String(sectionSelect?.value || '').trim();
+    }
+  }
+
+  function summarizeDraftAttachments(){
+    if(!attachPicks || !attachPicks.length) return '无';
+    return attachPicks.map(p=>{
+      const f = p?.file;
+      if(!f) return null;
+      const kind = guessKindFromMime(f.type, f.name);
+      const sizeMB = f.size ? (f.size/1024/1024).toFixed(1) : '';
+      return `- ${f.name || '附件'}（${kind}${sizeMB ? '，' + sizeMB + 'MB' : ''}）`;
+    }).filter(Boolean).join('\n');
+  }
+
+  function buildAiPostContextText(){
+    if(!form) return '';
+    const fd = new FormData(form);
+    const boardKey = String(fd.get('board') || '').trim();
+    const title = String(fd.get('title') || '').trim();
+    const summary = String(fd.get('summary') || '').trim();
+    const tagsRaw = String(fd.get('tags') || '').trim();
+
+    const lines = [];
+    lines.push(`【发布类型】${modeLabel()}`);
+    lines.push(`【板块】${selectedBoardLabel()}${boardKey ? `（key: ${boardKey}）` : ''}`);
+    lines.push('');
+    lines.push('【当前草稿】');
+    lines.push(`标题：${title || '（未填写）'}`);
+    lines.push('摘要/要点：');
+    lines.push(summary || '（未填写）');
+    lines.push(`标签：${tagsRaw || '（未填写）'}`);
+    lines.push('');
+    lines.push('【已选择附件（仅文件名/类型）】');
+    lines.push(summarizeDraftAttachments());
+    lines.push('');
+    lines.push('【提醒】请确认以上内容已去标识化（姓名/电话/住院号/身份证等）。如发现疑似隐私信息，请先删除或打码后再复制到外部AI。');
+    return lines.join('\n');
+  }
+
+  const AI_POST_PROMPT_VERSION = 'stage1_free_post_v1';
+
+  function buildAiPostPrompt(){
+    const targetLen = (mode === 'case') ? '200-600' : '200-800';
+    return [
+      '你是医学学术平台的编辑助手。目标：把下面的草稿整理成适合发布在肾脏病学术社区的帖子。',
+      '请仅在我提供信息范围内整理，不要编造未出现的信息。不得输出个体化处方或医疗建议。',
+      '',
+      '请严格按以下格式输出（便于我自动填回网页）：',
+      '标题：...（中文为主，必要时可加英文缩写）',
+      `摘要：...（建议 ${targetLen} 字，突出背景/关键检查/诊断难点/治疗策略/随访结局；缺失处写“待补充”）`,
+      '标签：tag1, tag2, tag3（最多 8 个，用逗号分隔）',
+      '讨论问题：1) ... 2) ... 3) ...（可选，3-6 条）',
+      '',
+      '额外要求：',
+      '- 语言风格稳重、学术、清晰，可直接用于病例讨论。',
+      '- 如发现可能隐私信息，请在输出末尾加一行：隐私提示：xxx（建议删除）。',
+      '',
+      '---',
+      buildAiPostContextText(),
+    ].join('\n');
+  }
+
+  function buildAiPostStructPrompt(){
+    return [
+      '你是医学病例结构化整理助手。请仅基于我提供的草稿信息整理结构化模板，不要推断、不要补全缺失信息。',
+      '输出为 Markdown（不要附加多余解释）。缺失信息请标注“待补充”。',
+      '',
+      '请按以下结构输出：',
+      '## 主诉',
+      '## 现病史（按时间线）',
+      '## 既往史/用药史（如有）',
+      '## 关键检查（化验/影像/病理）',
+      '## 诊断思路（鉴别要点）',
+      '## 治疗经过与反应',
+      '## 随访与结局',
+      '## 讨论问题（3-6条）',
+      '',
+      '重要：不得输出具体处方建议；仅整理文本信息与讨论点。',
+      '',
+      '---',
+      buildAiPostContextText(),
+    ].join('\n');
+  }
+
+  function parseAiOutput(text){
+    const s = String(text || '');
+    const out = { title: '', summary: '', tags: '' };
+
+    const mTitle = s.match(/(?:^|\n)\s*(?:标题|Title)\s*[:：]\s*(.+)/i);
+    if(mTitle) out.title = String(mTitle[1] || '').trim();
+
+    const mSummary = s.match(/(?:^|\n)\s*(?:摘要|Summary)\s*[:：]\s*([\s\S]+?)(?=\n\s*(?:标签|Tags?|讨论问题|Questions?)\s*[:：]|$)/i);
+    if(mSummary) out.summary = String(mSummary[1] || '').trim();
+
+    const mTags = s.match(/(?:^|\n)\s*(?:标签|Tags?)\s*[:：]\s*(.+)/i);
+    if(mTags) out.tags = String(mTags[1] || '').replace(/[；;]/g, ',').trim();
+
+    return out;
+  }
+
+  function mountAiPostTools(){
+    if(!aiPostTools) return;
+
+    aiPostTools.innerHTML = `
+      <details class="note" open>
+        <summary style="cursor:pointer"><b>AI 辅助发布（免费）</b> <span class="small muted">（网站不调用AI；复制到任意免费AI生成后粘贴回填）</span></summary>
+        <div style="margin-top:10px">
+          <div class="small muted" style="margin-bottom:8px">
+            建议先在上方“摘要”框里写要点/粘贴原始材料，再点击复制提示词，让免费AI帮你整理成更适合发布的标题、摘要与标签。
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+            <button class="btn tiny" type="button" id="aiPostCopyBtn">复制提示词+当前草稿（标题/摘要/标签）</button>
+            <button class="btn tiny" type="button" id="aiPostCopyStructBtn">复制结构化模板提示词+草稿</button>
+          </div>
+
+          <label class="small muted">粘贴 AI 输出（支持格式：标题：… 摘要：… 标签：…）</label>
+          <textarea class="input" id="aiPostOutput" rows="8" placeholder="把免费AI生成的内容粘贴到这里…"></textarea>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center">
+            <button class="btn primary" type="button" id="aiPostFillBtn">自动填充到表单</button>
+            <button class="btn" type="button" id="aiPostReplaceSummaryBtn">用这段文字替换摘要</button>
+            <button class="btn" type="button" id="aiPostAppendSummaryBtn">追加到摘要末尾</button>
+            <span class="small muted" id="aiPostHint"></span>
+          </div>
+
+          <div class="small muted" style="margin-top:10px">
+            提醒：不要包含患者姓名/电话/住院号/身份证等可识别信息。若包含，请先删除或打码。
+          </div>
+        </div>
+      </details>
+    `;
+
+    const copyBtn = document.getElementById('aiPostCopyBtn');
+    const copyStructBtn = document.getElementById('aiPostCopyStructBtn');
+    const outTa = document.getElementById('aiPostOutput');
+    const fillBtn = document.getElementById('aiPostFillBtn');
+    const replaceBtn = document.getElementById('aiPostReplaceSummaryBtn');
+    const appendBtn = document.getElementById('aiPostAppendSummaryBtn');
+    const hint = document.getElementById('aiPostHint');
+
+    const titleEl = form?.querySelector('input[name="title"]');
+    const summaryEl = form?.querySelector('textarea[name="summary"]');
+    const tagsEl = form?.querySelector('input[name="tags"]');
+
+    function setHint(msg){
+      if(hint) hint.textContent = msg || '';
+    }
+
+    copyBtn?.addEventListener('click', async ()=>{
+      const text = buildAiPostPrompt();
+      const flags = detectPrivacyFlags(text);
+      if(flags.length){
+        const ok = confirm(`检测到可能隐私信息：${flags.join('、')}\n\n建议先删除/打码后再复制到外部AI。\n\n仍要复制吗？`);
+        if(!ok) return;
+      }
+      const ok = await copyText(text);
+      if(ok){
+        toast('已复制', '已复制到剪贴板。可粘贴到任意免费AI生成发布文案。', 'ok');
+        setHint('已复制提示词。');
+      }else{
+        toast('复制失败', '浏览器可能阻止了剪贴板权限。请手动选中复制。', 'err');
+        setHint('复制失败。');
+      }
+    });
+
+    copyStructBtn?.addEventListener('click', async ()=>{
+      const text = buildAiPostStructPrompt();
+      const flags = detectPrivacyFlags(text);
+      if(flags.length){
+        const ok = confirm(`检测到可能隐私信息：${flags.join('、')}\n\n建议先删除/打码后再复制到外部AI。\n\n仍要复制吗？`);
+        if(!ok) return;
+      }
+      const ok = await copyText(text);
+      if(ok){
+        toast('已复制', '已复制到剪贴板。可粘贴到任意免费AI生成结构化模板。', 'ok');
+        setHint('已复制结构化提示词。');
+      }else{
+        toast('复制失败', '浏览器可能阻止了剪贴板权限。请手动选中复制。', 'err');
+        setHint('复制失败。');
+      }
+    });
+
+    fillBtn?.addEventListener('click', ()=>{
+      const txt = String(outTa?.value || '').trim();
+      if(!txt){ toast('内容为空', '请先粘贴 AI 输出。', 'err'); return; }
+
+      const flags = detectPrivacyFlags(txt);
+      if(flags.length){
+        const ok = confirm(`粘贴内容中检测到：${flags.join('、')}\n\n建议先删除/打码后再填充。\n\n仍要继续吗？`);
+        if(!ok) return;
+      }
+
+      const parsed = parseAiOutput(txt);
+      let filled = 0;
+      if(parsed.title && titleEl){ titleEl.value = parsed.title; filled++; }
+      if(parsed.summary && summaryEl){ summaryEl.value = parsed.summary; filled++; }
+      if(parsed.tags && tagsEl){ tagsEl.value = parsed.tags; filled++; }
+
+      if(!filled){
+        toast('未识别到字段', '请确保 AI 输出包含：标题：… 摘要：… 标签：…', 'err');
+        setHint('未识别到字段。');
+      }else{
+        toast('已填充', '已将识别出的字段写入表单，可再手动微调。', 'ok');
+        setHint(`已填充 ${filled} 项。`);
+      }
+    });
+
+    replaceBtn?.addEventListener('click', ()=>{
+      const txt = String(outTa?.value || '').trim();
+      if(!txt){ toast('内容为空', '请先粘贴 AI 输出。', 'err'); return; }
+      if(!summaryEl) return;
+      summaryEl.value = txt;
+      toast('已替换摘要', '已用当前文本替换摘要。', 'ok');
+      setHint('已替换摘要。');
+    });
+
+    appendBtn?.addEventListener('click', ()=>{
+      const txt = String(outTa?.value || '').trim();
+      if(!txt){ toast('内容为空', '请先粘贴 AI 输出。', 'err'); return; }
+      if(!summaryEl) return;
+      const cur = String(summaryEl.value || '').trim();
+      summaryEl.value = cur ? (cur + '\n\n' + txt) : txt;
+      toast('已追加到摘要', '已将文本追加到摘要末尾。', 'ok');
+      setHint('已追加。');
+    });
+  }
+
+  // require login
+  // Keep the full URL (including mode & preset board) for login redirect
+  const next = encodeURIComponent('post-case.html' + location.search);
+  await ensureAuthed(`login.html?next=${next}`);
+
+  // AI tools are paused in this phase
+  const ENABLE_AI_POST_TOOLS = false;
+  if(ENABLE_AI_POST_TOOLS){
+    mountAiPostTools();
+  }else{
+    try{ if(aiPostTools) aiPostTools.hidden = true; }catch(_e){}
+  }
+
+  // Doctor verification gate (Channel A: invite code)
+  // Note: backend RLS also enforces this; UI here is to provide a clear path.
+  let canPostCase = true;
+  try{
+    const sess = await getSession();
+    const u = sess?.user;
+    if(u){
+      const prof = await getUserProfile(u);
+      const r = normalizeRole(prof?.role || u.user_metadata?.role || 'member');
+
+      // Board moderators (table) should be allowed to post even if not doctor-verified.
+      let isBoardModerator = false;
+      try{
+        const rr = await supabase
+          .from('board_moderators')
+          .select('board_key')
+          .eq('user_id', u.id)
+          .limit(1);
+        if(!rr.error){
+          isBoardModerator = Array.isArray(rr.data) && rr.data.length > 0;
+        }
+      }catch(_e){
+        // ignore (table may not exist yet)
+        isBoardModerator = false;
+      }
+
+      const ok = Boolean(
+        isAdminRole(r)
+        || r === 'owner'
+        || r === 'moderator'
+        || r === 'doctor_verified'
+        || r === 'doctor'
+        || isBoardModerator
+      );
+      canPostCase = ok;
+      if(!ok){
+        const gate = document.getElementById('doctorGate');
+        if(gate){
+          gate.style.display = 'block';
+          const back = encodeURIComponent('post-case.html' + location.search);
+          gate.innerHTML = `<b>提示：</b>发布病例与上传附件需要完成<b>医生认证</b>（邀请码快速认证或人工审核）。\
+            <a class="btn tiny" href="verify-doctor.html?next=${back}">去认证</a>\
+            <div class="small muted" style="margin-top:6px">\
+              认证通过后，你即可发布病例并参与病例讨论。\
+            </div>`;
+        }
+
+        // Disable publish & attachment buttons (drafting is still allowed)
+        const submitBtn = form?.querySelector('button[type="submit"]');
+        if(submitBtn) submitBtn.disabled = true;
+        const pickBtn = document.getElementById('casePostPickAttachBtn');
+        if(pickBtn) pickBtn.disabled = true;
+        const clearBtn = document.getElementById('casePostClearAttachBtn');
+        if(clearBtn) clearBtn.disabled = true;
+        const fileInput = document.getElementById('casePostAttachInput');
+        if(fileInput) fileInput.disabled = true;
+      }
+    }
+  }catch(_e){
+    // Fail-open: do not block drafting. RLS will still block publishing if needed.
+    canPostCase = true;
+  }
+
+  // Cache the current user once (avoid transient getSession glitches on submit)
+  let currentUser = null;
+  if(isConfigured() && supabase){
+    try{
+      const { data } = await supabase.auth.getSession();
+      currentUser = data?.session?.user || null;
+    }catch(_e){
+      currentUser = null;
+    }
+  }
+
+  async function ensureUser(){
+    if(currentUser) return currentUser;
+    if(!isConfigured() || !supabase) return null;
+    try{
+      const { data } = await supabase.auth.getSession();
+      currentUser = data?.session?.user || null;
+      return currentUser;
+    }catch(_e){
+      return null;
+    }
+  }
+
+  // Load sections dynamically (optional). Falls back to 4 default options.
+  async function loadSections(){
+    if(!isConfigured() || !supabase) return;
+    try{
+      const { data, error } = await supabase
+        .from('sections')
+        .select('key, title_zh, status, sort, created_at')
+        .eq('channel_id','case')
+        .eq('status','active')
+        .order('sort', { ascending: true })
+        .order('created_at', { ascending: false });
+      if(error) throw error;
+      if(data && data.length){
+        sectionSelect.innerHTML = data.map(s=>`<option value="${s.key}">${s.title_zh || s.key}</option>`).join('');
+        if(sectionHint) sectionHint.textContent = '分区列表由管理员维护；新增/调整后会自动同步。';
+      }
+    }catch(_e){
+      // ignore (table may not exist yet)
+    }
+  }
+
+  (async function initBoardPicker(){
+    if(mode !== 'case') return;
+    await loadSections();
+    if(!presetBoard) return;
+    try{
+      const ok = Array.from(sectionSelect?.options || []).some(o => String(o.value) === presetBoard);
+      if(ok && sectionSelect) sectionSelect.value = presetBoard;
+    }catch(_e){}
+  })();
+
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+
+    const fd = new FormData(form);
+    const board = String(fd.get('board') || '');
+    const title = String(fd.get('title') || '').trim();
+    const summary = String(fd.get('summary') || '').trim();
+	    const summary_html = (summary && summaryEditor) ? String(summaryEditor.getHtml() || '').trim() : '';
+    const tags = String(fd.get('tags') || '')
+      .split(',')
+      .map(x=>x.trim())
+      .filter(Boolean)
+      .slice(0, 8);
+
+    if(!title){
+      toast('请填写标题', '标题不能为空。', 'err');
+      return;
+    }
+    if(!summary){
+      toast('请填写摘要', '建议 200-600 字，便于讨论。', 'err');
+      return;
+    }
+
+    // Doctor verification gate (UI). Backend RLS is the final enforcement.
+    if(!canPostCase){
+      toast('需要医生认证', '发布病例与上传附件需要完成医生认证（邀请码快速认证或人工审核）。', 'err');
+      return;
+    }
+
+    if(!isConfigured() || !supabase){
+      toast('Supabase 还未配置', '请先在 assets/config.js 填入 SUPABASE_URL 与 SUPABASE_ANON_KEY。', 'err');
+      return;
+    }
+
+    const user = await ensureUser();
+    if(!user){
+      // IMPORTANT: do NOT auto-redirect. Some browsers may temporarily fail reading session.
+      toast(
+        '登录态丢失',
+        '请刷新页面后重试；若仍不行，请清除 kidneysphere.com 的站点数据（缓存+存储）后重新登录。',
+        'err'
+      );
+      return;
+    }
+
+	    const payload = {
+      title,
+      board,
+      summary,
+      summary_html: summary_html || null,
+      tags,
+      author_id: user.id,
+      author_name: user.user_metadata?.full_name || user.phone || user.email || 'Member'
+    };
+
+	    // Disable submit during network operations
+	    const submitBtn = form.querySelector('button[type="submit"]');
+	    if(submitBtn) submitBtn.disabled = true;
+
+	    const attachCount = attachPicks.length;
+
+
+	    // Insert + readback (helps verify it truly landed)
+	    const isMissingColumn = (err, col)=>{
+	      const msg = String(err?.message || err || '').toLowerCase();
+	      const c = String(col || '').toLowerCase();
+	      return msg.includes(c) && (msg.includes('does not exist') || msg.includes('column') || msg.includes('schema cache'));
+	    };
+
+    let res = await supabase
+      .from('cases')
+      .insert(payload)
+      .select('id, board')
+      .single();
+
+    if(res?.error && isMissingColumn(res.error, 'summary_html')){
+      const retry = { ...payload };
+      delete retry.summary_html;
+      res = await supabase.from('cases').insert(retry).select('id, board').single();
+    }
+
+    const { data, error } = res || {};
+
+	    if(error){
+      toast(
+        '发布失败',
+        '请检查 Supabase 是否已建表 cases，并设置好 RLS。错误：' + (error.message || 'Unknown error'),
+        'err'
+      );
+	      if(submitBtn) submitBtn.disabled = false;
+	      return;
+    }
+
+	    // Upload attachments for the case (optional)
+	    if(data?.id && attachCount){
+	      const caseId = Number(data.id);
+	      const authorName = payload.author_name;
+	      try{
+	        const total = attachPicks.length;
+	        for(let i=0;i<total;i++){
+	          const f = attachPicks[i]?.file;
+	          if(!f) continue;
+	          const kind = guessKindFromMime(f.type, f.name);
+	          const rid = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+	          const key = `${user.id}/case/${caseId}/${rid}_${safeFilename(f.name)}`;
+
+	          const up = await supabase
+	            .storage
+	            .from('attachments')
+	            .upload(key, f, { upsert:false, contentType: f.type || undefined, cacheControl: '3600' });
+	          if(up?.error) throw up.error;
+
+	          const url = null; // attachments bucket is private; resolve via signed URLs when rendering
+
+	          const ares = await supabase
+	            .from('attachments')
+	            .insert({
+	              target_type: 'case',
+	              target_id: Number(caseId),
+	              author_id: user.id,
+	              author_name: authorName,
+	              bucket: 'attachments',
+	              path: key,
+	              public_url: url,
+	              mime_type: f.type || null,
+	              original_name: f.name || null,
+	              size_bytes: f.size || null,
+	              kind,
+	              deleted_at: null,
+	            });
+	          if(ares?.error){
+	            const msg = String(ares.error.message || ares.error);
+	            if(/relation .*attachments.* does not exist|does not exist|PGRST/i.test(msg)){
+	              throw new Error('附件功能未初始化：请在 Supabase SQL Editor 运行最新版 SUPABASE_SETUP.sql（包含 attachments 表与 Storage bucket），然后到 Settings → API 点击 Reload schema。');
+	            }
+	            throw ares.error;
+	          }
+	        }
+	      }catch(attErr){
+	        toast('附件上传失败', attErr.message || String(attErr), 'err');
+	      }
+	    }
+
+	    clearAttachDraft();
+
+	    toast('发布成功', `已写入数据库（ID: ${data?.id || '-'}）${attachCount ? `，附件：${attachCount} 个` : ''}，正在跳转…`, 'ok');
+	    setTimeout(()=> location.href = `case.html?id=${encodeURIComponent(data?.id || '')}`, 700);
+  });
+</script>
+
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">以病例讨论与学习体系为核心，逐步建设可沉淀、可检索的肾脏病知识社区。</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js?v=20260128_030"></script>
+</body>
+</html>

@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>社区板块 · KidneySphere</title>
+  <meta name="description" content="KidneySphere × KidneySphere AI">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+<section class="hero">
+  <div class="container">
+    <div class="card">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div>
+          <span class="badge">病例板块</span>
+          <h2 id="boardTitle" style="margin-top:10px">板块</h2>
+          <p id="boardDesc">加载中…</p>
+          <div id="boardModerators" class="small muted" style="margin-top:10px" hidden></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a class="btn primary" href="#" id="btnNew">+ 发布病例</a>
+          <a class="btn" href="community.html">返回社区</a>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="grid cols-2" id="caseList">
+        <!-- cards injected -->
+      </div>
+
+      <div class="hr"></div>
+      </div>
+  </div>
+</section>
+
+<script type="module">
+  import { supabase, isConfigured, toast, ensureSupabase, getCurrentUser, formatBeijingDateTime } from './supabaseClient.js?v=20260128_030';
+
+  const qs = new URLSearchParams(location.search);
+  const highlightId = (qs.get('highlight') || '').toString();
+  // Backward compatible param: b=glom. Future-friendly: c=case&s=glom
+  const sectionKey = (qs.get('s') || qs.get('b') || 'glom').toString();
+  const channel = (qs.get('c') || 'case').toString().toLowerCase();
+  const isCaseChannel = channel === 'case';
+  const boardKey = isCaseChannel ? sectionKey : channel; // research / literature
+
+  const titleEl = document.getElementById('boardTitle');
+  const descEl = document.getElementById('boardDesc');
+  const list = document.getElementById('caseList');
+  const modsEl = document.getElementById('boardModerators');
+
+  let boardModerators = [];
+  let moderatorIds = new Set();
+
+  // 当前登录用户（未声明会导致模块脚本直接报错，病例列表无法加载）
+  let currentUser = null;
+
+  const SECTION_MAP = {
+    glom: { t: '肾小球与间质性肾病社区', d:'IgAN、MN、FSGS、MCD、AAV、补体相关病、间质性肾炎/药物相关肾损伤等' },
+    tx:   { t: '肾移植内科社区', d:'排斥、感染、免疫抑制、妊娠、随访管理' },
+    icu:  { t: '重症肾内（电解质/酸碱）与透析社区', d:'AKI/CRRT、休克、液体/抗凝、电解质/酸碱紊乱、透析并发症' },
+    peds: { t: '儿童肾脏病社区', d:'儿肾病例、遗传肾病、儿童透析与移植随访' },
+    rare: { t: '罕见肾脏病社区', d:'遗传/罕见肾病、C3G/aHUS、MGRS、Fabry 等' },
+  };
+
+  const CHANNEL_META = {
+    research: { t: '科研讨论', d: '临床 + 基础研究的想法碰撞、方案讨论、数据解读；支持附件与长文。' },
+    literature: { t: '文献学习（Journal Club）', d: '指南/综述/临床试验/新药机制：可发帖、可上传 PDF/图片，支持讨论与收藏。' },
+    english: { t: '国际讨论专区（英语）', d: '即将开放：面向国际协作与学术沟通的英语讨论专区。' },
+  };
+
+  const fallback = isCaseChannel
+    ? (SECTION_MAP[sectionKey] || { t: sectionKey, d: '病例讨论分区' })
+    : (CHANNEL_META[channel] || { t: channel, d: '讨论板块' });
+  titleEl.textContent = fallback.t;
+  descEl.textContent = fallback.d;
+
+  async function loadMeta(){
+    if(!isConfigured() || !supabase) return;
+    try{
+      if(isCaseChannel){
+        const { data, error } = await supabase
+          .from('sections')
+          .select('title_zh, description')
+          .eq('channel_id','case')
+          .eq('key', sectionKey)
+          .maybeSingle();
+        if(!error && data){
+          titleEl.textContent = data.title_zh || fallback.t;
+          descEl.textContent = data.description || fallback.d;
+        }
+      }else{
+        // Optional: if channels table exists, prefer DB copy
+        const { data, error } = await supabase
+          .from('channels')
+          .select('title_zh, description')
+          .eq('id', channel)
+          .maybeSingle();
+        if(!error && data){
+          titleEl.textContent = data.title_zh || fallback.t;
+          descEl.textContent = data.description || fallback.d;
+        }
+      }
+    }catch(_e){
+      // table may not exist yet
+    }
+  }
+
+
+  function renderModerators(){
+    if(!modsEl) return;
+    if(!boardModerators || boardModerators.length === 0){
+      modsEl.hidden = true;
+      modsEl.innerHTML = '';
+      return;
+    }
+    modsEl.hidden = false;
+    const chips = boardModerators.map(m => {
+      const name = escapeHtml((m && m.display_name) ? m.display_name : '版主');
+      return `<span class=\"badge mod mini\">🛡️ ${name}</span>`;
+    }).join(' ');
+    modsEl.innerHTML = `<b>板块版主：</b> ${chips}`;
+  }
+
+  async function loadModerators(){
+    // not configured / not initialized
+    if(!isConfigured() || !supabase) { renderModerators(); return; }
+    try{
+      const { data, error } = await supabase
+        .from('board_moderators')
+        .select('user_id, display_name, avatar_url, created_at')
+        .eq('board_key', boardKey)
+        .order('created_at', { ascending: true });
+      if(error) throw error;
+      boardModerators = data || [];
+      moderatorIds = new Set((boardModerators || []).map(x => x.user_id));
+      renderModerators();
+    }catch(e){
+      const msg = String(e && e.message ? e.message : e || '');
+      // table not created yet
+      if(/board_moderators/i.test(msg) && /(does not exist|relation|schema cache|not find|could not find)/i.test(msg)){
+        boardModerators = [];
+        moderatorIds = new Set();
+        renderModerators();
+        return;
+      }
+      // non-fatal
+      boardModerators = [];
+      moderatorIds = new Set();
+      renderModerators();
+    }
+  }
+
+  function card(item, faved=false){
+    const tags = (item.tags || []).map(x=>`<span class="badge" style="border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.06)">${escapeHtml(x)}</span>`).join(' ');
+    const when = item.created_at ? formatBeijingDateTime(item.created_at) : '';
+    const likes = Math.max(0, Number(item.like_count || 0));
+    const isMod = !!(moderatorIds && moderatorIds.has(item.author_id));
+    const modBadge = isMod ? ' <span class=\"badge mod mini\">版主</span>' : '';
+    const isHighlight = !!highlightId && String(item.id) === String(highlightId);
+    const hlStyle = isHighlight ? 'style=\"border-color: rgba(59,130,246,.65); box-shadow: 0 0 0 4px rgba(59,130,246,.12)\"' : '';
+    return `
+      <a class="card soft card-link" id="case-${item.id}" ${hlStyle} href="case.html?id=${item.id}">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+          <div style="min-width:0">
+            <h3 style="margin:0 0 6px">${escapeHtml(item.title)}</h3>
+            <p style="margin:0 0 8px">${escapeHtml(item.summary || '')}</p>
+            <div class="small">作者：${escapeHtml(item.author_name || '匿名')}${modBadge} · ${when} · 👍 ${likes}</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${tags}</div>
+          </div>
+          <div class="small muted" style="white-space:nowrap;margin-top:2px">查看</div>
+        </div>
+      </a>
+    `;
+  }
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+  }
+
+  function maybeScrollHighlight(){
+    if(!highlightId) return;
+    const el = document.getElementById(`case-${highlightId}`);
+    if(!el) return;
+    setTimeout(()=>{
+      try{ el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }catch(_e){}
+    }, 80);
+  }
+
+  async function load(){
+    if(isConfigured()){
+      // IMPORTANT: supabaseClient.js 不会自动初始化客户端；必须先 ensureSupabase()
+      await ensureSupabase();
+      if(!supabase){
+        list.innerHTML = `<div class="note">服务初始化失败（可能网络拦截或配置错误）。请刷新重试；如仍失败，请联系管理员。</div>`;
+        return;
+      }
+      try{
+        currentUser = await getCurrentUser();
+      }catch(_e){ currentUser = null; }
+      // load moderators for this board (badge + header)
+      await loadModerators();
+    }
+
+    // Open channels: case / research / literature
+    // English (international) remains coming soon.
+    if(!['case','research','literature'].includes(channel)){
+      const meta = CHANNEL_META[channel] || { t: '该板块', d: '' };
+      list.innerHTML = `<div class="note"><b>${escapeHtml(meta.t || '该板块')}</b> 暂未开放，敬请期待。${meta.d ? ` ${escapeHtml(meta.d)}` : ''}</div>`;
+      return;
+    }
+
+    // demo mode
+    if(!isConfigured()){
+      const demo = {
+        case: [
+          {title:'（演示）IgAN 新药：sparsentan / iptacopan 的临床要点', summary:'这是演示数据。配置完成后将从数据库读取。', tags:['IgAN','新药'], created_at: Date.now(), author_name:'KidneySphere'},
+          {title:'（演示）移植后TMA病例：补体与治疗路径', summary:'这是演示数据。', tags:['移植','TMA'], created_at: Date.now()-3600*1000*6, author_name:'KidneySphere'},
+        ],
+        literature: [
+          {title:'（演示）KDIGO 2024 Update：关键变更与临床落地', summary:'这是演示数据：可上传PDF/图片并讨论。', tags:['指南','KDIGO'], created_at: Date.now(), author_name:'KidneySphere'},
+        ],
+        research: [
+          {title:'（演示）研究想法：IgAN 真实世界队列与结局指标', summary:'这是演示数据：欢迎讨论研究设计/统计方案。', tags:['研究设计','队列'], created_at: Date.now(), author_name:'KidneySphere'},
+        ],
+      };
+      const rows = (demo[channel] || demo.case);
+      list.innerHTML = rows.map(card).join('');
+      maybeScrollHighlight();
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('cases')
+      .select('id, title, board, summary, tags, created_at, author_id, author_name, like_count')
+      .eq('board', boardKey)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if(error){
+      const em = String(error.message || '');
+        const eml = em.toLowerCase();
+        if(!currentUser && (eml.includes('permission') || eml.includes('rls') || eml.includes('jwt') || eml.includes('auth'))){
+          const next = encodeURIComponent(location.pathname + location.search);
+          location.href = `login.html?next=${next}`;
+          return;
+        }
+        toast('读取失败', '请检查 Supabase 是否已建表 cases，并设置好 RLS。错误：' + em, 'err');
+      list.innerHTML = `<div class="note">暂无数据（或尚未建表）。</div>`;
+      return;
+    }
+
+    if(!data || data.length===0){
+      const emptyMsg = channel === 'case'
+        ? '暂无病例。你可以先发布一个作为测试。'
+        : (channel === 'literature' ? '暂无文献讨论。你可以先发布一条文献学习主题。' : '暂无科研讨论主题。你可以先发布一个研究问题/想法。');
+      list.innerHTML = `<div class="note">${emptyMsg}</div>`;
+      return;
+    }
+
+    
+      // Fetch favorites for listed cases
+      let favedSet = new Set();
+      if(currentUser && Array.isArray(data) && data.length){
+        try{
+          const ids = data.map(d => d.id);
+          const { data: favRows, error } = await supabase
+            .from('case_favorites')
+            .select('case_id')
+            .eq('user_id', currentUser.id)
+            .in('case_id', ids);
+          if(!error && Array.isArray(favRows)){
+            favedSet = new Set(favRows.map(r => r.case_id));
+          }
+        }catch(_e){}
+      }
+
+      if(!data || data.length===0){
+        list.innerHTML = `<div class="note">暂无内容。你可以点击右上角“发布病例”发布第一条病例讨论。</div>`;
+      }else{
+        list.innerHTML = data.map(d => card(d, favedSet.has(d.id))).join('');
+      maybeScrollHighlight();
+      }
+
+  }
+
+  loadMeta();
+  
+
+    async function toggleCaseFavorite(btn){
+      if(!currentUser){
+        toast('需要登录', '请先登录后再收藏。');
+        return;
+      }
+      const caseId = Number(btn.getAttribute('data-fav-case'));
+      if(!caseId) return;
+      const isFaved = btn.getAttribute('data-faved') === '1';
+      btn.disabled = true;
+      try{
+        if(isFaved){
+          const { error } = await supabase
+            .from('case_favorites')
+            .delete()
+            .eq('case_id', caseId)
+            .eq('user_id', currentUser.id);
+          if(error) throw error;
+          btn.setAttribute('data-faved','0');
+          btn.classList.remove('primary');
+          btn.textContent = '⭐ 收藏';
+        }else{
+          const row = { case_id: caseId, user_id: currentUser.id };
+          const res = await supabase
+            .from('case_favorites')
+            .upsert(row, { onConflict: 'case_id,user_id', ignoreDuplicates: true });
+          if(res?.error){
+            const r2 = await supabase.from('case_favorites').insert(row);
+            if(r2?.error){
+              const msg = String(r2.error.message || r2.error);
+              if(!(/duplicate key/i.test(msg) || String(r2.error.code || '') === '23505')) throw r2.error;
+            }
+          }
+          btn.setAttribute('data-faved','1');
+          btn.classList.add('primary');
+          btn.textContent = '⭐ 已收藏';
+        }
+      }catch(err){
+        const msg = err?.message || String(err);
+        if(/case_favorites/i.test(msg) && /(does not exist|relation|schema cache|could not find|not find)/i.test(msg)){
+          toast('收藏功能未初始化', '请在 Supabase SQL Editor 运行 MIGRATION_20260110_FAVORITES.sql，然后 Settings → API 点击 “Reload schema”。');
+        }else{
+          toast('操作失败', msg);
+        }
+      }finally{
+        btn.disabled = false;
+      }
+    }
+
+    // Favorite click: prevent navigation
+    list.addEventListener('click', (e)=>{
+      const btn = e.target.closest('[data-fav-case]');
+      if(!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      toggleCaseFavorite(btn);
+    });
+
+    
+  // New case button (require login for posting; viewing is public)
+  const btnNew = document.getElementById('btnNew');
+  if(btnNew){
+    // Button label
+    if(channel === 'literature') btnNew.textContent = '+ 发布文献讨论';
+    else if(channel === 'research') btnNew.textContent = '+ 发布科研讨论';
+    else btnNew.textContent = '+ 发布病例';
+
+    btnNew.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const target = (channel === 'case')
+        ? `post-case.html?board=${encodeURIComponent(sectionKey)}`
+        : `post-case.html?c=${encodeURIComponent(channel)}`;
+      if(isConfigured()){
+        const { data: { session } } = await supabase.auth.getSession();
+        if(!session){
+          location.href = `login.html?next=${encodeURIComponent(target)}`;
+          return;
+        }
+      }
+      location.href = target;
+    });
+  }
+
+  load();
+</script>
+
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">以病例讨论与学习体系为核心，逐步建设可沉淀、可检索的肾脏病知识社区。</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js?v=20260128_030"></script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>病例板块 · KidneySphere</title>
+  <meta name="description" content="KidneySphere × KidneySphere AI">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphere</b>
+          <span>GlomCon China × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html">首页 <span class="en">Home</span></a>
+        <a data-nav href="community.html">社区讨论 <span class="en">Community</span></a>
+        <a data-nav href="learning.html">学习中心 <span class="en">Learning</span></a>
+        <a data-nav href="frontier.html">前沿进展 <span class="en">Frontier</span></a>
+        <a data-nav href="events.html">会议/事件 <span class="en">Events</span></a>
+        <a data-nav href="about.html">关于 <span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+<section class="hero">
+  <div class="container">
+    <div class="card">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div>
+          <span class="badge">病例板块</span>
+          <h2 id="boardTitle" style="margin-top:10px">板块</h2>
+          <p id="boardDesc">加载中…</p>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a class="btn primary" href="post-case.html">+ 发布病例</a>
+          <a class="btn" href="community.html">返回社区</a>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="grid cols-2" id="caseList">
+        <!-- cards injected -->
+      </div>
+
+      <div class="hr"></div>
+      <div class="note">
+        <b>数据结构（Phase 1 建议）：</b> Supabase 建表 <code>cases</code>（id, title, board, summary, tags, created_at, author_id, author_name）。我们第二轮把“图片/附件上传 + 评论回复 + 医生审核”一起接上。
+      </div>
+    </div>
+  </div>
+</section>
+
+<script type="module">
+  import { supabase, isConfigured, toast } from './supabaseClient.js';
+
+  const qs = new URLSearchParams(location.search);
+  // Backward compatible param: b=glom. Future-friendly: c=case&s=glom
+  const sectionKey = (qs.get('s') || qs.get('b') || 'glom').toString();
+  const channel = (qs.get('c') || 'case').toString().toLowerCase();
+
+  const titleEl = document.getElementById('boardTitle');
+  const descEl = document.getElementById('boardDesc');
+  const list = document.getElementById('caseList');
+
+  const MAP = {
+    glom: { t: '肾小球病', d:'IgAN、MN、FSGS、MCD、AAV、补体相关病等' },
+    tx:   { t: '肾移植内科', d:'排斥、感染、免疫抑制、随访管理' },
+    icu:  { t: '重症肾内', d:'AKI/CRRT、休克、液体与抗凝、酸碱电解质' },
+    peds: { t: '儿童肾病', d:'儿肾病例、遗传肾病、补体病、儿童移植' },
+  };
+
+  const fallback = MAP[sectionKey] || { t: sectionKey, d: '病例讨论分区' };
+  titleEl.textContent = fallback.t;
+  descEl.textContent = fallback.d;
+
+  async function loadMeta(){
+    if(!isConfigured() || !supabase) return;
+    try{
+      const { data, error } = await supabase
+        .from('sections')
+        .select('title_zh, description')
+        .eq('channel_id','case')
+        .eq('key', sectionKey)
+        .maybeSingle();
+      if(error) return;
+      if(data){
+        titleEl.textContent = data.title_zh || fallback.t;
+        descEl.textContent = data.description || fallback.d;
+      }
+    }catch(_e){
+      // table may not exist yet
+    }
+  }
+
+  function card(item){
+    const tags = (item.tags || []).map(x=>`<span class="badge" style="border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.06)">${x}</span>`).join(' ');
+    return `
+      <div class="card soft">
+        <h3>${escapeHtml(item.title)}</h3>
+        <p>${escapeHtml(item.summary || '')}</p>
+        <div class="small">作者：${escapeHtml(item.author_name || '匿名')} · ${new Date(item.created_at).toLocaleString()}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${tags}</div>
+      </div>
+    `;
+  }
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+  }
+
+  async function load(){
+    if(channel !== 'case'){
+      list.innerHTML = `<div class="note">该讨论板块正在筹备中... 目前 Phase 1 仅开放“病例讨论”。</div>`;
+      return;
+    }
+
+    // demo mode
+    if(!isConfigured()){
+      list.innerHTML = [
+        {title:'（演示）IgAN 新药：sparsentan / iptacopan 的临床要点', summary:'这是演示数据。接好 Supabase 后会从 cases 表读取。', tags:['IgAN','新药'], created_at: Date.now(), author_name:'KidneySphere'},
+        {title:'（演示）移植后TMA病例：补体与治疗路径', summary:'这是演示数据。', tags:['移植','TMA'], created_at: Date.now()-3600*1000*6, author_name:'KidneySphere'},
+      ].filter(x=> sectionKey==='glom' ? x.tags.includes('IgAN') : true).map(card).join('');
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('cases')
+      .select('id, title, board, summary, tags, created_at, author_id, author_name')
+      .eq('board', sectionKey)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if(error){
+      toast('读取失败', '请检查 Supabase 是否已建表 cases，并设置好 RLS。错误：' + error.message, 'err');
+      list.innerHTML = `<div class="note">暂无数据（或尚未建表）。</div>`;
+      return;
+    }
+
+    if(!data || data.length===0){
+      list.innerHTML = `<div class="note">暂无病例。你可以先发布一个作为测试。</div>`;
+      return;
+    }
+
+    list.innerHTML = data.map(card).join('');
+  }
+
+  loadMeta();
+  load();
+</script>
+
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">Phase 1 Stable · 以“注册/登录 + 可发布病例 + 前沿进展吸引赞助”为核心。</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

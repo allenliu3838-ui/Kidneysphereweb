@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>前沿进展 · KidneySphere</title>
+  <meta name="description" content="KidneySphere × KidneySphere AI">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <section class="hero">
+      <div class="container">
+        <div class="card">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap">
+            <div>
+              <span class="badge">前沿进展 · Frontier</span>
+              <h1 style="margin-top:10px">可维护、可扩容的前沿聚合（赞助入口）</h1>
+              <p>本页已升级为 <b>数据库驱动</b>：管理员可以随时新增板块（如：<b>IgA 申明最新要务</b>、<b>模型申明最新要务</b>、<b>透析器介绍</b>、<b>赞助商专区</b>）。</p>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <a class="btn" href="moments.html">去社区动态</a>
+              <a class="btn" href="community.html">去社区讨论</a>
+            </div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div id="frontierModules" class="stack"></div>
+          <div id="frontierHint" class="small muted" style="margin-top:10px"></div>
+
+          <div class="admin" id="frontierAdmin" hidden>
+            <div class="hr"></div>
+            <div class="note">
+              <b>管理员：管理前沿板块 / 赞助商信息</b><br/>
+              你可以新增板块（cards / richtext / sponsors），也可以维护每个板块的卡片内容与赞助商列表。
+            </div>
+
+            <form class="form" id="addModuleForm" style="margin-top:12px">
+              <div class="form-row">
+                <div>
+                  <label>板块标题（中文） <input name="title_zh" placeholder="例如：IgA 申明 · 最新要务" required></label>
+                </div>
+                <div>
+                  <label>类型
+                    <select name="kind" class="input">
+                      <option value="cards">卡片列表（Cards）</option>
+                      <option value="richtext">长文（Richtext）</option>
+                      <option value="sponsors">赞助商专区（Sponsors）</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+              <label>简介（可选） <textarea name="description" rows="2" placeholder="一句话说明该板块内容定位"></textarea></label>
+              <div class="form-row">
+                <div>
+                  <label>排序（越小越靠前） <input name="sort" type="number" value="0"></label>
+                </div>
+                <div style="display:flex;align-items:end;gap:10px">
+                  <button class="btn primary" type="submit">添加板块</button>
+                </div>
+              </div>
+            </form>
+
+            <div class="hr"></div>
+
+            <form class="form" id="addCardForm">
+              <div class="note" style="margin-bottom:10px">
+                <b>新增卡片</b>（用于卡片板块）
+              </div>
+              <label>选择板块 <select class="input" name="module_id" id="moduleSelect"></select></label>
+              <label>卡片标题 <input class="input" name="title" placeholder="例如：IgAN 最新药物进展" required></label>
+              <label>摘要（可选） <textarea class="input" name="summary" rows="3" placeholder="一句话总结要点"></textarea></label>
+              <div class="form-row">
+                <div>
+                  <label>链接（可选） <input class="input" name="link_url" placeholder="https://..."></label>
+                </div>
+                <div>
+                  <label>图片 URL（可选） <input class="input" name="image_url" placeholder="https://..."></label>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <button class="btn primary" type="submit">添加卡片</button>
+              </div>
+            </form>
+
+            <div class="hr"></div>
+
+            <!-- Anchor: home page "管理赞助商" will jump here -->
+            <div id="sponsors"></div>
+
+            <form class="form" id="addSponsorForm">
+              <div class="note" style="margin-bottom:10px">
+                <b>新增赞助商</b>（用于 Sponsors 板块）
+              </div>
+              <div class="form-row">
+                <div>
+                  <label>名称 <input class="input" name="name" placeholder="例如：某某医疗" required></label>
+                </div>
+                <div>
+                  <label>级别 <select class="input" name="tier">
+                    <option value="partner">Partner</option>
+                    <option value="silver">Silver</option>
+                    <option value="gold">Gold</option>
+                  </select></label>
+                </div>
+              </div>
+              <label>简介（可选） <textarea class="input" name="description" rows="2" placeholder="主营、产品关键词、合作方向…"></textarea></label>
+              <div class="form-row">
+                <div>
+                  <label>官网/介绍链接（可选） <input class="input" name="website" placeholder="https://..."></label>
+                </div>
+                <div>
+                  <label>Logo（上传，推荐） <input class="input" type="file" accept="image/*" name="logo_file"></label>
+                  <div class="small muted" style="margin-top:6px">支持 jpg/png/webp；建议 1:1 或横向 logo；建议 ≤2MB。</div>
+                </div>
+              </div>
+
+              <label>Logo URL（可选，或上传） <input class="input" name="logo_url" placeholder="https://..."></label>
+              <input type="hidden" name="logo_url_uploaded" value="" />
+              <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:10px">
+                <label style="display:flex;gap:8px;align-items:center;margin:0;font-weight:600">
+                  <input type="checkbox" name="show_on_home" checked />
+                  首页展示
+                </label>
+                <span class="small muted">用于首页“赞助支持”Logo墙</span>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <button class="btn primary" type="submit">添加赞助商</button>
+              </div>
+            </form>
+
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">以病例讨论与学习体系为核心，逐步建设可沉淀、可检索的肾脏病知识社区。</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="frontier.js?v=20260118_001"></script>
+  <script type="module" src="app.js?v=20260128_030"></script>
+</body>
+</html>

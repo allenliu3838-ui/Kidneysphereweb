@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>站内搜索 · KidneySphere AI</title>
+  <meta name="description" content="KidneySphere 站内搜索：文章、社区动态、会议与活动、专家与临床研究项目。病例讨论搜索需登录。">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260211_001"/>
+</head>
+<body>
+
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+        <!-- “搜索”链接将由 app.js 注入，避免需要手动修改所有页面 header。 -->
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="hero">
+      <div>
+        <div class="badge">Search</div>
+        <h1>站内搜索</h1>
+        <p class="muted">
+          支持：文章 / 社区动态 / 会议与活动 / 临床研究项目 / 专家与合作单位。<br/>
+          病例讨论（Case）搜索需要登录（因为病例内容默认仅对会员可见）。
+        </p>
+      </div>
+    </div>
+
+    <div class="card soft" style="margin-top:14px">
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
+        <input class="input" id="siteSearchInput" placeholder="输入关键词，例如：IgA 肾病 / 透析 / 他克莫司 / KDIGO…" style="min-width:min(520px, 100%)"/>
+        <button class="btn primary" id="siteSearchBtn" type="button">搜索</button>
+        <button class="btn" id="siteSearchClear" type="button">清空</button>
+      </div>
+
+      <div class="small muted" style="margin-top:10px">
+        小技巧：按 <b>/</b> 可快速跳转到搜索；在结果页可用筛选项缩小范围。
+      </div>
+
+      <div class="hr"></div>
+
+      <div>
+        <div class="small muted" style="margin-bottom:8px">搜索范围</div>
+        <div class="pills" id="siteSearchFilters"></div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; align-items:center">
+        <div>
+          <b>结果</b>
+          <span class="small muted" id="siteSearchCount"></span>
+        </div>
+        <div class="small muted" id="siteSearchHint"></div>
+      </div>
+
+      <div style="margin-top:12px">
+        <ul class="list" id="siteSearchResults"></ul>
+        <div class="muted small" id="siteSearchEmpty" style="margin-top:12px" hidden>暂无结果。换个关键词试试。</div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px">
+          <button class="btn" id="siteSearchMore" type="button" hidden>加载更多</button>
+          <button class="btn" id="siteSearchTop" type="button" hidden>回到顶部</button>
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:14px" data-keep-public-hint>
+        <b>管理员提示：</b>如果提示“search_site RPC 不存在 / 执行失败”，请在 Supabase → SQL Editor 运行：<br/>
+        <code>MIGRATION_20260211_SITE_SEARCH.sql</code>（并在 Settings → API 点击 Reload schema）。
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="muted small">© 2025-2026 KidneySphere</div>
+  </footer>
+
+  <script type="module" src="app.js?v=20260211_001"></script>
+  <script type="module" src="search.js?v=20260211_001"></script>
+</body>
+</html>

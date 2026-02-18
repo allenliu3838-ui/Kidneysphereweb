@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>邮箱注册 · KidneySphere</title>
+  <meta name="description" content="KidneySphere × KidneySphere AI">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+<section class="hero">
+  <div class="container">
+    <div class="card" style="max-width:820px;margin:0 auto">
+      <h2>邮箱注册</h2>
+      <p>使用 <b>邮箱 + 密码</b> 注册并登录。建议填写昵称与身份，便于病例讨论署名与后续运营。</p>
+
+      <div class="note" style="margin:12px 0 6px">
+        <b>提示：</b>如本网站启用了邮箱验证，注册后请前往邮箱完成确认再登录；若未收到邮件，可检查垃圾箱或稍后重试。
+      </div>
+
+      <form id="registerForm">
+        <div class="form-row">
+          <div>
+            <label>姓名 / 昵称</label>
+            <input class="input" name="full_name" id="nameInput" placeholder="例如：刘松" required />
+          </div>
+          <div>
+            <label>身份（可选）</label>
+            <select class="input" name="role" id="roleInput">
+              <option value="Member">会员</option>
+              <option value="Doctor">医生（待审核）</option>
+              <option value="Industry">企业/赞助方</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label>邮箱</label>
+            <input class="input" name="email" id="emailInput" type="email" placeholder="name@example.com" autocomplete="email" inputmode="email" required />
+          </div>
+	          <div>
+	            <label>密码</label>
+	            <input class="input" name="password" id="passwordInput" type="password" placeholder="至少 8 位，建议字母+数字" autocomplete="new-password" required />
+	          </div>
+        </div>
+
+	        <div class="muted" style="margin-top:8px; line-height:1.55">
+	          <b>密码设置建议：</b><br>
+	          • 长度至少 <b>8</b> 位（建议 10–16 位）<br>
+	          • <b>最低要求</b>：同时包含 <b>字母</b> 和 <b>数字</b>（至少各 1 个）；<b>更安全</b>：再加入大写字母与特殊符号<br>
+	          • 请避免使用姓名/生日/手机号等容易被猜到的信息<br>
+	          • 忘记密码可通过邮箱“找回密码”重置
+	        </div>
+
+        <label>确认密码</label>
+        <input class="input" name="password2" id="password2Input" type="password" placeholder="再次输入密码" autocomplete="new-password" required />
+
+        <div class="small" style="display:flex;align-items:center;gap:8px;margin-top:10px">
+          <input id="showPw" type="checkbox" style="width:16px;height:16px">
+          <label for="showPw" style="margin:0;color:rgba(233,241,255,.78)">显示密码</label>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px">
+          <button class="btn primary" type="submit">注册</button>
+          <a class="btn" href="login.html">我已有账号，去登录</a>
+          <a class="btn" href="index.html">返回首页</a>
+        </div>
+
+	        <!-- 开发者提示已移除：对外正式页面不展示配置说明 -->
+      </form>
+
+      <div id="confirmWrap" class="note" style="margin-top:14px" hidden>
+        <b>下一步：</b>
+        <div class="small" style="margin-top:6px">
+          我们已尝试发送确认邮件到 <code id="confirmEmail"></code>。请打开邮箱完成确认，然后再回到本站 <a href="login.html">登录</a>。
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<script type="module">
+  import { supabase, ensureSupabase, getSupabaseDebugInfo, toast, isConfigured } from './supabaseClient.js?v=20260128_030';
+
+  const qs = new URLSearchParams(location.search);
+  const nextRaw = qs.get('next') || '';
+  const next = (nextRaw && !nextRaw.startsWith('http') && !nextRaw.startsWith('//') && !nextRaw.includes('..'))
+    ? nextRaw
+    : 'post-case.html';
+
+  const form = document.getElementById('registerForm');
+  const nameInput = document.getElementById('nameInput');
+  const roleInput = document.getElementById('roleInput');
+  const emailInput = document.getElementById('emailInput');
+  const passwordInput = document.getElementById('passwordInput');
+  const password2Input = document.getElementById('password2Input');
+  const showPw = document.getElementById('showPw');
+  const submitBtn = form.querySelector('button[type="submit"]');
+
+  showPw?.addEventListener('change', ()=>{
+    const t = showPw.checked ? 'text' : 'password';
+    passwordInput.type = t;
+    password2Input.type = t;
+  });
+
+  const confirmWrap = document.getElementById('confirmWrap');
+  const confirmEmail = document.getElementById('confirmEmail');
+
+  function getEmailRedirectTo(){
+    const url = new URL('auth-callback.html', location.origin);
+    url.searchParams.set('next', next);
+    return url.toString();
+  }
+
+  async function syncProfile(user, full_name){
+    if(!user) return;
+    try{
+      const name = String(full_name || '').trim();
+      const payload = { id: user.id };
+      if(name) payload.full_name = name;
+      // Ensure profile row exists; do NOT write role from the client.
+      await supabase
+        .from('profiles')
+        .upsert(payload, { onConflict: 'id' });
+    }catch(_e){ /* profiles 表可能尚未创建，忽略 */ }
+  }
+
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+
+    submitBtn.disabled = true;
+    const oldText = submitBtn.textContent;
+    submitBtn.textContent = '注册中…';
+
+    if(!isConfigured()){
+      toast('服务暂不可用','系统尚未完成初始化或正在维护，请稍后再试或联系管理员。','err');
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldText;
+      return;
+    }
+
+    await ensureSupabase();
+    if(!supabase){
+      const dbg = getSupabaseDebugInfo();
+      const src = dbg?.libSource ? `
+SDK 来源：${dbg.libSource}` : '';
+      toast('认证服务加载失败', `可能是网络拦截/不稳定导致无法加载注册组件。
+请刷新或切换网络后重试。${src}`, 'err');
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldText;
+      return;
+    }
+
+    const full_name = String(nameInput.value || '').trim();
+    const role = String(roleInput.value || 'Member');
+    const email = String(emailInput.value || '').trim().toLowerCase();
+    const password = String(passwordInput.value || '');
+    const password2 = String(password2Input.value || '');
+
+    if(!full_name){
+      toast('请填写昵称','用于病例讨论署名展示（后续可修改）。','err');
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldText;
+      return;
+    }
+    if(!email || !email.includes('@')){
+      toast('邮箱格式不正确','请填写有效邮箱地址。','err');
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldText;
+      return;
+    }
+    if(/\s/.test(password)){
+      toast('密码包含空格','密码中请不要包含空格。','err');
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldText;
+      return;
+    }
+    if(password.length < 8){
+      toast('密码太短','请设置至少 8 位的密码（建议 10–16 位，且包含字母+数字）。','err');
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldText;
+      return;
+    }
+    // 最低要求：同时包含字母 + 数字
+    const hasLetter = /[A-Za-z]/.test(password);
+    const hasNumber = /\d/.test(password);
+    if(!hasLetter || !hasNumber){
+      toast('密码不符合要求','请确保密码同时包含字母和数字（可再加入大写字母与特殊符号以增强安全性）。','err');
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldText;
+      return;
+    }
+    if(password !== password2){
+      toast('两次密码不一致','请重新确认密码。','err');
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldText;
+      return;
+    }
+
+    const emailRedirectTo = getEmailRedirectTo();
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo,
+        data: { full_name },
+      }
+    });
+
+    if(error){
+      toast('注册失败', error.message || '未知错误', 'err');
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldText;
+      return;
+    }
+
+    const user = data?.session?.user;
+    if(data?.session && user){
+      await syncProfile(user, full_name);
+      toast('注册成功','已自动登录，正在跳转…','ok');
+      setTimeout(()=> location.href = next, 700);
+      return;
+    }
+
+    confirmEmail.textContent = email;
+    confirmWrap.hidden = false;
+    toast('注册成功','请前往邮箱完成确认，然后再登录。', 'ok');
+    // Allow the user to retry (e.g., if typo) without refreshing
+    submitBtn.disabled = false;
+    submitBtn.textContent = oldText;
+  });
+</script>
+
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">当前版本 · 以“邮箱注册/登录 + 可发布病例 + 学习中心/前沿进展”为核心，持续迭代完善。</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js?v=20260128_030"></script>
+</body>
+</html>

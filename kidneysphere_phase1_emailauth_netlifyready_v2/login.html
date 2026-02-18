@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>邮箱登录 · KidneySphere</title>
+  <meta name="description" content="KidneySphere × KidneySphere AI">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphere</b>
+          <span>GlomCon China × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html">首页 <span class="en">Home</span></a>
+        <a data-nav href="community.html">社区讨论 <span class="en">Community</span></a>
+        <a data-nav href="learning.html">学习中心 <span class="en">Learning</span></a>
+        <a data-nav href="frontier.html">前沿进展 <span class="en">Frontier</span></a>
+        <a data-nav href="events.html">会议/事件 <span class="en">Events</span></a>
+        <a data-nav href="about.html">关于 <span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+<section class="hero">
+  <div class="container">
+    <div class="card" style="max-width:720px;margin:0 auto">
+      <h2>邮箱登录</h2>
+      <p>使用 <b>邮箱 + 密码</b> 登录。首次使用请先注册。</p>
+
+      <div class="note" style="margin:12px 0 6px">
+        <b>提示：</b>如果你在 Supabase 开启了 <b>Confirm Email</b>，新注册用户需要先完成邮箱确认后才能登录。
+      </div>
+
+      <form id="loginForm">
+        <label>邮箱</label>
+        <input class="input" id="emailInput" type="email" placeholder="name@example.com" autocomplete="email" inputmode="email" required />
+
+        <label style="margin-top:12px">密码</label>
+        <input class="input" id="passwordInput" type="password" placeholder="请输入密码" autocomplete="current-password" required />
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px">
+          <button class="btn primary" type="submit">登录</button>
+          <a class="btn" href="register.html">去注册</a>
+          <a class="btn" href="index.html">返回首页</a>
+        </div>
+
+        <div class="small muted" style="margin-top:10px">
+          测试阶段建议先在 Supabase 关闭 “Confirm Email”，这样注册不需要发送确认邮件，可避免邮箱拦截/延迟造成的干扰。
+        </div>
+      </form>
+
+    </div>
+  </div>
+</section>
+
+<script type="module">
+  import { supabase, toast, isConfigured } from './supabaseClient.js';
+
+  const qs = new URLSearchParams(location.search);
+  const nextRaw = qs.get('next') || '';
+  const next = (nextRaw && !nextRaw.startsWith('http') && !nextRaw.startsWith('//') && !nextRaw.includes('..'))
+    ? nextRaw
+    : 'post-case.html';
+
+  const form = document.getElementById('loginForm');
+  const emailInput = document.getElementById('emailInput');
+  const passwordInput = document.getElementById('passwordInput');
+
+  async function syncProfileFromMetadata(user){
+    if(!user) return;
+    const full_name = user.user_metadata?.full_name;
+    const role = user.user_metadata?.role;
+    if(!full_name && !role) return;
+    try{
+      await supabase
+        .from('profiles')
+        .upsert({ id: user.id, full_name: full_name || null, role: role || null }, { onConflict: 'id' });
+    }catch(_e){ /* profiles 表可能尚未创建，忽略 */ }
+  }
+
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+
+    if(!isConfigured() || !supabase){
+      toast('Supabase 还未配置','请先在 assets/config.js 填入 SUPABASE_URL 与 SUPABASE_ANON_KEY。','err');
+      return;
+    }
+
+    const email = String(emailInput.value || '').trim().toLowerCase();
+    const password = String(passwordInput.value || '');
+
+    if(!email || !email.includes('@')){
+      toast('邮箱格式不正确','请填写有效邮箱地址。','err');
+      return;
+    }
+    if(password.length < 6){
+      toast('密码太短','请检查密码是否正确（通常至少 6 位）。','err');
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if(error){
+      const msg = String(error.message || '');
+      if(msg.toLowerCase().includes('confirm')){
+        toast('登录失败','该邮箱可能还未确认。请先去邮箱完成确认后再登录。\n（测试阶段可在 Supabase 关闭 Confirm Email）','err');
+        return;
+      }
+      toast('登录失败', msg || '未知错误', 'err');
+      return;
+    }
+
+    const user = data?.session?.user;
+    if(!data?.session || !user){
+      toast('登录状态异常','未获取到有效 session，请重试。','err');
+      return;
+    }
+
+    await syncProfileFromMetadata(user);
+
+    toast('登录成功','正在跳转…','ok');
+    setTimeout(()=> location.href = next, 600);
+  });
+</script>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">Phase 1 Stable · 以“邮箱注册/登录 + 可发布病例 + 学习中心/前沿进展”为核心，优先上线测试。</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

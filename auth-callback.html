@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>正在完成登录… · KidneySphere</title>
+  <meta name="description" content="KidneySphere auth callback" />
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="card" style="max-width:860px;margin:0 auto">
+          <h2 style="margin:0 0 6px">正在完成登录…</h2>
+          <p class="small muted" style="margin:0 0 16px">
+            如果你开启了 Confirm Email，这个页面用于接收邮箱确认后的跳转并建立 session。
+          </p>
+
+          <div class="note" style="margin:12px 0 18px">
+            <b>提示：</b>如页面一直停留在这里，通常是登录回跳配置未生效或网络拦截导致。请刷新重试；如仍无法登录，请联系管理员。
+          </div>
+
+          <div id="status" class="small"></div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:16px">
+            <a class="btn" href="login.html">返回登录</a>
+            <a class="btn" href="health.html">打开自检页</a>
+            <a class="btn" href="index.html">返回首页</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script type="module">
+      import { supabase, isConfigured, toast } from './supabaseClient.js?v=20260128_030';
+
+      const el = document.getElementById('status');
+
+      const qs = new URLSearchParams(location.search);
+      const nextRaw = qs.get('next') || '';
+      const next = (nextRaw && !nextRaw.startsWith('http') && !nextRaw.startsWith('//') && !nextRaw.includes('..'))
+        ? nextRaw
+        : 'post-case.html';
+
+      function setStatus(html){ el.innerHTML = html; }
+
+      function esc(s){
+        return String(s ?? '').replace(/[&<>"']/g, ch => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          "\"": "&quot;",
+          "\'": "&#39;"
+        }[ch]));
+      }
+
+      async function syncProfileFromMetadata(user){
+        if(!user) return;
+        const full_name = String(user.user_metadata?.full_name || '').trim();
+        const payload = { id: user.id };
+        if(full_name) payload.full_name = full_name;
+        try{
+          // Ensure profile row exists; do NOT sync role from user_metadata.
+          await supabase
+            .from('profiles')
+            .upsert(payload, { onConflict: 'id' });
+        }catch(_e){ /* profiles 表可能尚未创建，忽略 */ }
+      }
+
+      async function run(){
+        if(!isConfigured() || !supabase){
+          setStatus('<div class="muted">Supabase 未配置：请先在 assets/config.js 填入 SUPABASE_URL 与 SUPABASE_ANON_KEY。</div>');
+          return;
+        }
+
+        setStatus('<div class="muted">正在完成回跳授权…</div>');
+
+        // 1) Code flow (recommended): /auth-callback.html?code=...
+        const url = new URL(location.href);
+        const code = url.searchParams.get('code');
+        const err = url.searchParams.get('error');
+        const errDesc = url.searchParams.get('error_description');
+
+        if(err){
+          setStatus(`<div class="muted">授权失败：<b>${esc(err)}</b><br>${esc(errDesc || '')}</div>`);
+          return;
+        }
+
+        if(code){
+          setStatus('<div class="muted">正在交换 code 获取 session…</div>');
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if(error){
+            setStatus(`<div class="muted">交换 code 失败：${esc(error.message)}</div>`);
+            return;
+          }
+          // Remove code from URL to avoid re-exchange on refresh
+          url.searchParams.delete('code');
+          history.replaceState({}, '', url.pathname + (url.search || ''));
+        } else {
+          // 2) Fallback for older implicit flow: #access_token=...&refresh_token=...
+          const hashParams = new URLSearchParams(location.hash.startsWith('#') ? location.hash.slice(1) : location.hash);
+          const access_token = hashParams.get('access_token');
+          const refresh_token = hashParams.get('refresh_token');
+          if(access_token && refresh_token){
+            setStatus('<div class="muted">正在写入 session…</div>');
+            const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+            if(error){
+              setStatus(`<div class="muted">写入 session 失败：${esc(error.message)}</div>`);
+              return;
+            }
+            history.replaceState({}, '', url.pathname + (url.search || ''));
+          }
+        }
+
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if(!session){
+          setStatus('<div class="muted">未获取到 session。你可以返回登录页重试，或打开 /health.html 查看详细信息。</div>');
+          return;
+        }
+
+        await syncProfileFromMetadata(session.user);
+
+        toast('已完成登录', '正在跳转到目标页面…', 'ok');
+        setStatus('<div>已登录：<b>是</b> · 正在跳转…</div>');
+        setTimeout(()=>{ location.href = next; }, 800);
+      }
+
+      run();
+    </script>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">登录回跳页 · 用于邮箱确认/登录完成后的跳转。</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js?v=20260128_030"></script>
+</body>
+</html>

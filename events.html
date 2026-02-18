@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>会议与活动 · KidneySphere</title>
+  <meta name="description" content="KidneySphere × KidneySphere AI">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="card">
+          <span class="badge">Events · 会议与活动</span>
+          <h1 style="margin-top:10px">我们的线上/线下学术会议与活动（北京时间）</h1>
+          <div class="note" style="margin-top:12px">
+            <b>重要：</b>会议时间可能临时调整/取消。请以本页 “状态” 与 “最后更新时间” 为准（或以群内通知为准）。
+          </div>
+          <p>我们会把线上会议逐步沉淀为“病例讨论/文献学习/前沿进展”的可检索内容。时间如有临时调整，以当周通知为准。</p>
+
+          <div class="hr"></div>
+
+          <div class="section-title" style="margin-top:0">
+            <div>
+              <h3 style="margin:0">重点会议预告</h3>
+              <p class="small muted" style="margin-top:6px">线下会议（时间统一采用北京时间）</p>
+            </div>
+            <span class="badge">Featured</span>
+          </div>
+
+          <div class="grid cols-2" aria-label="Featured Conference">
+            <div class="card soft" style="box-shadow:none">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
+                <div>
+                  <h3 style="margin:0">GlomCon 中国广州会议</h3>
+                  <div class="small muted" style="margin-top:6px">2026/6/5–6/7 · 广州 · 北京时间</div>
+                </div>
+                <span class="chip todo">注册尚未开放</span>
+              </div>
+              <p class="small" style="margin-top:10px">
+                以真实临床问题为导向：主题报告 + 病例讨论 + 互动交流。覆盖肾小球疾病、肾移植内科、重症肾内与透析、AI 肾病、儿童肾病等关键亚专科。
+              </p>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+                <a class="btn primary" href="glomcon-guangzhou.html">查看会议详情</a>
+                <a class="btn" href="assets/glomcon_guangzhou_poster.pdf?v=20260118_002" target="_blank" rel="noopener">下载海报</a>
+              </div>
+            </div>
+
+            <a class="card soft card-link" href="glomcon-guangzhou.html" style="box-shadow:none; overflow:hidden; padding:0">
+              <img src="assets/glomcon_guangzhou_poster.png?v=20260118_002" alt="GlomCon 广州会议海报" style="width:100%;height:auto;display:block" />
+            </a>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="section-title" style="margin-top:0">
+            <div>
+              <h3 style="margin:0">线上会议与活动</h3>
+              <p class="small muted" style="margin-top:6px">会议安排将持续更新（所有时间以北京时间为准）。</p>
+            </div>
+            <span class="badge">Events</span>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="grid cols-2" id="eventsGrid"></div>
+
+          <div class="hr"></div>
+          <div class="note">
+            <b>内容沉淀：</b>每次会议将整理为“会议纪要 / 精选病例 / 关键文献”内容卡片，持续沉淀为可检索的知识库。
+          </div>
+
+          <div class="admin" id="eventsAdmin" hidden>
+            <div class="hr"></div>
+            <div class="note">
+              <b>管理员：管理会议与活动</b><br/>
+              你可以在这里更新会议时间、状态（确认/改期/取消）、以及“已确认会议”的入会链接与口令。
+            </div>
+
+            <form class="form" id="addEventForm" style="margin-top:12px">
+              <div class="form-row">
+                <div>
+                  <label>Key（唯一标识） <input class="input" name="key" placeholder="e.g. sun_zoom" required></label>
+                </div>
+                <div>
+                  <label>平台 <input class="input" name="platform" placeholder="Zoom / 腾讯会议 / 线下" /></label>
+                </div>
+              </div>
+              <label>中文标题 <input class="input" name="title_zh" placeholder="例如：每周日 10:00（北京时间）" required></label>
+              <label>简介（可选） <textarea class="input" name="description" rows="2" placeholder="一句话说明会议定位"></textarea></label>
+              <div class="form-row">
+                <div>
+                  <label>状态
+                    <select class="input" name="status">
+                      <option value="pending">待确认</option>
+                      <option value="confirmed">已确认</option>
+                      <option value="rescheduled">已改期</option>
+                      <option value="canceled">已取消</option>
+                      <option value="planning">筹备中</option>
+                    </select>
+                  </label>
+                </div>
+                <div>
+                  <label>下次时间（北京时间） <input class="input" type="datetime-local" name="next_time" /></label>
+                </div>
+              </div>
+              <label>常规规则（可选） <input class="input" name="rule_zh" placeholder="例如：每周日 10:00（北京时间）" /></label>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+                <button class="btn primary" type="submit">添加会议</button>
+              </div>
+            </form>
+
+            <div class="hr"></div>
+            <div class="section-title" style="margin-top:0">
+              <div>
+                <h3>现有会议（可编辑）</h3>
+                <p>修改后会立即反映到公开页面；入会链接仅对登录用户显示（且会议状态=已确认）。</p>
+              </div>
+              <span class="badge">Admin</span>
+            </div>
+
+            <div id="adminEventsList" class="stack" style="margin-top:12px"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+</main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">以病例讨论与学习入口为核心，逐步完善权限、付费与 App 对接。</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="events.js?v=20260118_001"></script>
+  <script type="module" src="app.js?v=20260128_030"></script>
+
+</body>
+</html>

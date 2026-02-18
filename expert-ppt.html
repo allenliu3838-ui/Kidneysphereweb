@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>专家 PPT · KidneySphere</title>
+  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+
+  <div class="container" style="padding-top: 18px; padding-bottom: 48px;">
+
+    <div class="card" style="margin-bottom: 14px;">
+      <div class="badge">学习中心 · 专家 PPT</div>
+      <h1 style="margin-top:10px">专家 PPT</h1>
+      <p class="small muted" style="margin-top:8px">
+        整理专家课件与病例讨论 PPT（PDF/图片），按主题归档，支持关键词搜索。
+      </p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px">
+        <a class="btn" href="learning.html">返回学习中心</a>
+        <a class="btn ghost" href="community.html">进入社区讨论</a>
+      </div>
+      <div class="note small" style="margin-top:12px">
+        提醒：请勿上传含患者可识别信息（姓名/住院号/电话/面部照片等）的材料。
+      </div>
+    </div>
+
+    <div class="card soft" style="margin-bottom: 14px;">
+      <div class="row" style="gap:10px; flex-wrap:wrap; align-items:center;">
+        <input id="pptSearch" class="input" style="flex:1; min-width: 220px" placeholder="关键词搜索：标题 / 讲者 / 单位 / 标签" />
+        <select id="pptSection" class="input select-light-options" style="min-width: 180px"></select>
+        <button id="pptRefresh" class="btn tiny">刷新</button>
+      </div>
+      <div class="small muted" style="margin-top:8px" id="pptMeta"></div>
+    </div>
+
+    <div id="pptInitMsg" class="note" style="display:none; margin-bottom: 14px;"></div>
+
+    <div id="pptCards" class="stack"></div>
+
+    <!-- If an admin account is browsing in "member" view mode, the uploader is hidden.
+         Provide a clear one-click switch to avoid confusion. -->
+	    <div id="pptAdminModeHint" class="note" data-superadmin-only hidden style="margin-top: 14px;">
+      <b>管理员提示：</b> 你当前处于“普通会员”浏览模式，上传入口已隐藏。
+      点击 <b>切换到管理模式</b> 后刷新即可上传专家 PPT。
+      <div style="margin-top:10px">
+        <button id="pptSwitchToAdminBtn" type="button" class="btn tiny primary">切换到管理模式</button>
+      </div>
+    </div>
+
+	    <div id="pptUploadGateMsg" class="note" hidden style="margin: 10px 0 14px">
+	      上传功能仅对<strong>已完成医生认证</strong>的账号开放。若你是医生，可前往 <a href="doctor-verify.html">医生认证</a> 完成认证后上传。
+    </div>
+
+    <div class="card" id="pptUploaderCard" hidden style="margin-top: 18px;">
+      <h2 style="margin-top:0">上传专家 PPT（认证医生 / 管理员）</h2>
+	      <p class="small muted">支持拖拽/选择文件上传（PPT/PPTX/PDF/图片）。Ctrl+V 可粘贴<b>截图/图片</b>作为补充附件；部分系统也支持直接粘贴文件（若无法粘贴，请使用拖拽或“选择文件”上传）。</p>
+
+      
+      <form id="pptForm" autocomplete="off">
+<div class="grid cols-2" style="margin-top:12px">
+        <div>
+          <label class="label">主题分区</label>
+          <select id="pptSectionInput" class="input select-light-options"></select>
+        </div>
+        <div>
+          <label class="label">讲者 / 作者（可选）</label>
+          <input id="pptSpeaker" class="input" placeholder="例如：刘松" />
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <label class="label">标题</label>
+        <input id="pptTitle" class="input" placeholder="例如：IgAN 诊疗要点与病例讨论" />
+      </div>
+
+      <div style="margin-top:12px">
+        <label class="label">单位（可选）</label>
+        <input id="pptHospital" class="input" placeholder="例如：××医院 肾内科" />
+      </div>
+
+      <div style="margin-top:12px">
+        <label class="label">简介（可选）</label>
+        <textarea id="pptSummary" class="input" rows="4" placeholder="可简要说明：授课要点 / 适用人群 / 更新时间等"></textarea>
+      </div>
+
+      <div style="margin-top:12px">
+        <label class="label">标签（可选，用逗号分隔）</label>
+        <input id="pptTags" class="input" placeholder="例如：IgAN, 肾移植, 透析, 病理" />
+      </div>
+
+      <div style="margin-top:12px">
+        <div id="pptDropZone" class="dropzone" tabindex="0" role="button" aria-label="上传文件区域（可拖拽文件，或 Ctrl+V 粘贴截图）">
+          <div class="dropzone-title">拖拽 PDF/PPT/图片 到这里，或点击选择文件</div>
+          <div class="dropzone-sub">支持 PDF / PPT / PPTX / JPG / PNG / GIF / WEBP，单个≤20MB，最多 9 个</div>
+          <input id="pptFiles" type="file" multiple accept="application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/*,.ppt,.pptx" style="display:none" />
+        </div>
+        <div id="pptFilePreview" class="attach-grid" style="margin-top:10px"></div>
+      </div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px">
+        <button id="pptSubmit" type="submit" class="btn primary">发布</button>
+        <button id="pptClear" type="button" class="btn ghost">清空</button>
+        <div class="small muted" id="pptUploadStatus" style="align-self:center"></div>
+      </div>
+
+      </form>
+
+	    <div class="note small" style="margin-top:12px" data-superadmin-only hidden>
+	      超级管理员提示：如需重新初始化 Expert PPT，请在 Supabase 依次执行相关 MIGRATION 脚本并 Reload schema；同时确认 Storage 已创建 bucket <code>expert_ppt</code> 且 Policies 已按“认证医生可上传、owner/admin 可更新/删除、已登录可查看列表”配置。
+	    </div>
+    </div>
+
+  </div>
+
+  <!-- Preview modal (PDF) -->
+  <div class="modal" id="pptPreviewModal" hidden>
+    <div class="modal-backdrop" data-close="1"></div>
+    <div class="modal-card" style="max-width: 980px; width: calc(100vw - 28px);">
+      <div class="modal-header">
+        <div style="font-weight:700" id="pptPreviewTitle">预览</div>
+        <button class="btn tiny ghost" data-close="1">关闭</button>
+      </div>
+      <div class="modal-body" style="padding:0">
+        <iframe id="pptPreviewFrame" style="width:100%; height: 78vh; border:0; background: #0b1220"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js?v=20260128_030"></script>
+  <!-- cache bust -->
+  <script type="module" src="expertPpt.js?v=20260128_030"></script>
+</body>
+</html>

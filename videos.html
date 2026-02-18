@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>学习中心 · 免费视频库 · KidneySphere</title>
+  <meta name="description" content="KidneySphere × KidneySphere AI">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+<section class="hero">
+  <div class="container">
+    <div class="card">
+      <span class="badge">学习中心 · Videos</span>
+      <h2 style="margin-top:10px">注册登录后观看 · 免费视频库</h2>
+      <p class="small">
+        这里收录你整理的公开学习资源链接，方便成员在一个地方学习、检索与沉淀。
+      </p>
+
+      <div id="loginHint" class="note" style="margin-top:12px">
+        正在检测登录状态…
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="section-title">
+        <div>
+          <h3>频道筛选</h3>
+          <p>点击频道筛选。进入播放页会强制要求登录（符合“注册后观看”）。</p>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a class="btn" href="learning.html">返回学习中心</a>
+        </div>
+      </div>
+
+      <div id="catPills" class="pills" style="margin-top:10px"></div>
+
+      <div class="hr"></div>
+
+      <div id="videoGrid" class="grid cols-3"></div>
+
+      <div class="hr"></div>
+
+      <div class="note small">
+          <b>版权与合规：</b>本站仅做“链接整理与学习索引”，不存储/搬运视频内容。
+          <span data-admin-only hidden><br/>管理员提示：如需更新静态清单，可编辑 <code>assets/videos.js</code>；也可在本页的“管理员：新增视频”中添加到数据库。</span>
+        </div>
+    </div>
+  </div>
+</section>
+
+<script type="module">
+  import { supabase, ensureSupabase, isConfigured, toast } from './supabaseClient.js?v=20260128_030';
+  import { VIDEO_CATEGORIES, FREE_VIDEOS } from './assets/videos.js?v=20260118_001';
+
+  // v7.2: mix static "FREE_VIDEOS" with admin-added "learning_videos" (scheme 2)
+  let DB_VIDEOS = [];
+  let ALL_VIDEOS = [...FREE_VIDEOS];
+
+  const qs = new URLSearchParams(location.search);
+  let currentCat = (qs.get('cat') || 'all').toString();
+
+  const catPills = document.getElementById('catPills');
+  const grid = document.getElementById('videoGrid');
+  const loginHint = document.getElementById('loginHint');
+
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function pill(label, active, onClick){
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pill-btn' + (active ? ' active' : '');
+    btn.textContent = label;
+    btn.addEventListener('click', onClick);
+    return btn;
+  }
+
+  function setCat(cat){
+    currentCat = cat;
+    const url = new URL(location.href);
+    if(cat === 'all') url.searchParams.delete('cat');
+    else url.searchParams.set('cat', cat);
+    history.replaceState({}, '', url.toString());
+    renderCats();
+    renderVideos();
+  }
+
+  function renderCats(){
+    const all = [{ key: 'all', zh: '全部', en: 'All' }, ...VIDEO_CATEGORIES];
+    catPills.innerHTML = '';
+    all.forEach(c => {
+      const label = c.key === 'all' ? '全部 / All' : `${c.zh} / ${c.en}`;
+      catPills.appendChild(pill(label, currentCat === c.key, ()=> setCat(c.key)));
+    });
+  }
+
+  function videoCard(v){
+    const kind = v.kind || (v.bvid ? 'bilibili' : 'external');
+    const badge = v.needs_check ? `<span class="badge" style="border-color:rgba(255,160,160,.5);background:rgba(255,160,160,.08)">待核对</span>` : '';
+    const speaker = (v.speaker || '').trim();
+    const metaLine = speaker ? `主讲：${esc(speaker)}` : `分类：${esc(v.category || '')}`;
+    const openText = kind === 'mp4' ? '打开视频' : (kind === 'external' ? '打开链接' : '打开B站');
+    const openUrl = v.mp4_url || v.source_url || '';
+    const canOpen = !!openUrl;
+    return `
+      <div class="card soft">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap">
+          <div>
+            <h3 style="margin:0">${esc(v.title || '')}</h3>
+            <div class="small muted" style="margin-top:6px">${metaLine}</div>
+          </div>
+          ${badge}
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+          <a class="btn primary" href="watch.html?id=${encodeURIComponent(v.id)}">观看（需登录）</a>
+          ${canOpen ? `<a class="btn" href="${esc(openUrl)}" target="_blank" rel="noopener">${openText}</a>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderVideos(){
+    const list = (currentCat === 'all')
+      ? ALL_VIDEOS
+      : ALL_VIDEOS.filter(v => v.category === currentCat);
+
+    if(!list || list.length === 0){
+      grid.innerHTML = `<div class="note">该频道暂无视频内容。</div>`;
+      return;
+    }
+
+    grid.innerHTML = list.map(videoCard).join('');
+  }
+
+  async function renderLoginHint(){
+    if(!isConfigured() || !supabase){
+      loginHint.innerHTML = `<b>提示：</b>当前服务暂不可用（系统初始化中）。如需“登录后观看”，请联系管理员完成配置。`;
+      return;
+    }
+
+    try{
+      const { data: { session } } = await supabase.auth.getSession();
+      if(session?.user){
+        const u = session.user;
+        loginHint.innerHTML = `✅ 已登录：<b>${esc(u.email || u.phone || u.id)}</b>。你可以直接进入播放页观看。`;
+      }else{
+        loginHint.innerHTML = `🔒 你当前未登录。你仍可浏览目录，但点击“观看”会引导你先登录/注册。`;
+      }
+    }catch(e){
+      loginHint.innerHTML = `⚠️ 登录状态读取失败：${esc(e?.message || '未知错误')}。建议用无痕窗口重试，或清理站点存储后再登录。`;
+    }
+  }
+
+  async function loadDbVideos(){
+    DB_VIDEOS = [];
+    ALL_VIDEOS = [...FREE_VIDEOS];
+
+    if(!isConfigured()) return;
+    await ensureSupabase();
+    if(!supabase) return;
+
+    try{
+      const { data, error } = await supabase
+        .from('learning_videos')
+        .select('id,title,category,kind,source_url,mp4_url,bvid,speaker,created_at,enabled,deleted_at')
+        .eq('enabled', true)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(200);
+
+      if(error) throw error;
+
+      DB_VIDEOS = (data || []).map(v => ({
+        id: String(v.id),
+        title: v.title || '',
+        speaker: v.speaker || '',
+        category: v.category || 'other',
+        kind: v.kind || (v.bvid ? 'bilibili' : 'external'),
+        bvid: v.bvid || null,
+        source_url: v.source_url || v.mp4_url || '',
+        mp4_url: v.mp4_url || null,
+      }));
+
+      ALL_VIDEOS = [...FREE_VIDEOS, ...DB_VIDEOS];
+    }catch(e){
+      // If table not migrated yet, silently keep static list.
+      const msg = String(e?.message || e || '');
+      if(/relation .*learning_videos.* does not exist/i.test(msg)) return;
+      toast('加载视频失败', msg, 'err');
+    }
+  }
+
+  async function init(){
+    renderCats();
+    await loadDbVideos();
+    renderVideos();
+    renderLoginHint();
+  }
+
+  init();
+</script>
+
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">当前版本 · 以“病例讨论 + 学习中心 + 前沿进展”为核心，持续迭代完善。</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js?v=20260128_030"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+[build]
+  publish = "."
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+
+# Avoid caching the runtime config during rapid iterations
+[[headers]]
+  for = "/assets/config.js"
+  [headers.values]
+    Cache-Control = "no-store, max-age=0"
+
+
+# Performance: cache static assets for 7 days (safe for Phase 1; refresh if you redeploy)
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    # During rapid UI iterations (header/layout), avoid stale CSS.
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    # Avoid stale JS during Phase 1 iterations.
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>管理后台 · KidneySphere</title>
+  <meta name="description" content="KidneySphere 管理后台">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="hero">
+      <div class="container">
+        <div class="card">
+          <div class="section-title">
+            <div>
+              <h2>管理后台</h2>
+              <p>管理员/超级管理员可在此统一管理：会议与活动、临床研究中心（中心信息 + 研究项目）。</p>
+            </div>
+            <span class="badge">Admin Console</span>
+          </div>
+
+          <div class="note" id="adminGate" style="margin-top:12px">
+            正在检查登录状态…
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="tabs" style="display:flex;gap:10px;flex-wrap:wrap">
+            <a class="btn" href="#events">管理会议与活动</a>
+            <a class="btn" href="#research">管理临床研究中心</a>
+            <a class="btn" href="#articles">文章管理</a>
+            <a class="btn" href="#training">培训项目</a>
+            <a class="btn" href="#moderators">版主管理</a>
+            <a class="btn" href="#doctor">医生认证</a>
+            <a class="btn" href="#roles" data-super-only hidden>权限与管理员</a>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="stack">
+
+          <!-- Events -->
+          <div class="card soft" id="events">
+            <div class="section-title">
+              <div>
+                <h3>会议与活动</h3>
+                <p>可新增、编辑、更新状态与入会信息。</p>
+              </div>
+              <span class="badge">Events</span>
+            </div>
+
+            <div class="grid cols-2" id="eventsGrid" style="margin-top:12px"></div>
+
+            <div class="admin" id="eventsAdmin" hidden>
+              <div class="hr"></div>
+              <div class="note">
+                <b>管理员：管理会议与活动</b><br/>
+                你可以在这里更新会议时间、状态（确认/改期/取消）、以及“已确认会议”的入会链接与口令。
+              </div>
+
+              <form class="form" id="addEventForm" style="margin-top:12px">
+                <div class="form-row">
+                  <div>
+                    <label>Key（唯一标识） <input class="input" name="key" placeholder="e.g. sun_zoom" required></label>
+                  </div>
+                  <div>
+                    <label>平台 <input class="input" name="platform" placeholder="Zoom / 腾讯会议 / 线下" /></label>
+                  </div>
+                </div>
+                <label>中文标题 <input class="input" name="title_zh" placeholder="例如：每周日 10:00（北京时间）" required></label>
+                <label>英文标题（可选） <input class="input" name="title_en" placeholder="Weekly Meeting" /></label>
+                <label>简介（可选） <textarea class="input" name="description" rows="2" placeholder="一句话说明会议定位"></textarea></label>
+                <div class="form-row">
+                  <div>
+                    <label>状态
+                      <select class="input" name="status">
+                        <option value="pending">筹备中</option>
+                        <option value="planning">计划中</option>
+                        <option value="confirmed">已确认</option>
+                        <option value="rescheduled">已改期</option>
+                        <option value="canceled">已取消</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div>
+                    <label>下次时间（可选） <input class="input" name="next_time" type="datetime-local" /></label>
+                  </div>
+                </div>
+                <label>规则说明（可选） <textarea class="input" name="rule_zh" rows="2" placeholder="例如：每周日 10:00（北京时间）"></textarea></label>
+                <div class="form-row">
+                  <button class="btn primary" type="submit">新增会议</button>
+                  <div class="small muted">提示：新增后可在下方编辑入会链接与口令。</div>
+                </div>
+              </form>
+
+              <div class="hr"></div>
+              <div class="section-title" style="margin-top:0">
+                <div>
+                  <h3>现有会议（可编辑）</h3>
+                  <p>修改后会立即反映到公开页面；入会链接仅对登录用户显示（且会议状态=已确认）。</p>
+                </div>
+                <span class="badge">Edit</span>
+              </div>
+
+              <div id="adminEventsList" class="stack" style="margin-top:12px"></div>
+            </div>
+          </div>
+
+          <!-- Research -->
+          <div class="card soft" id="research">
+            <div class="section-title">
+              <div>
+                <h3>临床研究中心</h3>
+                <p>管理中心信息（公开展示）与研究项目库。</p>
+              </div>
+              <span class="badge">Research</span>
+            </div>
+
+            <div class="card soft" id="researchInfoCard" style="margin-top:12px">
+              <div class="section-title">
+                <div>
+                  <h3>中心信息</h3>
+                  <p class="small muted">公开展示。管理员可在下方编辑。</p>
+                </div>
+                <span class="badge">Info</span>
+              </div>
+              <div id="researchInfo" class="small" style="line-height:1.75">
+                <div class="small muted">加载中…</div>
+              </div>
+            </div>
+
+            <div class="hr"></div>
+
+            <div class="section-title" style="margin-top:0">
+              <div>
+                <h3>研究项目库</h3>
+                <p>公开展示 active=true 的项目。</p>
+              </div>
+              <span class="badge">Projects</span>
+            </div>
+
+            <div id="projectGrid" class="grid cols-2" style="margin-top:12px"></div>
+
+            <div class="admin" id="adminBox" hidden>
+              <div class="hr"></div>
+              <div class="note">
+                <b>管理员/超级管理员：</b>可在此编辑中心信息、添加/编辑/隐藏研究项目。
+              </div>
+
+              <div class="section-title" style="margin-top:12px">
+                <div>
+                  <h3>中心信息编辑</h3>
+                  <p>修改后会显示在“中心信息”卡片中。</p>
+                </div>
+                <span class="badge">Admin</span>
+              </div>
+
+              <form class="form" id="settingsForm" style="margin-top:12px">
+                <label>中心介绍（可多行）<textarea class="input" name="intro" rows="4" placeholder="例如：研究中心定位、目标、流程等"></textarea></label>
+                <label>联系方式（可多行）<textarea class="input" name="contact" rows="2" placeholder="例如：联系人、邮箱、电话"></textarea></label>
+                <label>地址（可多行）<textarea class="input" name="address" rows="2" placeholder="例如：单位、城市"></textarea></label>
+                <button class="btn primary" type="submit">保存中心信息</button>
+                <div class="small muted" style="margin-top:8px">提示：只有管理员/超级管理员可保存。</div>
+              </form>
+
+              <div class="hr"></div>
+
+              <form class="form" id="projectForm" style="margin-top:12px">
+                <div class="form-row">
+                  <div>
+                    <label>项目名称 <input class="input" name="title" placeholder="例如：IgAN 多中心回顾性队列" required></label>
+                  </div>
+                  <div>
+                    <label>状态
+                      <select class="input" name="status">
+                        <option value="planning">筹备中</option>
+                        <option value="starting">启动中</option>
+                        <option value="recruiting">招募中</option>
+                        <option value="ongoing">进行中</option>
+                        <option value="completed">已完成</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div>
+                    <label>研究类型（可选） <input class="input" name="study_type" placeholder="回顾性/前瞻性/随机对照…" /></label>
+                  </div>
+                  <div>
+                    <label>PI（可选） <input class="input" name="pi" placeholder="负责人/PI" /></label>
+                  </div>
+                </div>
+                <label>摘要（可选） <textarea class="input" name="summary" rows="3" placeholder="一句话介绍入排、目标或关键亮点"></textarea></label>
+                <button class="btn primary" type="submit">添加项目</button>
+              </form>
+
+              <div class="hr"></div>
+              <div class="section-title" style="margin-top:0">
+                <div>
+                  <h3>现有项目（可编辑/隐藏/排序）</h3>
+                  <p>隐藏后不会在公开项目库中出现。</p>
+                </div>
+                <span class="badge">Edit</span>
+              </div>
+
+              <div id="adminProjectsList" class="stack" style="margin-top:12px"></div>
+            </div>
+          </div>
+
+          <!-- Articles admin -->
+          <div class="card soft" id="articles">
+            <div class="section-title">
+              <div>
+                <h3>文章管理</h3>
+                <p>管理员可发布文章（类似公众号），并在首页自动推送最新文章。</p>
+              </div>
+              <span class="badge">Articles</span>
+            </div>
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+              <a class="btn primary" href="article-editor.html">写文章</a>
+              <a class="btn" href="articles.html">查看文章列表</a>
+            </div>
+
+            <div class="hr"></div>
+            <div id="adminArticlesList" class="stack" style="margin-top:12px"></div>
+
+            <div class="small muted" style="margin-top:12px">
+              提示：如果列表加载失败，请先在 Supabase 运行 <b>MIGRATION_20260107_NEXT.sql</b>（新增 articles 表）。
+            </div>
+          </div>
+
+          <!-- Role management (super admin only) -->
+
+
+          <!-- Training Programs -->
+          <div class="card soft" id="training">
+            <div class="section-title">
+              <div>
+                <h3>培训项目</h3>
+                <p>用于首页与学习中心的“培训项目”板块。支持新增、编辑、排序、隐藏。</p>
+              </div>
+              <span class="badge">Training</span>
+            </div>
+
+            <div class="note" style="margin-top:12px">
+              <b>提示：</b>如首次使用，请先在 Supabase 运行 <code>MIGRATION_20260121_TRAINING_MODERATORS.sql</code> 并 <b>Reload schema</b>。
+            </div>
+
+            <div class="admin" id="trainingAdmin" hidden>
+              <div class="hr"></div>
+
+              <form class="form" id="addTrainingForm" style="margin-top:12px;max-width:920px">
+                <div class="form-row">
+                  <div style="flex:1;min-width:240px">
+                    <label>项目名称</label>
+                    <input class="input" name="title" required placeholder="例如：肾移植内科培训项目" />
+                  </div>
+                  <div style="min-width:220px">
+                    <label>状态</label>
+                    <select class="input" name="status">
+                      <option value="active">进行中</option>
+                      <option value="planning" selected>规划中</option>
+                      <option value="coming_soon">即将启动</option>
+                      <option value="archived">已结束</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div style="flex:1;min-width:240px">
+                    <label>Badge 文案（可选）</label>
+                    <input class="input" name="badge" placeholder="例如：6月启动 / 规划中" />
+                  </div>
+                  <div style="min-width:220px">
+                    <label>排序（越小越靠前）</label>
+                    <input class="input" name="sort" type="number" value="10" />
+                  </div>
+                </div>
+
+                <label>简介（可选）</label>
+                <textarea class="input" name="description" rows="3" placeholder="一句话介绍课程内容"></textarea>
+
+                <div class="form-row">
+                  <div style="flex:1;min-width:240px">
+                    <label>详情链接（可选）</label>
+                    <input class="input" name="link" placeholder="外部链接或站内页面，如 training-tx.html" />
+                  </div>
+                  <div style="min-width:220px">
+                    <label>是否预留付费接口</label>
+                    <select class="input" name="is_paid">
+                      <option value="true" selected>是（默认）</option>
+                      <option value="false">否</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button class="btn primary" type="submit">新增培训项目</button>
+                <span class="small muted" id="trainingHint" style="margin-left:10px"></span>
+              </form>
+
+              <div class="hr"></div>
+
+              <div class="section-title" style="margin-top:0">
+                <div>
+                  <h3>现有培训项目（可编辑/隐藏/排序）</h3>
+                  <p>隐藏后不会在首页与学习中心出现。</p>
+                </div>
+                <span class="badge">Edit</span>
+              </div>
+
+              <div id="trainingList" class="stack" style="margin-top:12px"></div>
+            </div>
+
+            <div class="note" id="trainingNeedAdmin" style="margin-top:12px">需要管理员/超级管理员权限才能编辑。</div>
+          </div>
+
+          <!-- Moderators -->
+          <div class="card soft" id="moderators">
+            <div class="section-title">
+              <div>
+                <h3>版主管理</h3>
+                <p>为每个讨论板块设置多个版主；前台将展示板块版主，并在帖子/回复旁显示“版主”标识。</p>
+              </div>
+              <span class="badge">Moderators</span>
+            </div>
+
+            <div class="note" style="margin-top:12px">
+              <b>提示：</b>如首次使用，请先在 Supabase 运行 <code>MIGRATION_20260121_TRAINING_MODERATORS.sql</code> 并 <b>Reload schema</b>。
+            </div>
+
+            <div class="admin" id="moderatorsAdmin" hidden>
+              <div class="hr"></div>
+
+              <form class="form" id="addModeratorForm" style="margin-top:12px;max-width:920px">
+                <div class="form-row">
+                  <div style="min-width:240px">
+                    <label>板块</label>
+                    <select class="input" name="board_key" id="modBoardKey"></select>
+                  </div>
+                  <div style="flex:1;min-width:300px">
+                    <label>用户ID（uuid）</label>
+                    <input class="input" name="user_id" required placeholder="从“权限管理/角色管理”复制用户ID" />
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div style="flex:1;min-width:260px">
+                    <label>展示姓名（可选）</label>
+                    <input class="input" name="display_name" placeholder="不填则尝试从 profiles 自动读取" />
+                  </div>
+                  <div style="flex:1;min-width:260px">
+                    <label>头像URL（可选）</label>
+                    <input class="input" name="avatar_url" placeholder="不填则尝试从 profiles 自动读取" />
+                  </div>
+                </div>
+
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+                  <button class="btn primary" type="submit">添加/更新版主</button>
+                  <button class="btn" type="button" id="modAutoFillBtn">自动读取资料</button>
+                  <span class="small muted" id="modHint"></span>
+                </div>
+              </form>
+
+              <div class="hr"></div>
+
+              <div class="section-title" style="margin-top:0">
+                <div>
+                  <h3>当前版主列表</h3>
+                  <p>可删除某个板块的版主。</p>
+                </div>
+                <span class="badge">List</span>
+              </div>
+
+              <div id="moderatorList" class="stack" style="margin-top:12px"></div>
+            </div>
+
+            <div class="note" id="moderatorsNeedAdmin" style="margin-top:12px">需要管理员/超级管理员权限才能编辑。</div>
+          </div>
+                    <!-- Doctor Verification -->
+          <div class="card soft" id="doctor">
+            <div class="section-title">
+              <div>
+                <h3>医生认证</h3>
+                <p>支持：邀请码快速认证（通道A） + 人工审核认证（通道B）。管理员可在此管理邀请码、审核申请。</p>
+              </div>
+              <span class="badge">Verification</span>
+            </div>
+
+            <div class="note" style="margin-top:12px">
+              <b>使用说明</b><br/>
+              1）请先在 Supabase SQL Editor 运行：<code>MIGRATION_20260120_DOCTOR_VERIFICATION_CHANNEL_AB.sql</code><br/>
+              2）运行后请点击 Supabase：Settings → API → <b>Reload schema</b><br/>
+              3）邀请码请在下方创建/启用/停用；人工审核申请会出现在“待审核列表”。
+            </div>
+
+            <div class="grid cols-2" style="margin-top:12px">
+              <div class="card" style="margin:0">
+                <div class="section-title">
+                  <div>
+                    <h4 style="margin:0">邀请码管理（通道A）</h4>
+                    <p class="small muted" style="margin-top:6px">创建/停用邀请码；可设置过期时间与使用次数上限。</p>
+                  </div>
+                  <span class="badge">Codes</span>
+                </div>
+
+                <form class="form" id="inviteCodeForm" style="margin-top:10px">
+                  <div class="form-row">
+                    <div>
+                      <label>邀请码 <input class="input" name="code" placeholder="例如：DOCTOR2026" required></label>
+                    </div>
+                    <div>
+                      <label>状态
+                        <select class="input" name="active">
+                          <option value="true" selected>启用</option>
+                          <option value="false">停用</option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+                  <label>备注（可选） <input class="input" name="note" placeholder="例如：2026年春季合作单位" /></label>
+                  <div class="form-row">
+                    <div>
+                      <label>使用次数上限（可选） <input class="input" name="max_uses" type="number" min="1" placeholder="例如：100" /></label>
+                    </div>
+                    <div>
+                      <label>过期时间（可选） <input class="input" name="expires_at" type="datetime-local" /></label>
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px">
+                    <button class="btn primary" type="submit">新增/更新邀请码</button>
+                    <span class="small muted" id="inviteCodeHint"></span>
+                  </div>
+                </form>
+
+                <div class="hr"></div>
+                <div id="inviteCodeList" class="small"></div>
+              </div>
+
+              <div class="card" style="margin:0">
+                <div class="section-title">
+                  <div>
+                    <h4 style="margin:0">人工审核（通道B）</h4>
+                    <p class="small muted" style="margin-top:6px">查看材料（签名链接）、通过/驳回，并可填写备注。</p>
+                  </div>
+                  <span class="badge">Review</span>
+                </div>
+
+                <div class="note" style="margin-top:10px">
+                  <b>提示</b>：若点击“查看材料”无权限，请检查：storage bucket <code>doctor_verification</code> 是否已创建且策略已部署。
+                </div>
+
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center">
+                  <button class="btn" id="refreshDoctorQueue" type="button">刷新列表</button>
+                  <label class="small" style="display:flex;align-items:center;gap:6px">
+                    <input type="checkbox" id="dvOnlyPending" checked /> 仅显示待审核
+                  </label>
+                  <span class="small muted" id="doctorQueueHint"></span>
+                </div>
+
+                <div class="hr"></div>
+                <div id="doctorQueue" class="small"></div>
+              </div>
+            </div>
+          </div>
+
+<div class="card soft" id="roles" data-super-only hidden>
+            <div class="section-title">
+              <div>
+                <h3>权限与管理员</h3>
+                <p>仅超级管理员可将成员提升为管理员（admin），用于编辑会议/文章/研究中心内容。</p>
+              </div>
+              <span class="badge">Super</span>
+            </div>
+
+            <div class="form-row" style="gap:10px;flex-wrap:wrap;align-items:center">
+              <input class="input" id="roleSearchInput" placeholder="搜索姓名 / 邮箱片段 / 用户ID（UUID）…" style="flex:1;min-width:260px" />
+              <button class="btn" id="roleSearchBtn" type="button">搜索</button>
+              <button class="btn" id="roleRefreshBtn" type="button">刷新</button>
+            </div>
+
+            <div class="hr"></div>
+
+            <div id="roleSearchResults" class="stack"></div>
+            <div class="small muted" style="margin-top:12px">
+              安全提示：建议通过「超级管理员」统一分配管理员权限，避免权限外溢。
+            </div>
+          </div>
+
+
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:28px;height:28px;border-radius:8px" />
+          <b>KidneySphere AI</b>
+        </div>
+        <div class="small muted">© 2026 KidneySphere · GlomCon中国</div>
+      </div>
+      <div class="small muted">
+        管理后台建议仅分享给管理员/超级管理员使用。
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="admin.js?v=20260118_001"></script>
+  <script type="module" src="events.js?v=20260118_001"></script>
+  <script type="module" src="research.js?v=20260118_001"></script>
+  <script type="module" src="articlesAdmin.js?v=20260118_001"></script>
+  <script type="module" src="doctorAdmin.js?v=20260120_001"></script>
+  <script type="module" src="trainingAdmin.js?v=20260121_003"></script>
+  <script type="module" src="moderatorsAdmin.js?v=20260121_002"></script>
+  <script type="module" src="roles.js?v=20260118_001"></script>
+  <script type="module" src="app.js?v=20260128_030"></script>
+</body>
+</html>

@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>社区动态 · Moments · KidneySphere</title>
+  <meta name="description" content="KidneySphere · Moments">
+  <meta property="og:title" content="社区动态 · KidneySphere"/>
+  <meta property="og:description" content="KidneySphere · Moments"/>
+  <meta property="og:type" content="website"/>
+  <!-- 微信朋友圈/微信群分享：固定分享封面（更稳定，不依赖 JS 执行） -->
+  <meta property="og:image" content="/assets/wechat_share_logo.png"/>
+  <meta property="og:image:secure_url" content="/assets/wechat_share_logo.png"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="1200"/>
+  <meta name="twitter:image" content="/assets/wechat_share_logo.png"/>
+  <link rel="image_src" href="/assets/wechat_share_logo.png" />
+  <link rel="apple-touch-icon" href="/assets/wechat_share_logo.png" />
+  <meta property="og:site_name" content="肾域AI · KidneySphereAI"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <section class="hero">
+      <div class="container">
+        <div class="card">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap">
+            <div>
+              <span class="badge">Moments · 社区动态</span>
+              <h1 style="margin-top:10px">快速发布：文字 + 图片 + 短视频 + PDF/Word</h1>
+              <p>支持 <b>拖拽上传</b> / <b>复制粘贴截图（Ctrl+V）</b>。适合会议速记、论文点评、临床思考片段。</p>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <a class="btn" href="frontier.html">去前沿进展</a>
+              <a class="btn" href="community.html">去社区讨论</a>
+            </div>
+          </div>
+
+          <div class="hr"></div>
+
+          <!-- Composer -->
+          <div class="moment-composer" id="composer">
+            <div class="note" id="composerHint" style="display:none"></div>
+
+            <div class="edit-bar" id="editBar" style="display:none">
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <b>编辑动态</b>
+                <div class="small muted" id="editMeta"></div>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+                <label class="small" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                  <input type="checkbox" id="bumpTime" />
+                  更新后置顶（重新发布）
+                </label>
+                <button class="btn" type="button" id="cancelEditBtn">取消编辑</button>
+              </div>
+            </div>
+
+            <label style="margin-top:0">发布一条动态</label>
+            <textarea class="input prose-input" id="momentText" rows="4" placeholder="分享一条学术动态 / 会议要点 / 论文点评…（支持 Ctrl+V 粘贴截图）"></textarea>
+
+            <div class="uploader" id="uploader" tabindex="0" aria-label="拖拽图片到这里上传">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+                <div>
+                  <b>图片</b>
+                  <div class="small muted" style="margin-top:4px">拖拽图片到此处，或点击选择文件；也可以直接 Ctrl+V 粘贴截图。</div>
+                </div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+                  <input type="file" id="fileInput" accept="image/*" multiple hidden />
+                  <button class="btn" type="button" id="pickBtn">选择图片</button>
+                  <button class="btn danger" type="button" id="clearBtn" aria-disabled="true">清空</button>
+                </div>
+              </div>
+
+              <div class="thumb-grid" id="thumbGrid" style="margin-top:12px"></div>
+            </div>
+
+            <div class="uploader" id="docUploader" tabindex="0" aria-label="拖拽 PDF/Word 到这里上传" style="margin-top:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+                <div>
+                  <b>PDF / Word 附件</b>
+                  <div class="small muted" style="margin-top:4px">拖拽 PDF/Word 到此处，或点击选择文件（单个≤20MB，最多 5 个）。发布后会以附件形式展示。</div>
+                </div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+                  <input type="file" id="docInput" accept="application/pdf,.pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple hidden />
+                  <button class="btn" type="button" id="pickDocBtn">选择文件</button>
+                  <button class="btn danger" type="button" id="clearDocBtn" aria-disabled="true">清空附件</button>
+                </div>
+              </div>
+
+              <div class="attach-list" id="docList" style="margin-top:12px"></div>
+            </div>
+
+            <div class="uploader" id="videoUploader" tabindex="0" aria-label="拖拽视频到这里上传" style="margin-top:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+                <div>
+                  <b>短视频</b>
+                  <div class="small muted" style="margin-top:4px">支持 mp4 / mov / webm。建议 ≤ 60 秒 / ≤ 50MB。当前版本短视频与图片暂不支持混发。</div>
+                </div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+                  <input type="file" id="videoInput" accept="video/*" hidden />
+                  <button class="btn" type="button" id="pickVideoBtn">选择视频</button>
+                  <button class="btn danger" type="button" id="clearVideoBtn" aria-disabled="true">清空视频</button>
+                </div>
+              </div>
+              <div id="videoPreview" style="margin-top:12px"></div>
+            </div>
+
+            <div class="uploader" id="videoLinkRow" style="margin-top:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+                <div>
+                  <b>视频链接</b>
+                  <div class="small muted" style="margin-top:4px">可直接粘贴 B站 / 腾讯会议回放 / 其他公开视频链接（支持自动预览；无法嵌入的平台会以卡片形式展示）。</div>
+                </div>
+              </div>
+              <div class="form-row" style="margin-top:10px;gap:10px;flex-wrap:wrap">
+                <input class="input" id="videoLink" placeholder="例如：https://www.bilibili.com/video/BV..." style="flex:1;min-width:240px" />
+                <button class="btn" type="button" id="applyVideoLinkBtn">添加链接</button>
+                <button class="btn danger" type="button" id="clearVideoLinkBtn">清空</button>
+              </div>
+              <div id="videoLinkPreview" style="margin-top:12px"></div>
+            </div>
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center">
+              <button class="btn primary" id="publishBtn" type="button">发布</button>
+              <span class="small muted" id="publishState"></span>
+            </div>
+          </div>
+
+          <div class="hr"></div>
+
+          <!-- Feed -->
+          <div class="section-title">
+            <div>
+              <h3>最新动态</h3>
+              <p>当前版本：最小可用，后续可加入：置顶、话题标签、评论、转发、全文搜索。</p>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center">
+              <button class="btn tiny" type="button" id="refreshFeedBtn">刷新</button>
+              <span class="badge">Feed</span>
+            </div>
+          </div>
+
+          <div id="momentsFeed" class="stack" style="margin-top:12px"></div>
+          <div style="display:flex;justify-content:center;margin-top:12px">
+            <button class="btn" id="loadMoreBtn" type="button" style="min-width:170px">加载更多</button>
+          </div>
+          <div class="small muted" id="feedHint" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">Moments 用于快速学术动态分享；病例讨论请在 Community 发布。</div>
+      </div>
+      <div class="small">
+        <div>© 2025–2026 KidneySphere</div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="moments.js?v=20260131_002"></script>
+  <script type="module" src="app.js?v=20260128_030"></script>
+</body>
+</html>

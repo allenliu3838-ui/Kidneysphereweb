@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>我的资料 · KidneySphere</title>
+  <meta name="description" content="KidneySphere 会员资料" />
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=12.5" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="card" style="max-width:980px;margin:0 auto">
+          <span class="badge">Profile</span>
+          <h1 style="margin-top:10px">我的资料</h1>
+          <p class="small muted" style="margin-top:6px">
+            你可以补全单位、职称、科室、学历、兴趣爱好等信息。为未来身份验证预留了接口（当前仅展示状态，不开启审核流程）。
+          </p>
+
+          <div class="hr"></div>
+
+          <div class="grid cols-2" style="align-items:start">
+            <div class="card soft">
+              <b>头像</b>
+              <div class="small muted" style="margin-top:6px">支持上传图片到 Supabase Storage（bucket：media）。</div>
+              <div style="display:flex;gap:12px;align-items:center;margin-top:12px">
+                <div class="avatar" id="avatarPreview" style="width:64px;height:64px;border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-weight:800"></div>
+                <div style="flex:1;min-width:0">
+                  <input class="input" type="file" id="avatarFile" accept="image/*" />
+                  <div class="small muted" id="avatarHint" style="margin-top:6px"></div>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+                <button class="btn primary" id="avatarUploadBtn" type="button">上传头像</button>
+                <button class="btn" id="avatarClearBtn" type="button">清除头像</button>
+              </div>
+            </div>
+
+            <div class="card soft">
+              <b>验证状态（预留）</b>
+              <div class="small muted" style="margin-top:8px" id="verifyStatus">加载中...</div>
+              <div class="note" style="margin-top:12px">
+                <b>说明：</b>Phase 1 仅预留字段与展示。后续可接入人工审核/第三方认证，并增加“提交认证材料”入口。
+              </div>
+
+            <div class="card soft">
+              <b>会员等级</b>
+              <div class="small muted" style="margin-top:8px" id="levelInfo">加载中...</div>
+              <div class="note" style="margin-top:12px">
+                <b>规则：</b>按“累计发帖数（病例讨论 + 社区动态）”自动升级：青铜/白银/黄金/铂金/钻石。
+              </div>
+            </div>
+
+            </div>
+          </div>
+
+          <div class="hr"></div>
+
+          <form id="profileForm">
+            <div class="profile-grid">
+              <label>姓名
+                <input class="input" name="full_name" placeholder="例如：张三" />
+              </label>
+              <label>单位
+                <input class="input" name="organization" placeholder="例如：某某医院/大学" />
+              </label>
+              <label>职称
+                <input class="input" name="title" placeholder="例如：主任医师/副主任医师" />
+              </label>
+              <label>科室
+                <input class="input" name="department" placeholder="例如：肾内科/病理科" />
+              </label>
+              <label>学历
+                <input class="input" name="education" placeholder="例如：博士/硕士" />
+              </label>
+              <label>兴趣爱好
+                <input class="input" name="interests" placeholder="例如：IgAN, 移植, ICU-RRT..." />
+              </label>
+            </div>
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center">
+              <button class="btn primary" type="submit" id="profileSaveBtn">保存资料</button>
+              <span class="small muted" id="profileHint"></span>
+            </div>
+          </form>
+
+          <div class="note" style="margin-top:14px">
+            <b>隐私提示：</b>资料默认仅用于站内展示与后续身份验证，不会对外公开（如未来开放公开主页，会另行提示并提供开关）。
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js?v=12.5"></script>
+  <script type="module" src="profile.js?v=12.5"></script>
+</body>
+</html>

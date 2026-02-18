@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>关于 · KidneySphere</title>
+  <meta name="description" content="KidneySphere × KidneySphere AI">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+<!-- Intro -->
+    <section class="hero about-hero" id="top">
+      <div class="container">
+        <div class="card">
+          <span class="badge">关于我们</span>
+          <h2 class="about-title">GlomCon 中国 · KidneySphere AI</h2>
+
+          <div class="grid cols-2 about-intro-grid">
+            <div class="card soft">
+              <h3>GlomCon 中国简介（重点）</h3>
+              <p>GlomCon 中国是面向中国肾脏病学界的开放型学术与教育社区，聚焦肾小球疾病及相关领域，连接国际与国内专家，推动病例讨论、循证更新与高质量继续教育。</p>
+              <p>我们通过<strong>每周线上学术会议</strong>、<strong>系统培训项目</strong>与<strong>年度线下大会</strong>，构建一个覆盖肾小球与间质性肾病、肾移植内科、重症肾内（电解质/酸碱）与透析、儿童肾脏病、罕见肾脏病等方向的长期学习网络。</p>
+            </div>
+
+            <div class="card soft">
+              <h3>KidneySphere AI 简介</h3>
+              <p>KidneySphere AI 是 GlomCon 中国教育体系的数字化平台与 AI 能力底座：包括病例讨论、学习中心与前沿进展聚合等核心能力。</p>
+              <div class="note" style="margin-top:12px">
+                <b>平台能力（已开放）：</b><br/>
+                病例讨论与附件 · 评论回复与 @ 提醒 · 社区动态 Moments<br/>
+                学习中心：文章/内科笔记 · 专家 PPT · 视频与培训项目<br/>
+                前沿进展聚合 · 会议与活动 · 临床研究中心
+              </div>
+            </div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="about-links">
+            <a class="chip" href="#showcase">展示区</a>
+            <a class="chip" href="#compliance">隐私与合规</a>
+            <a class="chip" href="mailto:china@glomcon.org">合作联系</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Showcase blocks -->
+    <section class="section about-showcase" id="showcase" data-about-showcase>
+      <div class="container">
+        <div class="section-title">
+          <div>
+            <h3>展示区</h3>
+            <p class="small muted">旗舰中心 · 共建与合作单位 · 核心专家 · 核心团队</p>
+          </div>
+          <span class="badge" data-admin-only hidden>Admin-editable</span>
+        </div>
+
+        <div class="about-subnav">
+          <a class="chip" href="#flagship">旗舰中心</a>
+          <a class="chip" href="#partners">合作单位</a>
+          <a class="chip" href="#experts">核心专家</a>
+          <a class="chip" href="#coreteam">核心团队</a>
+        </div>
+
+        <div class="grid cols-3 about-showcase-grid">
+
+          <!-- Flagship -->
+          <div class="card soft about-block" id="flagship">
+            <div class="about-block-head">
+              <div>
+                <h3>旗舰中心 <span class="en">Flagship</span></h3>
+                <div class="small muted">展示 GlomCon 中国旗舰分中心的标准化建设与落地情况。</div>
+              </div>
+              <a class="btn tiny" href="flagship.html">介绍页</a>
+            </div>
+            <div class="hr"></div>
+            <div class="stack" data-showcase-list="flagship"></div>
+            <details class="admin admin-details" data-admin-panel="flagship" hidden>
+              <summary>管理员：添加/删除条目</summary>
+              <div class="admin-body">
+                <form class="form" data-showcase-form="flagship">
+                  <label>名称 <input name="title" placeholder="例如：暨南大学第一附属医院" required></label>
+                  <label>简介 <textarea name="description" rows="3" placeholder="一句话介绍（可选）"></textarea></label>
+                  <label>图片/Logo/照片 URL <input name="image_url" placeholder="https://.../image.png（可选）"></label>
+                  <div class="upload-drop" data-image-dropzone tabindex="0" role="button" aria-label="拖拽或粘贴上传图片">
+                    <div class="small"><b>拖拽/粘贴图片到这里</b></div>
+                    <div class="small muted">也可以点击这里选择文件（支持截图粘贴）</div>
+                  </div>
+                  <label>上传图片/Logo（可选）
+                    <input name="image_file" type="file" accept="image/*">
+                  </label>
+                  <div class="small muted" style="margin-top:6px">支持：拖拽/粘贴到上面的区域或 URL 输入框（自动上传并回填 URL）。</div>
+                  <label>链接 <input name="link" placeholder="https://...（可选）"></label>
+                  <button class="btn primary" type="submit">添加</button>
+                </form>
+              </div>
+            </details>
+          </div>
+
+          <!-- Co-building -->
+          <div class="card soft about-block" id="partners">
+            <div class="about-block-head">
+              <div>
+                <h3>共建单位 <span class="en">Co-building</span></h3>
+                <div class="small muted">医院/高校/企业等共建项目的展示区。</div>
+              </div>
+              <a class="btn tiny" href="partners.html">展示页</a>
+            </div>
+            <div class="hr"></div>
+            <div class="stack" data-showcase-list="co_building"></div>
+            <details class="admin admin-details" data-admin-panel="co_building" hidden>
+              <summary>管理员：添加/删除条目</summary>
+              <div class="admin-body">
+
+                <details class="admin-batch" style="margin:4px 0 12px">
+                  <summary style="cursor:pointer"><b>批量导入共建单位（支持粘贴列表）</b> <span class="muted small">一行一个，自动解析姓名/单位</span></summary>
+                  <div class="form" style="margin-top:10px">
+                    <label>粘贴列表（可选）
+                      <textarea data-cobuild-batch rows="9" placeholder="示例：\n1. 张三 某某医院\n2. 某某医院-李四\n...（一行一个）"></textarea>
+                    </label>
+                    <div class="row" style="gap:10px;flex-wrap:wrap;margin-top:10px">
+                      <button class="btn tiny" type="button" data-cobuild-fill>填入本次 84 家名单</button>
+                      <button class="btn tiny" type="button" data-cobuild-clear>清空</button>
+                      <button class="btn tiny primary" type="button" data-cobuild-import>批量导入到数据库</button>
+                    </div>
+                    <div class="small muted" data-cobuild-status style="margin-top:10px"></div>
+                    <div class="small muted" style="margin-top:8px">说明：导入会自动跳过“已存在的单位”（按名称去重），你仍可在下面单条添加/删除。</div>
+                  </div>
+                </details>
+
+                <form class="form" data-showcase-form="co_building">
+                  <label>名称 <input name="title" placeholder="例如：某某医院" required></label>
+                  <label>简介 <textarea name="description" rows="3" placeholder="共建方向/项目简介（可选）"></textarea></label>
+                  <label>图片/Logo/照片 URL <input name="image_url" placeholder="https://.../logo.png（可选）"></label>
+                  <div class="upload-drop" data-image-dropzone tabindex="0" role="button" aria-label="拖拽或粘贴上传图片">
+                    <div class="small"><b>拖拽/粘贴图片到这里</b></div>
+                    <div class="small muted">也可以点击这里选择文件（支持截图粘贴）</div>
+                  </div>
+                  <label>上传图片/Logo（可选）
+                    <input name="image_file" type="file" accept="image/*">
+                  </label>
+                  <div class="small muted" style="margin-top:6px">支持：拖拽/粘贴到上面的区域或 URL 输入框（自动上传并回填 URL）。</div>
+                  <label>链接 <input name="link" placeholder="https://...（可选）"></label>
+                  <button class="btn primary" type="submit">添加</button>
+                </form>
+              </div>
+            </details>
+          </div>
+
+          <!-- Partners -->
+          <div class="card soft about-block">
+            <div class="about-block-head">
+              <div>
+                <h3>合作单位 <span class="en">Partners</span></h3>
+                <div class="small muted">合作医院/科研机构/企业伙伴展示区。</div>
+              </div>
+              <a class="btn tiny" href="partners.html">展示页</a>
+            </div>
+            <div class="hr"></div>
+            <div class="stack" data-showcase-list="partners"></div>
+            <details class="admin admin-details" data-admin-panel="partners" hidden>
+              <summary>管理员：添加/删除条目</summary>
+              <div class="admin-body">
+                <form class="form" data-showcase-form="partners">
+                  <label>名称 <input name="title" placeholder="例如：某某医院" required></label>
+                  <label>简介 <textarea name="description" rows="3" placeholder="合作类型/项目简介（可选）"></textarea></label>
+                  <label>图片/Logo/照片 URL <input name="image_url" placeholder="https://.../logo.png（可选）"></label>
+                  <div class="upload-drop" data-image-dropzone tabindex="0" role="button" aria-label="拖拽或粘贴上传图片">
+                    <div class="small"><b>拖拽/粘贴图片到这里</b></div>
+                    <div class="small muted">也可以点击这里选择文件（支持截图粘贴）</div>
+                  </div>
+                  <label>上传图片/Logo（可选）
+                    <input name="image_file" type="file" accept="image/*">
+                  </label>
+                  <div class="small muted" style="margin-top:6px">支持：拖拽/粘贴到上面的区域或 URL 输入框（自动上传并回填 URL）。</div>
+                  <label>链接 <input name="link" placeholder="https://...（可选）"></label>
+                  <button class="btn primary" type="submit">添加</button>
+                </form>
+              </div>
+            </details>
+          </div>
+
+          <!-- Experts CN -->
+          <div class="card soft about-block" id="experts">
+            <div class="about-block-head">
+              <div>
+                <h3>国内核心专家 <span class="en">Experts (CN)</span></h3>
+                <div class="small muted">国内核心专家与学术委员展示。</div>
+              </div>
+              <a class="btn tiny" href="experts-cn.html">国内专家页</a>
+            </div>
+            <div class="hr"></div>
+            <div class="stack" data-showcase-list="experts_cn"></div>
+            <details class="admin admin-details" data-admin-panel="experts_cn" hidden>
+              <summary>管理员：添加/删除条目</summary>
+              <div class="admin-body">
+                <form class="form" data-showcase-form="experts_cn">
+                  <label>姓名/机构 <input name="title" placeholder="例如：张三（某某医院）" required></label>
+                  <label>简介 <textarea name="description" rows="3" placeholder="方向/头衔/单位（可选）"></textarea></label>
+                  <label>图片/头像 URL <input name="image_url" placeholder="https://.../avatar.jpg（可选）"></label>
+                  <div class="upload-drop" data-image-dropzone tabindex="0" role="button" aria-label="拖拽或粘贴上传专家头像">
+                    <div class="small"><b>拖拽/粘贴专家头像到这里</b></div>
+                    <div class="small muted">也可以点击这里选择文件（支持截图粘贴）</div>
+                  </div>
+                  <label>上传头像（可选）
+                    <input name="image_file" type="file" accept="image/*">
+                  </label>
+                  <div class="small muted" style="margin-top:6px">支持：拖拽/粘贴到上面的区域或 URL 输入框（自动上传并回填 URL）。</div>
+                  <label>链接 <input name="link" placeholder="主页/简历链接（可选）"></label>
+                  <button class="btn primary" type="submit">添加</button>
+                </form>
+              </div>
+            </details>
+          </div>
+
+          <!-- Experts INTL -->
+          <div class="card soft about-block">
+            <div class="about-block-head">
+              <div>
+                <h3>国际核心专家 <span class="en">Experts (INTL)</span></h3>
+                <div class="small muted">国际核心专家与合作顾问展示。</div>
+              </div>
+              <a class="btn tiny" href="experts-intl.html">国际专家页</a>
+            </div>
+            <div class="hr"></div>
+            <div class="stack" data-showcase-list="experts_intl"></div>
+            <details class="admin admin-details" data-admin-panel="experts_intl" hidden>
+              <summary>管理员：添加/删除条目</summary>
+              <div class="admin-body">
+                <form class="form" data-showcase-form="experts_intl">
+                  <label>姓名/机构 <input name="title" placeholder="例如：Dr. Richard J. Glassock" required></label>
+                  <label>简介 <textarea name="description" rows="3" placeholder="方向/头衔/单位（可选）"></textarea></label>
+                  <label>图片/头像 URL <input name="image_url" placeholder="https://.../avatar.jpg（可选）"></label>
+                  <div class="upload-drop" data-image-dropzone tabindex="0" role="button" aria-label="拖拽或粘贴上传专家头像">
+                    <div class="small"><b>拖拽/粘贴专家头像到这里</b></div>
+                    <div class="small muted">也可以点击这里选择文件（支持截图粘贴）</div>
+                  </div>
+                  <label>上传头像（可选）
+                    <input name="image_file" type="file" accept="image/*">
+                  </label>
+                  <div class="small muted" style="margin-top:6px">支持：拖拽/粘贴到上面的区域或 URL 输入框（自动上传并回填 URL）。</div>
+                  <label>链接 <input name="link" placeholder="主页/简历链接（可选）"></label>
+                  <button class="btn primary" type="submit">添加</button>
+                </form>
+              </div>
+            </details>
+          </div>
+
+          <!-- Core Team -->
+          <div class="card soft about-block" id="coreteam">
+            <div class="about-block-head">
+              <div>
+                <h3>核心团队 <span class="en">Core Team</span></h3>
+                <div class="small muted">平台运营、内容建设与技术支持的核心团队成员介绍。</div>
+              </div>
+              <a class="btn tiny" href="core-team.html">介绍页</a>
+            </div>
+            <div class="hr"></div>
+            <div class="stack" data-showcase-list="core_team"></div>
+            <details class="admin admin-details" data-admin-panel="core_team" hidden>
+              <summary>管理员：添加/删除条目</summary>
+              <div class="admin-body">
+                <form class="form" data-showcase-form="core_team">
+                  <label>姓名/角色 <input name="title" placeholder="例如：李四｜运营负责人" required></label>
+                  <label>简介 <textarea name="description" rows="3" placeholder="职责/背景/一句话介绍（可选）"></textarea></label>
+                  <label>图片/头像 URL <input name="image_url" placeholder="https://.../avatar.jpg（可选）"></label>
+                  <div class="upload-drop" data-image-dropzone tabindex="0" role="button" aria-label="拖拽或粘贴上传团队成员头像">
+                    <div class="small"><b>拖拽/粘贴团队成员头像到这里</b></div>
+                    <div class="small muted">也可以点击这里选择文件（支持截图粘贴）</div>
+                  </div>
+                  <label>上传头像（可选）
+                    <input name="image_file" type="file" accept="image/*">
+                  </label>
+                  <div class="small muted" style="margin-top:6px">支持：拖拽/粘贴到上面的区域或 URL 输入框（自动上传并回填 URL）。</div>
+                  <label>链接 <input name="link" placeholder="主页/简介链接（可选）"></label>
+                  <button class="btn primary" type="submit">添加</button>
+                </form>
+              </div>
+            </details>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Compliance / policy -->
+    <section class="section" id="compliance">
+      <div class="container">
+        <div class="card soft">
+          <div class="section-title" style="margin:0 0 10px">
+            <div>
+              <h3>隐私与合规</h3>
+              <p class="small muted">病例讨论仅用于学术交流，发布前请务必完成去标识化处理。</p>
+            </div>
+            <a class="btn tiny" href="#top">返回顶部</a>
+          </div>
+          <div class="note">
+            <b>下一轮可补齐：</b>《数据隐私政策》《平台使用授权》《AI 试点接入指南》《社区规范》。这些可放到页脚链接区。
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">以病例讨论与学习体系为核心，逐步建设可沉淀、可检索的肾脏病知识社区。</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js?v=20260128_030"></script>
+</body>
+</html>

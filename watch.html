@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>播放 · KidneySphere</title>
+  <meta name="description" content="KidneySphere × KidneySphere AI">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+<section class="hero">
+  <div class="container">
+    <div class="card">
+      <span class="badge">学习中心 · 播放</span>
+      <h2 id="title" style="margin-top:10px">正在加载…</h2>
+      <p class="small muted" id="meta"></p>
+
+      <div class="hr"></div>
+
+      <div id="playerWrap" class="video-wrap">
+        <!-- iframe injected here -->
+      </div>
+
+      <div class="note small" style="margin-top:12px">
+        如果播放器无法显示/卡住：
+        <ul class="list" style="margin:8px 0 0">
+          <li>请先确认已登录（本页为“注册后观看”）。</li>
+          <li>尝试刷新页面；或使用无痕窗口；或清理站点缓存后重试。</li>
+          <li>仍不行可点击下方“打开B站”在 B站里直接观看。</li>
+        </ul>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+        <a class="btn" href="videos.html">返回视频目录</a>
+        <a class="btn" id="openBili" target="_blank" rel="noopener">打开B站</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<script type="module">
+  import { supabase, ensureSupabase, ensureAuthed, isConfigured, toast } from './supabaseClient.js?v=20260128_030';
+  import { getVideoById, getCategoryMeta } from './assets/videos.js?v=20260118_001';
+
+  // 1) Require login (matches “注册后观看”)
+  await ensureAuthed('login.html');
+
+  const qs = new URLSearchParams(location.search);
+  const id = (qs.get('id') || '').toString();
+
+  const titleEl = document.getElementById('title');
+  const metaEl = document.getElementById('meta');
+  const wrap = document.getElementById('playerWrap');
+  const openBili = document.getElementById('openBili');
+
+  function esc(s){
+    return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  }
+
+  if(!id){
+    titleEl.textContent = '视频参数缺失';
+    metaEl.textContent = '请从视频目录进入。';
+    wrap.innerHTML = `<div class="note">缺少参数：<code>id</code></div>`;
+  }else{
+    // 1) Static list
+    let v = getVideoById(id);
+
+    // 2) DB list (admin added videos) - scheme 2
+    if(!v && isConfigured()){
+      try{
+        await ensureSupabase();
+        if(supabase){
+          const { data, error } = await supabase
+            .from('learning_videos')
+            .select('id,title,category,kind,source_url,mp4_url,bvid,speaker,created_at,enabled,deleted_at')
+            .eq('id', id)
+            .maybeSingle();
+          if(!error && data && !data.deleted_at && data.enabled !== false){
+            v = {
+              id: String(data.id),
+              title: data.title || '',
+              category: data.category || 'other',
+              kind: data.kind || (data.bvid ? 'bilibili' : (data.mp4_url ? 'mp4' : 'external')),
+              bvid: data.bvid || null,
+              speaker: data.speaker || '',
+              source_url: data.source_url || data.mp4_url || '',
+              mp4_url: data.mp4_url || null,
+            };
+          }
+        }
+      }catch(_e){
+        // ignore
+      }
+    }
+
+    if(!v){
+      titleEl.textContent = '未找到该视频';
+      metaEl.textContent = '可能链接已更新或目录尚未同步。';
+      wrap.innerHTML = `<div class="note">找不到视频：<code>${esc(id)}</code></div>`;
+    }else{
+      const kind = v.kind || (v.bvid ? 'bilibili' : (v.mp4_url ? 'mp4' : 'external'));
+      const cat = getCategoryMeta(v.category);
+      titleEl.textContent = v.title || '（无标题）';
+      const sp = String(v.speaker || '').trim();
+      metaEl.textContent = `频道：${cat ? (cat.zh + ' / ' + cat.en) : (v.category || '')}${sp ? (' · 主讲：' + sp) : ''}`;
+
+      // Open button
+      const openUrl = v.mp4_url || v.source_url || '';
+      openBili.href = openUrl || 'https://www.bilibili.com';
+      openBili.textContent = (kind === 'mp4') ? '打开视频文件' : (kind === 'external' ? '打开来源链接' : '打开B站');
+
+      if(kind === 'mp4'){
+        wrap.innerHTML = `
+          <video controls playsinline style="width:100%;max-width:980px;border-radius:16px;background:#000;border:1px solid rgba(255,255,255,.12)">
+            <source src="${esc(openUrl)}" type="video/mp4" />
+            你的浏览器不支持 MP4 播放。
+          </video>
+        `;
+      }else if(kind === 'external'){
+        wrap.innerHTML = `
+          <div class="note">
+            该视频为外部链接，平台可能不允许直接嵌入播放。
+            <div style="margin-top:12px">
+              <a class="btn primary" href="${esc(openUrl)}" target="_blank" rel="noopener">打开来源观看</a>
+            </div>
+          </div>
+        `;
+      }else{
+        // Official Bilibili embed
+        let bvid = v.bvid || '';
+        if(!bvid && openUrl){
+          const m = String(openUrl).match(/\/video\/(BV[0-9A-Za-z]+)/i);
+          if(m) bvid = m[1];
+        }
+
+        if(!bvid){
+          wrap.innerHTML = `
+            <div class="note">
+              该视频缺少 BV 号，无法嵌入播放。
+              <div style="margin-top:12px">
+                <a class="btn primary" href="${esc(openUrl)}" target="_blank" rel="noopener">打开B站观看</a>
+              </div>
+            </div>
+          `;
+        }else{
+          const src = `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(bvid)}&page=1&high_quality=1&danmaku=0`;
+          wrap.innerHTML = `
+            <div class="video-embed">
+              <iframe
+                src="${src}"
+                scrolling="no"
+                border="0"
+                frameborder="no"
+                framespacing="0"
+                allowfullscreen="true"
+              ></iframe>
+            </div>
+          `;
+        }
+      }
+    }
+  }
+
+  // Supabase demo mode hint
+  if(!isConfigured()){
+    toast('服务暂不可用', '当前服务尚未完成初始化或配置，请联系管理员。', 'err');
+  }
+</script>
+
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">当前版本 · 学习中心视频库（注册后观看）</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js?v=20260128_030"></script>
+</body>
+</html>

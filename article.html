@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>文章详情 · KidneySphere AI</title>
+  <meta name="description" content="KidneySphere × KidneySphere AI">
+  <meta property="og:title" content="文章 · KidneySphere"/>
+  <meta property="og:description" content="KidneySphere × KidneySphere AI"/>
+  <meta property="og:type" content="article"/>
+  <!-- 微信朋友圈/微信群分享：固定分享封面（更稳定，不依赖 JS 执行） -->
+  <meta property="og:image" content="/assets/wechat_share_logo.png"/>
+  <meta property="og:image:secure_url" content="/assets/wechat_share_logo.png"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="1200"/>
+  <meta name="twitter:image" content="/assets/wechat_share_logo.png"/>
+  <link rel="image_src" href="/assets/wechat_share_logo.png" />
+  <link rel="apple-touch-icon" href="/assets/wechat_share_logo.png" />
+  <meta property="og:site_name" content="肾域AI · KidneySphereAI"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260213_001"/>
+</head>
+<body>
+
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+<main class="container">
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:18px 0">
+    <a class="btn" href="articles.html">← 返回文章列表</a>
+    <a class="btn" href="index.html">首页</a>
+    <button class="btn" id="articleFavBtn" type="button">⭐ 收藏</button>
+    <button class="btn" id="articleLikeBtn" type="button" title="点赞">
+      <span class="like-label">👍 点赞</span> · <span class="like-count">0</span>
+    </button>
+    <button class="btn" id="articleShareBtn" type="button">🔗 分享</button>
+    <a class="btn primary" id="editArticleBtn" href="#" data-admin-only hidden>编辑此文章</a>
+  </div>
+
+  <div class="card soft" id="articleRoot">
+    <div class="muted small">加载中…</div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="muted small">© 2025-2026 KidneySphere</div>
+</footer>
+
+<script type="module" src="app.js?v=20260128_030"></script>
+<script type="module" src="article.js?v=20260203_001"></script>
+</body>
+</html>

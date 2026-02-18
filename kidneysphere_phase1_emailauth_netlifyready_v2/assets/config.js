@@ -1,0 +1,4 @@
+export const SUPABASE_URL = "https://eaatpwakhcjxjonlyfii.supabase.co";
+export const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhYXRwd2FraGNqeGpvbmx5ZmlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5MDUzMzMsImV4cCI6MjA4MjQ4MTMzM30.OZ6mhKVsOKfJeI6opkk7GxRJuv0kY__k5N936h261PI";
+
+export const REQUIRE_DOCTOR_VERIFICATION_FOR_DISCUSSION = false;

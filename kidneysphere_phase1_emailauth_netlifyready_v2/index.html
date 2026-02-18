@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KidneySphere · 首页</title>
+  <meta name="description" content="KidneySphere × KidneySphere AI">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphere</b>
+          <span>GlomCon China × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html">首页 <span class="en">Home</span></a>
+        <a data-nav href="community.html">社区讨论 <span class="en">Community</span></a>
+        <a data-nav href="learning.html">学习中心 <span class="en">Learning</span></a>
+        <a data-nav href="frontier.html">前沿进展 <span class="en">Frontier</span></a>
+        <a data-nav href="events.html">会议/事件 <span class="en">Events</span></a>
+        <a data-nav href="about.html">关于 <span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+<section class="hero">
+  <div class="container hero-grid">
+    <div class="card">
+      <span class="badge">Phase 1 Stable · 先把注册/登录做到极致</span>
+      <h1 style="margin-top:10px">肾域AI · KidneySphere<br/>让肾内科知识与病例讨论更高效、更可信、更可扩展</h1>
+      <p>面向<strong>肾小球疾病</strong>、<strong>肾移植内科</strong>、<strong>重症肾内</strong>与<strong>儿童肾病</strong>四大方向，提供病例讨论、学习中心与前沿进展聚合。
+      当前版本以<strong>注册/登录</strong>为绝对核心：注册后即可发布病例并参与讨论（后续可接入“医生身份审核”）。</p>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px">
+        <a class="btn primary" href="register.html">立即注册</a>
+        <a class="btn" href="login.html">已有账号登录</a>
+        <a class="btn" href="frontier.html">浏览前沿进展</a>
+      </div>
+
+      <div class="kpi">
+        <div class="item">
+          <b>4 大病例板块</b>
+          <span>IgAN / MN 等肾小球病 · 移植 · 重症 · 儿肾</span>
+        </div>
+        <div class="item">
+          <b>前沿进展（赞助入口）</b>
+          <span>指南更新 · 临床试验 · 新药 · 机制研究 · 国产器械</span>
+        </div>
+        <div class="item">
+          <b>会议与活动</b>
+          <span>每周线上会议发布 + 2026 广州线下大会宣传</span>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+      <div class="note">
+        <b>上线前提醒：</b>本包已预留 Supabase 登录注册与数据库接口。你只需在 <code>assets/config.js</code> 填入 <code>SUPABASE_URL</code> 与 <code>SUPABASE_ANON_KEY</code> 即可启用真实注册/登录。
+      </div>
+    </div>
+
+    <div class="card soft">
+      <h2>快速入口</h2>
+      <ul class="list">
+        <li>
+          <b>发布病例（需登录）</b>
+          <div class="small">登录后立即发布病例；后续可扩展附件、图片、化验单解析。</div>
+          <div style="margin-top:10px"><a class="btn primary" href="post-case.html">去发布</a></div>
+        </li>
+        <li>
+          <b>前沿进展（吸引赞助）</b>
+          <div class="small">按疾病/产品线拆分栏目：IgAN 新药、MN 新药、国产透析器等。</div>
+          <div style="margin-top:10px"><a class="btn" href="frontier.html">去查看</a></div>
+        </li>
+        <li>
+          <b>会议（线上/线下）</b>
+          <div class="small">每周线上 Zoom 公告 + 2026 GlomCon 中国广州会议宣传。</div>
+          <div style="margin-top:10px"><a class="btn" href="events.html">去查看</a></div>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-title">
+      <div>
+        <h2>你想要的“第一眼体验”</h2>
+        <p>把最关键的事放在最显眼的位置：注册/登录、发布病例、前沿进展。</p>
+      </div>
+      <span class="badge">Mobile-first</span>
+    </div>
+
+    <div class="grid cols-3">
+      <div class="card soft">
+        <h3>登录态展示区（右上角）</h3>
+        <p>未登录显示“登录/注册”；登录后显示头像 + 姓名 + 退出。支持用户上传头像（先预留字段）。</p>
+      </div>
+      <div class="card soft">
+        <h3>病例讨论四大板块</h3>
+        <p>肾小球病 / 肾移植内科 / 重症肾内 / 儿童肾病。登录后即可发帖。</p>
+      </div>
+      <div class="card soft">
+        <h3>学习中心（预留 B 站链接）</h3>
+        <p>先用卡片列表承载；后续可对接 CMS 或 Supabase 表。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">Phase 1 Stable · 以“注册/登录 + 可发布病例 + 前沿进展吸引赞助”为核心。</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>综述/笔记（内科）· KidneySphere AI</title>
+  <meta name="description" content="KidneySphere × KidneySphere AI">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260213_001"/>
+</head>
+<body data-articles-tag="内科笔记">
+
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+<main class="container">
+  <div class="hero">
+    <div>
+      <div class="badge">Notes</div>
+      <h1>综述/笔记（内科）</h1>
+      <p class="muted">用于沉淀「大内科」学习笔记：综述解读、指南要点、临床用药、机制梳理、查房要点等。强调可检索、可复用、可持续更新。</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+        <a class="btn" href="learning.html#hot-articles">返回学习中心</a>
+        <a class="btn" href="articles.html">去文章库（全量）</a>
+        <a class="btn primary" href="article-editor.html?tag=%E5%86%85%E7%A7%91%E7%AC%94%E8%AE%B0" data-admin-only hidden>写笔记</a>
+      </div>
+      <div class="small muted" style="margin-top:10px">
+        默认仅展示带标签 <b>内科笔记</b> 的内容（可在编辑器里通过「标签」字段管理分类）。
+      </div>
+    </div>
+  </div>
+
+  <div class="card soft" style="margin-top:14px">
+    <div class="form-row" style="align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <b>最新发布</b>
+        <span class="small muted" id="articlesCount"></span>
+        <span class="small muted" id="articlesTagInfo" hidden></span>
+      </div>
+
+      <div class="form-row" style="gap:10px;flex-wrap:wrap">
+        <input class="input" id="articlesSearch" placeholder="搜索标题/摘要…" style="min-width:220px"/>
+        <select class="input" id="articlesScope" style="min-width:160px" data-admin-only hidden>
+          <option value="published">仅已发布</option>
+          <option value="all">全部（含草稿）</option>
+        </select>
+        <button class="btn" id="articlesRefresh" type="button">刷新</button>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div id="articlesList">
+      <div class="muted small">加载中…</div>
+    </div>
+
+    <div class="small muted" style="margin-top:12px">
+      提示：只有管理员可以创建/编辑笔记。普通成员可阅读已发布内容。
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="muted small">© 2025-2026 KidneySphere</div>
+</footer>
+
+<script type="module" src="app.js?v=20260128_030"></script>
+<script type="module" src="articles.js?v=20260203_001"></script>
+</body>
+</html>

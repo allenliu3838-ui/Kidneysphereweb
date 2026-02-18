@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>会员中心 · KidneySphereAI</title>
+  <meta name="description" content="会员中心：微信/支付宝付款后上传截图，人工审核开通会员标识。" />
+  <link rel="stylesheet" href="styles.css?v=20260122_001" />
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="container row">
+      <a class="brand" href="index.html">
+        <span class="logo">K</span>
+        <span class="brand-text">
+          <span class="zh">肾域AI · KidneySphereAI</span>
+          <span class="en">KidneySphereAI</span>
+        </span>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+        <a data-nav data-admin-only hidden href="admin.html"><span class="zh">管理后台</span><span class="en">Admin</span></a>
+      </nav>
+
+      <div class="auth" id="authArea">
+        <a class="btn ghost" href="login.html"><span class="zh">登录</span><span class="en">Login</span></a>
+        <a class="btn" href="register.html"><span class="zh">注册</span><span class="en">Sign up</span></a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="card soft">
+          <div class="badge">Membership</div>
+          <h1>会员中心</h1>
+          <p class="muted" style="max-width:900px">
+            目前采用<b>微信/支付宝扫码付款 + 上传截图 + 人工审核</b>的方式开通会员标识，适合保持现有网站运行方式（静态前端 + Supabase）。
+          </p>
+
+          <div class="note" id="memberGate" style="margin-top:14px">
+            正在检查登录状态…
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="grid two">
+          <div class="card soft">
+            <div class="section-title">
+              <h3>当前状态</h3>
+              <p class="muted small">显示你的医生认证与会员标识状态。</p>
+            </div>
+
+            <div id="memberStatus">
+              <div class="muted">加载中…</div>
+            </div>
+
+            <div class="small muted" style="margin-top:10px;line-height:1.7">
+              提示：开通会员不会影响医生认证逻辑（两者独立）。如需先完成医生认证，可前往 <a href="verify-doctor.html">医生认证</a>。
+            </div>
+          </div>
+
+          <div class="card soft">
+            <div class="section-title">
+              <h3>会员开通</h3>
+              <p class="muted small">选择支付方式，付款后上传截图提交审核。</p>
+            </div>
+
+            <div class="grid two">
+              <div>
+                <div class="small muted">支付方式</div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+                  <button class="btn primary" id="channelWechat" type="button">微信支付</button>
+                  <button class="btn" id="channelAlipay" type="button">支付宝</button>
+                </div>
+
+                <div class="small muted" style="margin-top:14px">会员价格</div>
+                <div style="margin-top:6px;font-size:20px"><b id="membershipPrice">—</b></div>
+
+                <div class="small muted" style="margin-top:14px">
+                  建议在付款备注里填写：<b id="payReference">—</b>（方便管理员核对）
+                </div>
+              </div>
+
+              <div>
+                <div class="small muted">收款码</div>
+                <div class="card" style="margin-top:8px">
+                  <img id="payQr" alt="payment qr" style="width:100%;max-width:260px;height:auto;border-radius:12px;display:block" />
+                  <div class="small muted" style="margin-top:10px;line-height:1.6">
+                    若二维码未配置，请管理员在 <code>assets/config.js</code> 中补充微信/支付宝收款码地址后刷新页面。
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <hr style="margin:18px 0;opacity:.35" />
+
+            <form id="membershipForm">
+              <div class="grid two">
+                <div>
+                  <label class="small muted">真实姓名（可选）</label>
+                  <input class="input" name="real_name" placeholder="用于管理员核对" />
+                </div>
+                <div>
+                  <label class="small muted">医院/单位（可选）</label>
+                  <input class="input" name="hospital" placeholder="例如：中山大学附属第一医院" />
+                </div>
+              </div>
+
+              <div style="margin-top:12px">
+                <label class="small muted">付款截图/凭证（必填，支持 PNG/JPG/WebP/PDF）</label>
+                <input class="input" type="file" name="proof" accept="image/png,image/jpeg,image/webp,application/pdf" required />
+              </div>
+
+              <div style="margin-top:12px">
+                <label class="small muted">备注（可选）</label>
+                <textarea class="input" name="note" rows="2" placeholder="例如：我已在微信付款，备注已填写 KS-xxxx"></textarea>
+              </div>
+
+              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px">
+                <button class="btn primary" type="submit">提交审核</button>
+                <span class="small muted" id="membershipHint"></span>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="card soft" style="margin-top:18px">
+          <div class="section-title">
+            <h3>我的订单</h3>
+            <p class="muted small">查看你提交的会员开通订单状态。</p>
+          </div>
+          <div id="myOrders"><div class="muted">加载中…</div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <div>© <span id="year"></span> KidneySphereAI</div>
+    </div>
+  </footer>
+
+  <script type="module" src="membership.js?v=20260122_001"></script>
+  <script type="module" src="app.js?v=20260121_004"></script>
+</body>
+</html>

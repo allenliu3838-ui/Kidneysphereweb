@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>邮箱登录 · KidneySphere</title>
+  <meta name="description" content="KidneySphere × KidneySphere AI">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+<section class="hero">
+  <div class="container">
+    <div class="card" style="max-width:720px;margin:0 auto">
+      <h2>邮箱登录</h2>
+      <p>使用 <b>邮箱 + 密码</b> 登录。首次使用请先注册。</p>
+
+      <div class="note" style="margin:12px 0 6px">
+        <b>提示：</b>如本网站启用了邮箱验证，新注册用户需先完成邮箱确认后才能登录。
+      </div>
+
+      <form id="loginForm">
+        <label>邮箱</label>
+        <input class="input" id="emailInput" type="email" placeholder="name@example.com" autocomplete="email" inputmode="email" required />
+
+        <label style="margin-top:12px">密码</label>
+        <input class="input" id="passwordInput" type="password" placeholder="请输入密码" autocomplete="current-password" required />
+
+        <div class="small" style="display:flex;align-items:center;gap:8px;margin-top:10px">
+          <input id="showPw" type="checkbox" style="width:16px;height:16px">
+          <label for="showPw" style="margin:0;color:rgba(233,241,255,.78)">显示密码</label>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px">
+          <button class="btn primary" type="submit">登录</button>
+          <a class="btn" href="register.html">去注册</a>
+          <a class="btn" href="forgot.html">忘记密码</a>
+          <a class="btn" href="index.html">返回首页</a>
+        </div>
+
+        <div class="small muted" style="margin-top:10px">
+          若未收到验证邮件，可检查垃圾箱或稍后重试。
+        </div>
+      </form>
+
+    </div>
+  </div>
+</section>
+
+<script type="module">
+  import { supabase, ensureSupabase, getSupabaseDebugInfo, toast, isConfigured } from './supabaseClient.js?v=20260128_030';
+
+  const qs = new URLSearchParams(location.search);
+  const nextRaw = qs.get('next') || '';
+  const next = (nextRaw && !nextRaw.startsWith('http') && !nextRaw.startsWith('//') && !nextRaw.includes('..'))
+    ? nextRaw
+    : 'post-case.html';
+
+  const form = document.getElementById('loginForm');
+  const emailInput = document.getElementById('emailInput');
+  const passwordInput = document.getElementById('passwordInput');
+  const showPw = document.getElementById('showPw');
+  const submitBtn = form.querySelector('button[type="submit"]');
+
+  showPw?.addEventListener('change', ()=>{
+    passwordInput.type = showPw.checked ? 'text' : 'password';
+  });
+
+  async function syncProfileFromMetadata(user){
+    if(!user) return;
+    const full_name = String(user.user_metadata?.full_name || '').trim();
+    const payload = { id: user.id };
+    if(full_name) payload.full_name = full_name;
+
+    // Ensure profile row exists, but do NOT sync role from user_metadata (role is server-managed).
+    try{
+      await supabase
+        .from('profiles')
+        .upsert(payload, { onConflict: 'id' });
+    }catch(_e){ /* profiles 表可能尚未创建，忽略 */ }
+  }
+
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+
+    submitBtn.disabled = true;
+    const oldText = submitBtn.textContent;
+    submitBtn.textContent = '登录中…';
+
+    if(!isConfigured()){
+      toast('服务暂不可用','系统尚未完成初始化或正在维护，请稍后再试或联系管理员。','err');
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldText;
+      return;
+    }
+
+    // Mobile networks may intermittently fail to load the Supabase SDK from public CDNs.
+    // Try a (re)initialization before declaring failure.
+    await ensureSupabase();
+    if(!supabase){
+      const dbg = getSupabaseDebugInfo();
+      const src = dbg?.libSource ? `
+SDK 来源：${dbg.libSource}` : '';
+      toast('认证服务加载失败', `可能是网络拦截/不稳定导致无法加载登录组件。
+请刷新或切换网络后重试。${src}`, 'err');
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldText;
+      return;
+    }
+
+    const email = String(emailInput.value || '').trim().toLowerCase();
+    const password = String(passwordInput.value || '');
+
+    if(!email || !email.includes('@')){
+      toast('邮箱格式不正确','请填写有效邮箱地址。','err');
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldText;
+      return;
+    }
+    if(password.length < 6){
+      toast('密码太短','请检查密码是否正确（通常至少 6 位）。','err');
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldText;
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if(error){
+      const msg = String(error.message || '');
+      if(msg.toLowerCase().includes('confirm')){
+        toast('登录失败','该邮箱可能还未确认。请先去邮箱完成确认后再登录。\n','err');
+        submitBtn.disabled = false;
+        submitBtn.textContent = oldText;
+        return;
+      }
+      toast('登录失败', msg || '未知错误', 'err');
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldText;
+      return;
+    }
+
+    const user = data?.session?.user;
+    if(!data?.session || !user){
+      toast('登录状态异常','未获取到有效 session，请重试。','err');
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldText;
+      return;
+    }
+
+    await syncProfileFromMetadata(user);
+
+    toast('登录成功','正在跳转…','ok');
+    setTimeout(()=> location.href = next, 600);
+  });
+
+      // If coming from reset.html, show a success toast. Reuse existing qs.
+      if(qs.get('reset')==='1'){
+        toast('密码已更新','请使用新密码登录。','ok');
+        qs.delete('reset');
+        history.replaceState({},'', location.pathname + (qs.toString()?('?'+qs.toString()):''));
+      }
+</script>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">当前版本 · 以“邮箱注册/登录 + 可发布病例 + 学习中心/前沿进展”为核心，持续迭代完善。</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js?v=20260128_030"></script>
+</body>
+</html>

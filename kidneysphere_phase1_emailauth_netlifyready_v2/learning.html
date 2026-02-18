@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>学习中心 · KidneySphere</title>
+  <meta name="description" content="KidneySphere × KidneySphere AI">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphere</b>
+          <span>GlomCon China × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html">首页 <span class="en">Home</span></a>
+        <a data-nav href="community.html">社区讨论 <span class="en">Community</span></a>
+        <a data-nav href="learning.html">学习中心 <span class="en">Learning</span></a>
+        <a data-nav href="frontier.html">前沿进展 <span class="en">Frontier</span></a>
+        <a data-nav href="events.html">会议/事件 <span class="en">Events</span></a>
+        <a data-nav href="about.html">关于 <span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+<section class="hero">
+  <div class="container">
+    <div class="card">
+      <span class="badge">学习中心</span>
+      <h2 style="margin-top:10px">课程与视频（预留 B 站链接位）</h2>
+      <p>Phase 1：先把结构搭好。后续你可以把 B 站链接/iframe 填到列表里，或接入 Supabase 表进行后台维护。</p>
+      <div class="grid cols-3" style="margin-top:14px">
+        <div class="card soft">
+          <h3>肾小球病系统培训（确定）</h3>
+          <p class="small">明年 1 月中旬开课（可在此放课程安排、回放链接、资料下载）。</p>
+          <div class="note">B站链接位：<br/><code>https://www.bilibili.com/video/BVxxxx</code></div>
+        </div>
+        <div class="card soft">
+          <h3>重症肾内与透析（规划中）</h3>
+          <p class="small">RRT modality、CRRT 并发症、血流动力学、抗凝等。</p>
+          <div class="note">B站链接位：<br/><code>...</code></div>
+        </div>
+        <div class="card soft">
+          <h3>肾移植内科（规划中）</h3>
+          <p class="small">移植后感染/免疫、妊娠、TMA、ABMR、药物管理。</p>
+          <div class="note">B站链接位：<br/><code>...</code></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">Phase 1 Stable · 以“注册/登录 + 可发布病例 + 前沿进展吸引赞助”为核心。</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

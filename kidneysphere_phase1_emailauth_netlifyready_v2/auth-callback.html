@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>正在完成登录… · KidneySphere</title>
+  <meta name="description" content="KidneySphere auth callback" />
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphere</b>
+          <span>Auth Callback</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html">首页 <span class="en">Home</span></a>
+        <a data-nav href="community.html">社区讨论 <span class="en">Community</span></a>
+        <a data-nav href="learning.html">学习中心 <span class="en">Learning</span></a>
+        <a data-nav href="frontier.html">前沿进展 <span class="en">Frontier</span></a>
+        <a data-nav href="events.html">会议/事件 <span class="en">Events</span></a>
+        <a data-nav href="about.html">关于 <span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="card" style="max-width:860px;margin:0 auto">
+          <h2 style="margin:0 0 6px">正在完成登录…</h2>
+          <p class="small muted" style="margin:0 0 16px">
+            如果你开启了 Confirm Email，这个页面用于接收邮箱确认后的跳转并建立 session。
+          </p>
+
+          <div class="note" style="margin:12px 0 18px">
+            <b>提示：</b>如页面一直停留在这里，通常是因为 Supabase 的 <b>Site URL / Redirect URLs</b> 未配置为你的 Netlify 域名，导致回跳到 localhost 或被拦截。
+          </div>
+
+          <div id="status" class="small"></div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:16px">
+            <a class="btn" href="login.html">返回登录</a>
+            <a class="btn" href="health.html">打开自检页</a>
+            <a class="btn" href="index.html">返回首页</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script type="module">
+      import { supabase, isConfigured, toast } from './supabaseClient.js';
+
+      const el = document.getElementById('status');
+
+      const qs = new URLSearchParams(location.search);
+      const nextRaw = qs.get('next') || '';
+      const next = (nextRaw && !nextRaw.startsWith('http') && !nextRaw.startsWith('//') && !nextRaw.includes('..'))
+        ? nextRaw
+        : 'post-case.html';
+
+      function setStatus(html){ el.innerHTML = html; }
+
+      async function syncProfileFromMetadata(user){
+        if(!user) return;
+        const full_name = user.user_metadata?.full_name;
+        const role = user.user_metadata?.role;
+        if(!full_name && !role) return;
+        try{
+          await supabase
+            .from('profiles')
+            .upsert({ id: user.id, full_name: full_name || null, role: role || null }, { onConflict: 'id' });
+        }catch(_e){ /* profiles 表可能尚未创建，忽略 */ }
+      }
+
+      async function run(){
+        if(!isConfigured() || !supabase){
+          setStatus('<div class="muted">Supabase 未配置：请先在 assets/config.js 填入 SUPABASE_URL 与 SUPABASE_ANON_KEY。</div>');
+          return;
+        }
+
+        setStatus('<div class="muted">正在读取 session…</div>');
+
+        // In implicit flow, supabase-js should detect session in URL automatically.
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if(!session){
+          setStatus('<div class="muted">未获取到 session。你可以返回登录页重试，或打开 /health.html 查看详细信息。</div>');
+          return;
+        }
+
+        await syncProfileFromMetadata(session.user);
+
+        toast('已完成登录', '正在跳转到目标页面…', 'ok');
+        setStatus('<div>已登录：<b>是</b> · 正在跳转…</div>');
+        setTimeout(()=>{ location.href = next; }, 800);
+      }
+
+      run();
+    </script>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">Auth Callback · 仅用于测试阶段确认邮件回跳。</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

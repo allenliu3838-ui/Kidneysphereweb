@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>忘记密码 · KidneySphere</title>
+  <meta name="description" content="KidneySphere × KidneySphere AI">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="card" style="max-width:720px;margin:0 auto">
+          <h2>忘记密码</h2>
+          <p>输入注册邮箱，我们会发送一封“重置密码”邮件到你的邮箱。</p>
+
+          <div class="note" style="margin:12px 0 6px">
+            <b>提示：</b>如果你收不到邮件，常见原因包括：邮箱拦截、延迟或进入垃圾箱。建议检查垃圾箱/广告邮件，或稍后再试。
+          </div>
+
+          <form id="forgotForm">
+            <label>邮箱</label>
+            <input class="input" id="emailInput" type="email" placeholder="name@example.com" autocomplete="email" inputmode="email" required />
+
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px">
+              <button class="btn primary" type="submit">发送重置邮件</button>
+              <a class="btn" href="login.html">返回登录</a>
+              <a class="btn" href="index.html">返回首页</a>
+            </div>
+          </form>
+
+          <div id="sentWrap" class="note" style="margin-top:14px" hidden>
+            <b>已发送：</b>
+            <div class="small" style="margin-top:6px">
+              我们已向 <code id="sentEmail"></code> 发送重置邮件。请打开邮箱点击链接并设置新密码。
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script type="module">
+      import { supabase, toast, isConfigured } from './supabaseClient.js?v=20260128_030';
+
+      const qs = new URLSearchParams(location.search);
+      const nextRaw = qs.get('next') || '';
+      const next = (nextRaw && !nextRaw.startsWith('http') && !nextRaw.startsWith('//') && !nextRaw.includes('..'))
+        ? nextRaw
+        : 'index.html';
+
+      const form = document.getElementById('forgotForm');
+      const emailInput = document.getElementById('emailInput');
+      const submitBtn = form.querySelector('button[type="submit"]');
+
+      const sentWrap = document.getElementById('sentWrap');
+      const sentEmail = document.getElementById('sentEmail');
+
+      function getRedirectTo(){
+        // 使用随机参数避免浏览器/中间缓存导致用户打开到旧版 reset 页面。
+        // 注意：不要用 v 参数（它会被全站版本参数逻辑覆盖），改用 r 参数即可。
+        const u = new URL('reset.html', location.origin);
+        u.searchParams.set('r', String(Date.now()));
+        return u.toString();
+      }
+
+      form.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+
+        submitBtn.disabled = true;
+        const oldText = submitBtn.textContent;
+        submitBtn.textContent = '发送中…';
+
+        if(!isConfigured() || !supabase){
+          toast('Supabase 还未配置','请先在 assets/config.js 填入 SUPABASE_URL 与 SUPABASE_ANON_KEY。','err');
+          submitBtn.disabled = false;
+          submitBtn.textContent = oldText;
+          return;
+        }
+
+        const email = String(emailInput.value || '').trim().toLowerCase();
+        if(!email || !email.includes('@')){
+          toast('邮箱格式不正确','请填写有效邮箱地址。','err');
+          submitBtn.disabled = false;
+          submitBtn.textContent = oldText;
+          return;
+        }
+
+        const redirectTo = getRedirectTo();
+        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+
+        if(error){
+          toast('发送失败', (error.message || '未知错误') + '。若提示 redirect / URL 不允许，请在 Supabase 控制台 Authentication → URL Configuration 添加允许的 Redirect URL（例如：'+getRedirectTo()+')。', 'err');
+          submitBtn.disabled = false;
+          submitBtn.textContent = oldText;
+          return;
+        }
+
+        sentEmail.textContent = email;
+        sentWrap.hidden = false;
+        toast('已发送', '请前往邮箱点击重置链接。', 'ok');
+
+        submitBtn.disabled = false;
+        submitBtn.textContent = oldText;
+      });
+    </script>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">忘记密码（邮件重置）</div>
+      </div>
+      <div class="small">
+        <div>© 2025 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" data-toast></div>
+  <script type="module" src="app.js?v=20260128_030"></script>
+</body>
+</html>

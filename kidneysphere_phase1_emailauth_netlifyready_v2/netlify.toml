@@ -1,0 +1,16 @@
+[build]
+  publish = "."
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+
+# Avoid caching the runtime config during rapid iterations
+[[headers]]
+  for = "/assets/config.js"
+  [headers.values]
+    Cache-Control = "no-store, max-age=0"
