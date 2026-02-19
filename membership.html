@@ -5,38 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>会员中心 · KidneySphereAI</title>
   <meta name="description" content="会员中心：微信/支付宝付款后上传截图，人工审核开通会员标识。" />
-  <link rel="stylesheet" href="styles.css?v=20260122_001" />
+  <link rel="stylesheet" href="styles.css?v=20260219_001" />
+  <link rel="icon" href="assets/logo.png" />
 </head>
 
 <body>
-  <header class="topbar">
-    <div class="container row">
-      <a class="brand" href="index.html">
-        <span class="logo">K</span>
-        <span class="brand-text">
-          <span class="zh">肾域AI · KidneySphereAI</span>
-          <span class="en">KidneySphereAI</span>
-        </span>
-      </a>
-
-      <nav class="menu" aria-label="Primary">
-        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
-        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
-        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
-        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
-        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
-        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
-        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
-        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
-        <a data-nav data-admin-only hidden href="admin.html"><span class="zh">管理后台</span><span class="en">Admin</span></a>
-      </nav>
-
-      <div class="auth" id="authArea">
-        <a class="btn ghost" href="login.html"><span class="zh">登录</span><span class="en">Login</span></a>
-        <a class="btn" href="register.html"><span class="zh">注册</span><span class="en">Sign up</span></a>
-      </div>
-    </div>
-  </header>
+  <header class="nav"></header>
 
   <main>
     <section class="hero">
@@ -45,7 +19,7 @@
           <div class="badge">Membership</div>
           <h1>会员中心</h1>
           <p class="muted" style="max-width:900px">
-            目前采用<b>微信/支付宝扫码付款 + 上传截图 + 人工审核</b>的方式开通会员标识，适合保持现有网站运行方式（静态前端 + Supabase）。
+            通过<b>微信/支付宝扫码付款</b>，上传付款截图，审核通过后即可开通会员标识。
           </p>
 
           <div class="note" id="memberGate" style="margin-top:14px">
@@ -57,7 +31,7 @@
 
     <section class="section">
       <div class="container">
-        <div class="grid two">
+        <div class="grid cols-2">
           <div class="card soft">
             <div class="section-title">
               <h3>当前状态</h3>
@@ -79,7 +53,7 @@
               <p class="muted small">选择支付方式，付款后上传截图提交审核。</p>
             </div>
 
-            <div class="grid two">
+            <div class="grid cols-2">
               <div>
                 <div class="small muted">支付方式</div>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
@@ -100,7 +74,7 @@
                 <div class="card" style="margin-top:8px">
                   <img id="payQr" alt="payment qr" style="width:100%;max-width:260px;height:auto;border-radius:12px;display:block" />
                   <div class="small muted" style="margin-top:10px;line-height:1.6">
-                    若二维码未配置，请管理员在 <code>assets/config.js</code> 中补充微信/支付宝收款码地址后刷新页面。
+                    请使用微信或支付宝扫描上方二维码完成付款。
                   </div>
                 </div>
               </div>
@@ -109,7 +83,7 @@
             <hr style="margin:18px 0;opacity:.35" />
 
             <form id="membershipForm">
-              <div class="grid two">
+              <div class="grid cols-2">
                 <div>
                   <label class="small muted">真实姓名（可选）</label>
                   <input class="input" name="real_name" placeholder="用于管理员核对" />
@@ -151,7 +125,7 @@
 
   <footer class="footer"></footer>
 
-  <script type="module" src="membership.js?v=20260122_001"></script>
-  <script type="module" src="app.js?v=20260121_004"></script>
+  <script type="module" src="app.js?v=20260219_001"></script>
+  <script type="module" src="membership.js?v=20260219_001"></script>
 </body>
 </html>

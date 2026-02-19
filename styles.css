@@ -2151,3 +2151,43 @@ textarea.prose-input{
   background: rgba(255,255,255,.04);
   font-weight: 700;
 }
+
+/* ── Featured conference highlight ── */
+.card.conference-featured{
+  position:relative;
+  border:1px solid rgba(var(--brand-rgb),.35);
+  background:
+    radial-gradient(600px 320px at 10% 20%, rgba(var(--brand-rgb),.08), transparent 70%),
+    radial-gradient(500px 280px at 90% 80%, rgba(var(--brand2-rgb),.06), transparent 70%),
+    var(--panel);
+  overflow:hidden;
+}
+.card.conference-featured::before{
+  content:'';
+  position:absolute;
+  inset:-2px;
+  border-radius:var(--radius);
+  background: linear-gradient(135deg, rgba(var(--brand-rgb),.25), transparent 50%, rgba(var(--brand2-rgb),.18));
+  z-index:-1;
+  animation: conf-glow 4s ease-in-out infinite alternate;
+}
+@keyframes conf-glow{
+  0%  { opacity:.6 }
+  100%{ opacity:1 }
+}
+.conference-countdown{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 14px;
+  border-radius:10px;
+  background:rgba(var(--brand-rgb),.14);
+  border:1px solid rgba(var(--brand-rgb),.28);
+  font-weight:700;
+  font-size:15px;
+  margin-top:10px;
+}
+.conference-countdown .num{
+  font-size:22px;
+  color:rgba(147,197,253,.95);
+}
