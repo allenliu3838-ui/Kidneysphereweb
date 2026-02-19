@@ -63,18 +63,19 @@
 <!-- Featured: GlomCon Guangzhou conference -->
 <section class="section" aria-label="GlomCon China Guangzhou Conference">
   <div class="container">
-    <div class="card">
+    <div class="card conference-featured">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap">
         <div style="flex:1 1 420px;min-width:260px">
           <span class="badge">Featured · GlomCon 中国广州会议</span>
-          <h2 style="margin-top:10px;font-size:26px">2026/6/5–6/7 · 广州（北京时间）</h2>
-          <p>以真实临床问题为导向，汇聚国内外肾脏专科专家；覆盖肾小球疾病、肾移植内科、重症肾内与透析、AI 肾病、儿童肾病等关键亚专科。</p>
+          <h2 style="margin-top:10px;font-size:26px">2026/6/5–6/7 · 广州</h2>
+          <div class="conference-countdown" id="confCountdown"></div>
+          <p style="margin-top:12px">以真实临床问题为导向，汇聚国内外肾脏专科专家；覆盖肾小球疾病、肾移植内科、重症肾内与透析、AI 肾病、儿童肾病等关键亚专科。</p>
           <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
             <a class="btn primary" href="glomcon-guangzhou.html">查看会议详情</a>
             <a class="btn" href="events.html">会议与活动</a>
-            <a class="btn" href="assets/glomcon_guangzhou_poster.pdf?v=20260118_002" target="_blank" rel="noopener">下载海报</a>
+            <a class="btn" href="assets/glomcon_guangzhou_poster.pdf?v=20260118_002" target="_blank" rel="noopener">下载海报 PDF</a>
           </div>
-          <div class="small muted" style="margin-top:10px">报名通道将于稍后开启；嘉宾与会议日程将陆续公布，敬请关注官网更新。</div>
+          <div class="small muted" style="margin-top:10px">嘉宾与会议日程将陆续公布，敬请关注官网更新。</div>
         </div>
 
         <a class="poster-thumb" href="glomcon-guangzhou.html" aria-label="查看会议海报">
@@ -84,6 +85,21 @@
     </div>
   </div>
 </section>
+<script>
+(function(){
+  var el=document.getElementById('confCountdown');
+  if(!el) return;
+  var target=new Date('2026-06-05T08:00:00+08:00').getTime();
+  function upd(){
+    var now=Date.now(),d=target-now;
+    if(d<=0){el.textContent='会议进行中';return;}
+    var days=Math.floor(d/864e5);
+    el.innerHTML='<span class="num">'+days+'</span> 天后开幕';
+  }
+  upd();
+  setInterval(upd,36e5);
+})();
+</script>
 
 <!-- Home Showcase: 核心专家 / 旗舰中心 / 共建单位 / 合作单位 -->
 <section class="section home-showcase" aria-label="Ecosystem and Endorsements" data-home-showcase>

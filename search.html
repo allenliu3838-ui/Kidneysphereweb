@@ -61,9 +61,8 @@
         </div>
       </div>
 
-      <div class="note" style="margin-top:14px" data-keep-public-hint>
-        <b>管理员提示：</b>如果提示“search_site RPC 不存在 / 执行失败”，请在 Supabase → SQL Editor 运行：<br/>
-        <code>MIGRATION_20260211_SITE_SEARCH.sql</code>（并在 Settings → API 点击 Reload schema）。
+      <div class="note" style="margin-top:14px" data-admin-only hidden>
+        <b>管理员提示：</b>如果搜索功能异常，请检查 Supabase 中 search_site RPC 是否已部署。
       </div>
     </div>
   </main>

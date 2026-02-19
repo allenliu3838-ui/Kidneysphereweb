@@ -27,9 +27,3 @@ try {
   // ignore
 }
 
-// Helpful during QA
-try {
-  console.log("✅ config.js loaded", SUPABASE_URL);
-} catch (_e) {
-  // ignore
-}
