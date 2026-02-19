@@ -130,6 +130,7 @@ function injectNav(){
         <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
         <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
         <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+        <a data-nav href="search.html"><span class="zh">搜索</span><span class="en">Search</span></a>
       </nav>
       <div class="auth" data-auth>
         <a class="btn" href="login.html">登录</a>
@@ -170,22 +171,6 @@ function ensureToast(){
   else document.body.appendChild(d);
 }
 
-function ensureExtraNavLinks(){
-  // Add global "Search" entry without manually editing every HTML header.
-  // (All pages share app.js.)
-  try{
-    const menu = document.querySelector('.menu');
-    if(!menu) return;
-    const has = menu.querySelector('a[href^="search.html"], a[href^="/search"], a[href*="search.html"]');
-    if(has) return;
-
-    const a = document.createElement('a');
-    a.setAttribute('data-nav','');
-    a.setAttribute('href','search.html');
-    a.innerHTML = '<span class="zh">搜索</span><span class="en">Search</span>';
-    menu.appendChild(a);
-  }catch(_e){ /* ignore */ }
-}
 
 document.addEventListener('DOMContentLoaded', ()=>{
   applyVersionParamToUrl();
@@ -1019,7 +1004,6 @@ async function updateUnreadBadges(){
 injectNav();
 injectFooter();
 ensureToast();
-ensureExtraNavLinks();
 initSearchHotkey();
 initMobileDrawer();
 setActiveNav();
