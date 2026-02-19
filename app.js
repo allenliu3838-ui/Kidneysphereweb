@@ -101,6 +101,75 @@ function applyVersionParamToLinks(){
 }
 
 
+// ------------------------------
+// Shared nav / footer / toast injection
+// Single source of truth: HTML pages only need
+//   <header class="nav"></header>
+//   <footer class="footer" data-blurb="..."></footer>
+// and app.js fills them in at runtime.
+// ------------------------------
+
+function injectNav(){
+  const header = document.querySelector('header.nav');
+  if(!header) return;
+  header.innerHTML = `
+    <div class="container nav-inner">
+      <a class="brand" href="index.html" aria-label="KidneySphere Home">
+        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <div class="title">
+          <b>肾域AI · KidneySphereAI</b>
+          <span>GlomCon中国 × KidneySphere AI</span>
+        </div>
+      </a>
+      <nav class="menu" aria-label="Primary">
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
+        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
+        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
+      </nav>
+      <div class="auth" data-auth>
+        <a class="btn" href="login.html">登录</a>
+        <a class="btn primary" href="register.html">注册</a>
+      </div>
+    </div>`;
+}
+
+function injectFooter(){
+  const footer = document.querySelector('footer.footer');
+  if(!footer) return;
+  // Skip if the footer already has child elements (custom footer kept in HTML)
+  if(footer.children.length > 0) return;
+  const blurb = escapeHtml(footer.getAttribute('data-blurb') || '以病例讨论与学习体系为核心，逐步建设可沉淀、可检索的肾脏病知识社区。');
+  footer.innerHTML = `
+    <div class="container footer-grid">
+      <div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
+          <b>KidneySphere × KidneySphere AI</b>
+        </div>
+        <div class="small">${blurb}</div>
+      </div>
+      <div class="small">
+        <div>© 2025–2026 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+      </div>
+    </div>`;
+}
+
+function ensureToast(){
+  if(document.querySelector('[data-toast]')) return;
+  const d = document.createElement('div');
+  d.className = 'toast';
+  d.setAttribute('data-toast', '');
+  const footer = document.querySelector('footer.footer');
+  if(footer) footer.parentNode.insertBefore(d, footer);
+  else document.body.appendChild(d);
+}
+
 function ensureExtraNavLinks(){
   // Add global "Search" entry without manually editing every HTML header.
   // (All pages share app.js.)
@@ -947,6 +1016,9 @@ async function updateUnreadBadges(){
 }
 
 
+injectNav();
+injectFooter();
+ensureToast();
 ensureExtraNavLinks();
 initSearchHotkey();
 initMobileDrawer();
