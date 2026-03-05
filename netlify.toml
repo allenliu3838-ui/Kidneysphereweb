@@ -38,3 +38,19 @@
   for = "/*.html"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
+
+
+[[redirects]]
+  from = "/api/content"
+  to = "/.netlify/functions/api-content"
+  status = 200
+
+[[redirects]]
+  from = "/api/content/*"
+  to = "/.netlify/functions/api-content/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/me"
+  to = "/.netlify/functions/api-me"
+  status = 200
