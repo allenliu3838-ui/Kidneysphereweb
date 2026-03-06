@@ -507,76 +507,6 @@ function getId(){
   return u.searchParams.get('id') || '';
 }
 
-
-
-function buildPreviewBody(fullBody){
-  const plain = String(fullBody || '')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if(!plain) return '会员阅读全文';
-  if(plain.length <= 280) return plain;
-  return plain.slice(0, 280) + '…\n\n—— 会员阅读全文 ——';
-}
-
-async function upsertContentHubVersion(supabase, payload){
-  const { legacyId, title, summary, tags, status, author_name, content_html, user_id } = payload;
-  let ci = null;
-  if(legacyId){
-    const byLegacy = await supabase.from('content_items').select('*').eq('legacy_article_id', legacyId).maybeSingle();
-    if(byLegacy.data) ci = byLegacy.data;
-  }
-  if(!ci){
-    const created = await supabase.from('content_items').insert({
-      legacy_article_id: legacyId || null,
-      type: 'article',
-      title_zh: title,
-      summary_zh: summary || null,
-      tags,
-      status,
-      paywall: 'free_preview',
-      author_name,
-    }).select('*').single();
-    if(created.error) throw created.error;
-    ci = created.data;
-  }else{
-    const up = await supabase.from('content_items').update({
-      title_zh: title,
-      summary_zh: summary || null,
-      tags,
-      status,
-      author_name,
-    }).eq('id', ci.id);
-    if(up.error) throw up.error;
-  }
-
-  const ts = new Date();
-  const version = `v${ts.getUTCFullYear()}${String(ts.getUTCMonth()+1).padStart(2,'0')}${String(ts.getUTCDate()).padStart(2,'0')}-${String(ts.getUTCHours()).padStart(2,'0')}${String(ts.getUTCMinutes()).padStart(2,'0')}${String(ts.getUTCSeconds()).padStart(2,'0')}`;
-  const preview_body = buildPreviewBody(content_html || '');
-  const vres = await supabase.from('content_versions').insert({
-    content_id: ci.id,
-    version,
-    status,
-    source_format: 'html',
-    preview_body,
-    full_body: content_html || '',
-    created_by: user_id,
-    approved_by: status === 'published' ? user_id : null,
-  }).select('id').single();
-  if(vres.error) throw vres.error;
-
-  if(status === 'published'){
-    const pub = await supabase.from('content_items').update({
-      status: 'published',
-      last_published_version_id: vres.data.id,
-      published_at: new Date().toISOString(),
-    }).eq('id', ci.id);
-    if(pub.error) throw pub.error;
-  }
-
-  return { contentItemId: ci.id };
-}
-
 function getPresetTagsFromUrl(){
   // Optional: allow pre-filling tags when opening the editor from a themed list page.
   // Supported params: ?tag=xxx or ?presetTag=xxx or ?tags=a,b,c
@@ -656,27 +586,6 @@ function parseTags(s){
 }
 
 async function loadExisting(supabase, id){
-  const c = await supabase.from('content_items').select('*').or(`id.eq.${id},legacy_article_id.eq.${id}`).maybeSingle();
-  if(c?.data?.id){
-    const vid = c.data.last_published_version_id;
-    let v = null;
-    if(vid){
-      const vr = await supabase.from('content_versions').select('*').eq('id', vid).maybeSingle();
-      v = vr.data || null;
-    }
-    loadedArticle = {
-      id: c.data.legacy_article_id || c.data.id,
-      title: c.data.title_zh,
-      status: c.data.status,
-      summary: c.data.summary_zh,
-      tags: c.data.tags || [],
-      author_name: c.data.author_name,
-      content_html: v?.full_body || '',
-      content_md: v?.full_body || '',
-      published_at: c.data.published_at,
-    };
-    return loadedArticle;
-  }
   const { data, error } = await supabase.from('articles').select('*').eq('id', id).maybeSingle();
   if(error) throw error;
   loadedArticle = data;
@@ -758,27 +667,6 @@ async function saveArticle(){
     if(data?.id){
       history.replaceState({}, '', `article-editor.html?id=${encodeURIComponent(data.id)}`);
     }
-  }
-
-  // Content Hub versioning (new unified sync model)
-  try{
-    const effectiveLegacyId = id || (loadedArticle?.id) || null;
-    const result = await upsertContentHubVersion(supabase, {
-      legacyId: effectiveLegacyId,
-      title,
-      summary,
-      tags,
-      status,
-      author_name,
-      content_html: content_html || mdToHtml(content_md),
-      user_id: user.id,
-    });
-    if(result?.contentItemId){
-      setMsg(status === 'published' ? '已发布（已生成版本）' : '已保存草稿版本', 'muted');
-    }
-  }catch(e){
-    console.warn('content hub save failed:', e);
-    setMsg('文章已保存（内容中台写入失败，请检查迁移）', 'err');
   }
 }
 
