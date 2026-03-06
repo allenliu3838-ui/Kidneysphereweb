@@ -12,7 +12,6 @@ import {
 import { applyShareMeta, copyToClipboard, buildStableUrl } from './share.js?v=20260118_001';
 
 import { renderSafeHtml } from './ks_richtext.js?v=20260213_001';
-import { fetchContentById, fetchMe } from './content-api.js?v=20260305_001';
 
 const root = document.getElementById('articleRoot');
 const editBtn = document.getElementById('editArticleBtn');
@@ -556,46 +555,31 @@ async function main(){
   await loadLikeState(user, id);
 
   try{
-    const previewRes = await fetchContentById(id, 'preview');
-    if(!previewRes?.item){
+    // If not admin, only allow published
+    let q = supabase.from('articles').select('*').eq('id', id).maybeSingle();
+    if(!isAdmin) q = q.eq('status', 'published').is('deleted_at', null);
+
+    const { data, error } = await q;
+    if(error) throw error;
+    if(!data){
       root.innerHTML = `<div class="muted small">文章不存在，或你没有权限查看。</div>`;
       return;
     }
 
-    const data = previewRes.item || {};
-    const previewBody = String(previewRes.body || '').trim();
-    let fullBody = previewBody;
-    let fullMode = 'preview';
-
-    try{
-      const me = await fetchMe();
-      const perms = Array.isArray(me?.permissions) ? me.permissions : [];
-      if(perms.includes('member') || isAdmin || data.paywall !== 'members_only'){
-        const fullRes = await fetchContentById(id, 'full');
-        if(fullRes?.body){
-          fullBody = String(fullRes.body || '').trim() || previewBody;
-          fullMode = 'full';
-        }
-      }
-    }catch(_e){
-      // 非会员/未登录时将停留在 preview。
-    }
-
-    const title = data.title_zh || data.title || '未命名';
-    const summary = String(data.summary_zh || data.summary || '').trim();
+    const title = data.title || '未命名';
+    const summary = String(data.summary || '').trim();
     const cover = String(data.cover_url || '').trim();
     const author = data.author_name || '';
-    const status = String(data.status || 'published');
+    const status = String(data.status || 'draft');
     const publishedAt = data.published_at;
     const createdAt = data.created_at;
 
     // Views (optional): only available after MIGRATION_20260109_ARTICLE_VIEWCOUNT.sql
-    const legacyId = data.legacy_article_id || id;
-    const hasViewCount = Object.prototype.hasOwnProperty.call(data, 'view_count') && Boolean(legacyId);
+    const hasViewCount = Object.prototype.hasOwnProperty.call(data, 'view_count');
     let viewCount = hasViewCount ? Number(data.view_count || 0) : null;
-    if(hasViewCount && status === 'published' && shouldCountArticleView(legacyId)){
+    if(hasViewCount && status === 'published' && shouldCountArticleView(id)){
       try{
-        const { data: newCount, error: incErr } = await supabase.rpc('increment_article_view', { p_article_id: legacyId });
+        const { data: newCount, error: incErr } = await supabase.rpc('increment_article_view', { p_article_id: id });
         if(!incErr && typeof newCount === 'number' && isFinite(newCount)){
           viewCount = newCount;
         }
@@ -605,11 +589,11 @@ async function main(){
     }
 
     // Downloads (optional): only available after MIGRATION_20260130_DOWNLOADCOUNT_ARTICLE_PPT.sql
-    const hasDownloadCount = Object.prototype.hasOwnProperty.call(data, 'download_count') && Boolean(legacyId);
+    const hasDownloadCount = Object.prototype.hasOwnProperty.call(data, 'download_count');
     let downloadCount = hasDownloadCount ? Number(data.download_count || 0) : null;
 
     // Likes (optional): available after MIGRATION_20260203_ARTICLE_LIKES.sql
-    const hasLikeCount = Object.prototype.hasOwnProperty.call(data, 'like_count') && Boolean(legacyId);
+    const hasLikeCount = Object.prototype.hasOwnProperty.call(data, 'like_count');
     let likeCount = hasLikeCount ? Number(data.like_count || 0) : null;
 
     const meta = [
@@ -632,10 +616,11 @@ async function main(){
 
         <div class="hr"></div>
 
-        <div class="article-content ks-prose ks-reading" data-read-mode="${esc(fullMode)}">
+        <div class="article-content ks-prose ks-reading">
           ${(() => {
-            if(/<[^>]+>/.test(fullBody)) return renderSafeHtml(fullBody, { mode:'article', linkify:true });
-            return mdToHtml(fullBody || previewBody || '');
+            const html = String(data.content_html || '').trim();
+            if(html) return renderSafeHtml(html, { mode:'article', linkify:true });
+            return mdToHtml(data.content_md || '');
           })()}
         </div>
       </div>
@@ -658,7 +643,7 @@ async function main(){
     const bumpDownload = async () => {
       if (!hasDownloadCount) return;
       try {
-        const { data: newCount, error: incErr } = await supabase.rpc('increment_article_download', { p_article_id: legacyId });
+        const { data: newCount, error: incErr } = await supabase.rpc('increment_article_download', { p_article_id: id });
         if (!incErr && typeof newCount === 'number' && isFinite(newCount)) {
           downloadCount = newCount;
           const cEl = document.getElementById('articleDownloadCount');
@@ -682,7 +667,7 @@ async function main(){
     // Build a stable URL without cache-busting params.
     const shareUrl = buildStableUrl();
     const shareTitle = `${title} · 肾域AI`;
-    const shareDesc = summary || excerptFromMd(previewBody || '', 120) || 'KidneySphere 学术文章';
+    const shareDesc = summary || excerptFromMd(data.content_md || '', 120) || 'KidneySphere 学术文章';
     // WeChat/朋友圈链接预览对 JS 执行不稳定；
     // 为保证所有文章分享都有统一封面，这里固定使用站点封面图。
     const shareImg = 'assets/wechat_share_logo.png';
