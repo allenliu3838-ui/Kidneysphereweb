@@ -318,9 +318,30 @@ a:hover{opacity:.95}
   font-size:13px;
 }
 .user-dropdown .ud-mode:hover{background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.12)}
-.user-dropdown .ud-meta{padding:8px 10px 10px; border-bottom:1px solid rgba(255,255,255,.10); margin-bottom:6px}
+.user-dropdown .ud-meta{padding:8px 10px 10px; border-bottom:1px solid rgba(255,255,255,.10); margin-bottom:6px; text-align:center}
 .user-dropdown .ud-meta b{display:block; font-size:13px}
 .user-dropdown .ud-meta div{font-size:11.5px; color:var(--muted); margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+/* 用户下拉菜单大头像 */
+.ud-avatar{
+  width:56px; height:56px; border-radius:999px; margin:0 auto 8px;
+  background: radial-gradient(circle at 30% 30%, rgba(var(--brand-rgb),.9), rgba(var(--brand2-rgb),.9));
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+}
+.ud-avatar img{width:100%; height:100%; object-fit:cover; border-radius:999px}
+.ud-avatar-initial{font-size:22px; font-weight:700; color:#fff}
+
+/* Composer 用户头像 */
+.composer-avatar{
+  width:40px; height:40px; border-radius:999px;
+  background: radial-gradient(circle at 30% 30%, rgba(var(--brand-rgb),.9), rgba(var(--brand2-rgb),.9));
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden; flex-shrink:0;
+  margin-bottom:10px;
+}
+.composer-avatar img{width:100%; height:100%; object-fit:cover; border-radius:999px}
+.composer-avatar-initial{font-size:18px; font-weight:700; color:#fff}
 .user-dropdown a,
 .user-dropdown button{
   width:100%;

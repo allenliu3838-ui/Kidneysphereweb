@@ -200,7 +200,7 @@ function injectFooter(){
         <div class="small">${blurb}</div>
       </div>
       <div class="small">
-        <div>© 2025–2026 KidneySphere</div>
+        <div>© 2025–2026 肾域 KidneySphere</div>
         <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
       </div>
     </div>`;
@@ -290,7 +290,7 @@ function initMobileDrawer(){
         <div class="auth" data-auth></div>
 
         <div class="drawer-links" data-drawer-links></div>
-        <div class="small muted" style="margin-top:auto">© 2025 KidneySphere</div>
+        <div class="small muted" style="margin-top:auto">© 2025–2026 肾域 KidneySphere</div>
       </div>
     `;
 
@@ -315,11 +315,11 @@ function initMobileDrawer(){
       return `<a data-nav${badgeAttr} href="${escapeAttr(href)}">${l.html}${dot}</a>`;
     }).join('')
     + `<div class="drawer-divider"></div>
-       <div class="drawer-section-title">产品工具</div>
-       <a href="https://kidneysphereregistry.cn" target="_blank" rel="noopener">🔬 科研 Registry</a>
-       <a href="https://kidneyspherefollowup.cn" target="_blank" rel="noopener">📋 AI 随访工作台</a>
-       <a href="https://kidneysphereremote.cn" target="_blank" rel="noopener">👨‍⚕️ 医生工作台</a>
-       <a href="https://kidneyspheredoctorapp.cn" target="_blank" rel="noopener">📱 医生 App</a>`;
+       <div class="drawer-section-title">肾域产品</div>
+       <a href="https://kidneysphereregistry.cn" target="_blank" rel="noopener">🔬 肾域·科研</a>
+       <a href="https://kidneysphereremote.cn" target="_blank" rel="noopener">👨‍⚕️ 肾域·随诊</a>
+       <a href="https://kidneyspherefollowup.cn" target="_blank" rel="noopener">📋 肾域·记录</a>
+       <a href="https://kidneyspheredoctorapp.cn" target="_blank" rel="noopener">📱 肾域·医生</a>`;
   }
 
   const body = document.body;
@@ -560,6 +560,7 @@ async function renderAuthArea(){
         <div class="user-dropdown" data-user-dropdown role="menu" aria-label="用户菜单">
           <div class="ud-scroll">
             <div class="ud-meta">
+              <div class="ud-avatar">${avatarUrl ? `<img alt="avatar" src="${escapeAttr(avatarUrl)}">` : `<span class="ud-avatar-initial">${initial}</span>`}</div>
               <b>${escapeHtml(name)}</b>
               <div>${escapeHtml(statusLineWithPoints)}</div>
               ${isAdmin ? `<div class="small muted" style="margin-top:4px">（可切换：管理员 ↔ 普通会员）</div>` : ``}
@@ -683,6 +684,29 @@ async function renderAuthArea(){
       }
     });
   }
+
+  // 为发帖/评论区域注入用户头像
+  injectComposerAvatars(avatarUrl, initial);
+}
+
+/** 在 composer / comment form 前显示当前用户头像 */
+function injectComposerAvatars(avatarUrl, initial){
+  const selectors = [
+    '#composer',        // moments composer
+    '#commentForm',     // case / moment comment form
+    '#caseForm',        // post-case form
+  ];
+  selectors.forEach(sel => {
+    const el = document.querySelector(sel);
+    if(!el || el.dataset.ksAvatar) return;
+    el.dataset.ksAvatar = '1';
+    const badge = document.createElement('div');
+    badge.className = 'composer-avatar';
+    badge.innerHTML = avatarUrl
+      ? `<img alt="avatar" src="${escapeAttr(avatarUrl)}">`
+      : `<span class="composer-avatar-initial">${initial}</span>`;
+    el.insertBefore(badge, el.firstChild);
+  });
 }
 
 function escapeHtml(str){
@@ -1060,6 +1084,18 @@ initSearchHotkey();
 initMobileDrawer();
 setActiveNav();
 renderAuthArea();
+
+// 语音录入模块 — 自动为所有文本框添加麦克风按钮
+(function loadVoiceModule(){
+  var link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'shared/ks-voice.css';
+  document.head.appendChild(link);
+  var script = document.createElement('script');
+  script.src = 'shared/ks-voice.js';
+  script.defer = true;
+  document.body.appendChild(script);
+})();
 
 // keep auth UI updated
 if(isConfigured()){
