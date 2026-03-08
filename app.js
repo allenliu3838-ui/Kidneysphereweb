@@ -137,6 +137,7 @@ function injectNav(){
           <a href="https://kidneysphereregistry.cn" target="_blank" rel="noopener">🔬 Research · 科研 Registry</a>
           <a href="https://kidneyspherefollowup.cn" target="_blank" rel="noopener">📋 Practice · AI 随访</a>
           <a href="https://kidneysphereremote.cn" target="_blank" rel="noopener">👨‍⚕️ Practice · 医生工作台</a>
+          <a href="https://kidneyspheredoctorapp.cn" target="_blank" rel="noopener">📱 Practice · 医生 App</a>
         </div>
       </div>
       <div class="auth" data-auth>
