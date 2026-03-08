@@ -1,0 +1,107 @@
+/*  KidneySphere 跨产品导航条  ks-topbar.css
+ *  ─────────────────────────────────────────
+ *  配合 ks-topbar.js 使用。子站点引入：
+ *    <link rel="stylesheet" href="https://kidneysphere.com/shared/ks-topbar.css">
+ *    <script src="https://kidneysphere.com/shared/ks-topbar.js" defer></script>
+ */
+
+/* ── 容器 ───────────────────────────────────── */
+#ks-topbar{
+  position: sticky; top: 0; z-index: 9999;
+  width: 100%;
+  height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #050f24 0%, #0c1b3a 100%);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+               Helvetica, Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB",
+               "Microsoft YaHei", sans-serif;
+  font-size: 13px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+/* ── 品牌区域 ───────────────────────────────── */
+#ks-topbar .ks-tb-brand{
+  display: flex; align-items: center; gap: 8px;
+  color: #f4f8ff;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 13px;
+  margin-right: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+#ks-topbar .ks-tb-brand img{
+  width: 22px; height: 22px;
+  border-radius: 6px;
+}
+
+/* ── 分隔线 ─────────────────────────────────── */
+#ks-topbar .ks-tb-sep{
+  width: 1px; height: 16px;
+  background: rgba(255,255,255,.18);
+  margin: 0 6px;
+  flex-shrink: 0;
+}
+
+/* ── 导航链接 ───────────────────────────────── */
+#ks-topbar .ks-tb-link{
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  color: rgba(244,248,255,.72);
+  text-decoration: none;
+  font-size: 13px; font-weight: 500;
+  white-space: nowrap;
+  transition: color .2s, background .2s;
+}
+#ks-topbar .ks-tb-link:hover{
+  color: #f4f8ff;
+  background: rgba(255,255,255,.08);
+}
+
+/* 当前站点高亮 */
+#ks-topbar .ks-tb-link[data-active="true"]{
+  color: #f4f8ff;
+  background: rgba(47,111,235,.22);
+}
+
+/* 即将上线（禁用） */
+#ks-topbar .ks-tb-link[data-disabled="true"]{
+  opacity: .4;
+  pointer-events: none;
+}
+
+/* ── 即将上线标签 ───────────────────────────── */
+#ks-topbar .ks-tb-soon{
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(245,158,11,.18);
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+/* ── 响应式 ─────────────────────────────────── */
+@media(max-width: 720px){
+  #ks-topbar{
+    height: auto;
+    min-height: 36px;
+    flex-wrap: wrap;
+    padding: 6px 12px;
+    gap: 2px;
+  }
+  #ks-topbar .ks-tb-brand{
+    width: 100%;
+    justify-content: center;
+    margin-right: 0;
+    margin-bottom: 4px;
+  }
+  #ks-topbar .ks-tb-sep{ display: none; }
+  #ks-topbar .ks-tb-link{
+    font-size: 12px;
+    padding: 3px 8px;
+  }
+}
