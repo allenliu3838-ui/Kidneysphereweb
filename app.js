@@ -134,10 +134,10 @@ function injectNav(){
       <div class="nav-dropdown">
         <button type="button" class="nav-dropdown-trigger" aria-haspopup="true" aria-expanded="false"><span class="zh">产品工具</span><span class="en">Products</span><span class="chev">▾</span></button>
         <div class="nav-dropdown-menu">
-          <a href="https://kidneysphereregistry.cn" target="_blank" rel="noopener">🔬 Research · 科研 Registry</a>
-          <a href="https://kidneyspherefollowup.cn" target="_blank" rel="noopener">📋 Practice · AI 随访</a>
-          <a href="https://kidneysphereremote.cn" target="_blank" rel="noopener">👨‍⚕️ Practice · 医生工作台</a>
-          <a href="https://kidneyspheredoctorapp.cn" target="_blank" rel="noopener">📱 Practice · 医生 App</a>
+          <a href="https://kidneysphereregistry.cn" target="_blank" rel="noopener">🔬 肾域·科研</a>
+          <a href="https://kidneysphereremote.cn" target="_blank" rel="noopener">👨‍⚕️ 肾域·随诊</a>
+          <a href="https://kidneyspherefollowup.cn" target="_blank" rel="noopener">📋 肾域·记录</a>
+          <a href="https://kidneyspheredoctorapp.cn" target="_blank" rel="noopener">📱 肾域·医生</a>
         </div>
       </div>
       <div class="auth" data-auth>
