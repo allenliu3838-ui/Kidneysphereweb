@@ -560,6 +560,7 @@ async function renderAuthArea(){
         <div class="user-dropdown" data-user-dropdown role="menu" aria-label="用户菜单">
           <div class="ud-scroll">
             <div class="ud-meta">
+              <div class="ud-avatar">${avatarUrl ? `<img alt="avatar" src="${escapeAttr(avatarUrl)}">` : `<span class="ud-avatar-initial">${initial}</span>`}</div>
               <b>${escapeHtml(name)}</b>
               <div>${escapeHtml(statusLineWithPoints)}</div>
               ${isAdmin ? `<div class="small muted" style="margin-top:4px">（可切换：管理员 ↔ 普通会员）</div>` : ``}
@@ -683,6 +684,29 @@ async function renderAuthArea(){
       }
     });
   }
+
+  // 为发帖/评论区域注入用户头像
+  injectComposerAvatars(avatarUrl, initial);
+}
+
+/** 在 composer / comment form 前显示当前用户头像 */
+function injectComposerAvatars(avatarUrl, initial){
+  const selectors = [
+    '#composer',        // moments composer
+    '#commentForm',     // case / moment comment form
+    '#caseForm',        // post-case form
+  ];
+  selectors.forEach(sel => {
+    const el = document.querySelector(sel);
+    if(!el || el.dataset.ksAvatar) return;
+    el.dataset.ksAvatar = '1';
+    const badge = document.createElement('div');
+    badge.className = 'composer-avatar';
+    badge.innerHTML = avatarUrl
+      ? `<img alt="avatar" src="${escapeAttr(avatarUrl)}">`
+      : `<span class="composer-avatar-initial">${initial}</span>`;
+    el.insertBefore(badge, el.firstChild);
+  });
 }
 
 function escapeHtml(str){
@@ -1060,6 +1084,18 @@ initSearchHotkey();
 initMobileDrawer();
 setActiveNav();
 renderAuthArea();
+
+// 语音录入模块 — 自动为所有文本框添加麦克风按钮
+(function loadVoiceModule(){
+  var link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'shared/ks-voice.css';
+  document.head.appendChild(link);
+  var script = document.createElement('script');
+  script.src = 'shared/ks-voice.js';
+  script.defer = true;
+  document.body.appendChild(script);
+})();
 
 // keep auth UI updated
 if(isConfigured()){
