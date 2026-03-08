@@ -45,7 +45,7 @@ const DEFAULT_CHANNELS = [
     id: 'english',
     title_zh: '国际讨论专区',
     title_en: 'English Discussion',
-    description: '面向国际协作与学术沟通的英语版块（即将开放）。',
+    description: '面向国际协作与学术沟通的英语版块（预约演示）。',
     status: 'coming_soon',
   },
 ];
