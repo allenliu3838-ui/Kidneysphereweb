@@ -721,8 +721,8 @@ async function shareImage(url, filename, title, text, shareUrl){
 
 链接：${shareUrl}` : '';
     await navigator.share({
-      title: title || '肾域AI · 社区动态',
-      text: (txt || '来自肾域AI 的一条动态') + urlText,
+      title: title || 'KidneySphere · 社区动态',
+      text: (txt || '来自 KidneySphere 的一条动态') + urlText,
       files: [file],
     });
     return true;
@@ -736,8 +736,8 @@ async function openMomentShareDialog(m){
 
   const meta = applyShareForMoment(m);
   const shareUrl = meta?.url || momentShareUrl(m?.id);
-  const title = meta?.title || '肾域AI · 社区动态';
-  const text = (meta?.description || '').trim() || ((m?.content || '').slice(0, 80) || '来自肾域AI 的一条动态');
+  const title = meta?.title || 'KidneySphere · 社区动态';
+  const text = (meta?.description || '').trim() || ((m?.content || '').slice(0, 80) || '来自 KidneySphere 的一条动态');
 
   const imgUrl = momentFirstImageUrl(m);
   const nativeBtn = modal.querySelector('#momentShareNativeBtn');

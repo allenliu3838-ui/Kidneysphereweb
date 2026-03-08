@@ -717,7 +717,7 @@ async function loadHome(){
       }
 
       if(!ev){
-        nextRoot.innerHTML = `<div class="muted small">暂无可展示的线上会议。管理员可在 Events 面板添加/更新 next_time。</div>`;
+        nextRoot.innerHTML = `<div class="muted small">暂无即将举行的线上会议，敬请关注。</div>`;
       }else{
         const status = String(ev.status||'').toLowerCase();
         const statusBadge = status === 'confirmed'
@@ -809,7 +809,7 @@ async function loadHome(){
             ${joinHtml}
             ${moreHtml}
           </div>
-          <div class="small muted" style="margin-top:10px">提示：管理员可在 Events 更新 next_time / 改期 / 取消，并维护讲者信息与照片。</div>
+          <div class="small muted" style="margin-top:10px" data-superadmin-only hidden>提示：管理员可在 Events 更新 next_time / 改期 / 取消，并维护讲者信息与照片。</div>
         `;
       }
     }catch(e){
@@ -1007,7 +1007,7 @@ async function loadHome(){
       const items = (data || []).slice(0, 4);
 
       if(items.length === 0){
-        articlesRoot.innerHTML = `<div class="muted small">暂无文章。管理员可点击「写文章」发布。</div>`;
+        articlesRoot.innerHTML = `<div class="muted small">暂无文章，敬请关注。</div>`;
       }else{
         articlesRoot.innerHTML = `
           <div class="stack">
@@ -1078,7 +1078,7 @@ async function loadHome(){
         // UX: hide the entire block for normal visitors; keep a small hint for admins.
         if(sponsorsCard) sponsorsCard.hidden = !isAdmin;
         if(isAdmin){
-          sponsorsRoot.innerHTML = `<div class="muted small">暂无赞助商信息。你可以在 Frontier → Sponsors 中新增/上线，或设为首页展示。</div>`;
+          sponsorsRoot.innerHTML = `<div class="muted small">暂无赞助商信息。</div>`;
         }
       }else{
         if(sponsorsCard) sponsorsCard.hidden = false;
@@ -1098,8 +1098,9 @@ async function loadHome(){
         `;
       }
     }catch(e){
-      if(sponsorsCard) sponsorsCard.hidden = false;
-      sponsorsRoot.innerHTML = `<div class="muted small">读取赞助商失败：${esc(e.message || String(e))}</div>`;
+      // Hide sponsor block entirely on error for non-admin users
+      if(sponsorsCard) sponsorsCard.hidden = !isAdmin;
+      if(isAdmin) sponsorsRoot.innerHTML = `<div class="muted small">读取赞助商失败：${esc(e.message || String(e))}</div>`;
     }
   }
 }
