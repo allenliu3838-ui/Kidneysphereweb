@@ -12,9 +12,11 @@
 
   /* ── 产品列表（按顺序显示） ────────────────── */
   var products = [
-    { label: 'Academy',   emoji: '💬', href: 'https://kidneysphere.com',              host: 'kidneysphere.com' },
-    { label: 'Research',   emoji: '🔬', href: 'https://kidneysphereregistry.cn',       host: 'kidneysphereregistry.cn' },
-    { label: 'Practice',   emoji: '👨‍⚕️', href: 'https://kidneyspherefollowup.cn',      host: 'kidneyspherefollowup.cn' }
+    { label: '学院',  emoji: '💬', href: 'https://kidneysphere.com',              host: 'kidneysphere.com' },
+    { label: '科研',  emoji: '🔬', href: 'https://kidneysphereregistry.cn',       host: 'kidneysphereregistry.cn' },
+    { label: '随诊',  emoji: '👨‍⚕️', href: 'https://kidneysphereremote.cn',         host: 'kidneysphereremote.cn' },
+    { label: '记录',  emoji: '📋', href: 'https://kidneyspherefollowup.cn',       host: 'kidneyspherefollowup.cn' },
+    { label: '医生',  emoji: '📱', href: 'https://kidneyspheredoctorapp.cn',       host: 'kidneyspheredoctorapp.cn' }
   ];
 
   var currentHost = location.hostname.replace(/^www\./, '');
