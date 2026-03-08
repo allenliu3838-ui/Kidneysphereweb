@@ -200,7 +200,7 @@ function injectFooter(){
         <div class="small">${blurb}</div>
       </div>
       <div class="small">
-        <div>© 2025–2026 KidneySphere</div>
+        <div>© 2025–2026 肾域 KidneySphere</div>
         <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
       </div>
     </div>`;
@@ -290,7 +290,7 @@ function initMobileDrawer(){
         <div class="auth" data-auth></div>
 
         <div class="drawer-links" data-drawer-links></div>
-        <div class="small muted" style="margin-top:auto">© 2025 KidneySphere</div>
+        <div class="small muted" style="margin-top:auto">© 2025–2026 肾域 KidneySphere</div>
       </div>
     `;
 
@@ -315,11 +315,11 @@ function initMobileDrawer(){
       return `<a data-nav${badgeAttr} href="${escapeAttr(href)}">${l.html}${dot}</a>`;
     }).join('')
     + `<div class="drawer-divider"></div>
-       <div class="drawer-section-title">产品工具</div>
-       <a href="https://kidneysphereregistry.cn" target="_blank" rel="noopener">🔬 科研 Registry</a>
-       <a href="https://kidneyspherefollowup.cn" target="_blank" rel="noopener">📋 AI 随访工作台</a>
-       <a href="https://kidneysphereremote.cn" target="_blank" rel="noopener">👨‍⚕️ 医生工作台</a>
-       <a href="https://kidneyspheredoctorapp.cn" target="_blank" rel="noopener">📱 医生 App</a>`;
+       <div class="drawer-section-title">肾域产品</div>
+       <a href="https://kidneysphereregistry.cn" target="_blank" rel="noopener">🔬 肾域·科研</a>
+       <a href="https://kidneysphereremote.cn" target="_blank" rel="noopener">👨‍⚕️ 肾域·随诊</a>
+       <a href="https://kidneyspherefollowup.cn" target="_blank" rel="noopener">📋 肾域·记录</a>
+       <a href="https://kidneyspheredoctorapp.cn" target="_blank" rel="noopener">📱 肾域·医生</a>`;
   }
 
   const body = document.body;
