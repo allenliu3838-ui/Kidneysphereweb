@@ -132,7 +132,7 @@ function injectNav(){
         <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
         <a data-nav href="search.html"><span class="zh">搜索</span><span class="en">Search</span></a>
         <div class="nav-dropdown">
-          <button type="button" class="nav-dropdown-trigger"><span class="zh">产品工具</span><span class="en">Products</span><span class="chev">▾</span></button>
+          <button type="button" class="nav-dropdown-trigger" aria-haspopup="true" aria-expanded="false"><span class="zh">产品工具</span><span class="en">Products</span><span class="chev">▾</span></button>
           <div class="nav-dropdown-menu">
             <a href="https://kidneysphereregistry.cn" target="_blank" rel="noopener">🔬 科研 Registry</a>
             <a href="https://kidneyspherefollowup.cn" target="_blank" rel="noopener">📋 AI 随访工作台</a>
@@ -146,6 +146,43 @@ function injectNav(){
         <a class="btn primary" href="register.html">注册</a>
       </div>
     </div>`;
+}
+
+function initNavDropdown(){
+  const dropdown = document.querySelector('.nav-dropdown');
+  if(!dropdown) return;
+  const trigger = dropdown.querySelector('.nav-dropdown-trigger');
+  if(!trigger) return;
+
+  trigger.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const open = dropdown.classList.toggle('open');
+    trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+
+  // Close when a menu link is clicked
+  dropdown.querySelector('.nav-dropdown-menu')?.addEventListener('click', (e)=>{
+    if(e.target.closest('a:not(.disabled)')){
+      dropdown.classList.remove('open');
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // Close on outside click
+  document.addEventListener('click', (e)=>{
+    if(!e.target.closest('.nav-dropdown')){
+      dropdown.classList.remove('open');
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape'){
+      dropdown.classList.remove('open');
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+  });
 }
 
 function injectFooter(){
@@ -1017,6 +1054,7 @@ async function updateUnreadBadges(){
 
 
 injectNav();
+initNavDropdown();
 injectFooter();
 ensureToast();
 initSearchHotkey();
