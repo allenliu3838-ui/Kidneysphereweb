@@ -118,7 +118,6 @@ function injectNav(){
         <img src="assets/logo.png" alt="KidneySphere AI Logo" />
         <div class="title">
           <b>肾域AI · KidneySphereAI</b>
-          <span>GlomCon中国 × KidneySphere AI</span>
         </div>
       </a>
       <nav class="menu" aria-label="Primary">
