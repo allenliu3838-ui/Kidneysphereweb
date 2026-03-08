@@ -21,6 +21,10 @@
 
   var currentHost = location.hostname.replace(/^www\./, '');
 
+  /* ── 主站已有完整导航，不注入 topbar ────────── */
+  if(currentHost === 'kidneysphere.com' || currentHost === 'www.kidneysphere.com'
+     || currentHost === 'localhost' || currentHost === '127.0.0.1') return;
+
   /* ── 构建 HTML ────────────────────────────── */
   var bar = document.createElement('div');
   bar.id = 'ks-topbar';
