@@ -1,0 +1,124 @@
+/*  KidneySphere 统一品牌样式包  ks-brand.css
+ *  ─────────────────────────────────────────
+ *  在任何子站点 <head> 中引入即可获得统一品牌视觉：
+ *    <link rel="stylesheet" href="https://kidneysphere.com/shared/ks-brand.css">
+ *
+ *  包含：品牌色 CSS 变量 / 字体栈 / Logo 样式 / 按钮基础样式
+ *  不会覆盖子站点自有样式，仅提供 :root 变量和 .ks-* 命名空间类
+ */
+
+/* ── 1. 品牌色变量 ──────────────────────────── */
+:root{
+  /* 主品牌蓝 */
+  --ks-brand:       #2f6feb;
+  --ks-brand-rgb:   47,111,235;
+  --ks-brand2:      #1d4ed8;
+  --ks-brand2-rgb:  29,78,216;
+
+  /* 功能色 */
+  --ks-danger:  #ef4444;
+  --ks-ok:      #22c55e;
+  --ks-warn:    #f59e0b;
+
+  /* 深色主题（主站风格） */
+  --ks-dark-bg:     #050f24;
+  --ks-dark-panel:  rgba(255,255,255,.085);
+  --ks-dark-text:   #f4f8ff;
+  --ks-dark-muted:  rgba(244,248,255,.78);
+  --ks-dark-border: rgba(255,255,255,.16);
+
+  /* 浅色主题（子站点风格） */
+  --ks-light-bg:     #ffffff;
+  --ks-light-panel:  #f8fafc;
+  --ks-light-text:   #1e293b;
+  --ks-light-muted:  #64748b;
+  --ks-light-border: #e2e8f0;
+
+  /* 统一圆角 */
+  --ks-radius:    18px;
+  --ks-radius-sm: 10px;
+  --ks-radius-xs: 6px;
+
+  /* 统一阴影 */
+  --ks-shadow: 0 18px 46px rgba(0,0,0,.34);
+
+  /* 统一字体 */
+  --ks-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+             Helvetica, Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB",
+             "Microsoft YaHei", sans-serif;
+  --ks-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+                  "Liberation Mono", "Courier New", monospace;
+}
+
+/* ── 2. 品牌 Logo 样式 ─────────────────────── */
+.ks-logo{
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.25);
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.ks-logo-sm{ width: 26px; height: 26px; border-radius: 8px; }
+.ks-logo-lg{ width: 48px; height: 48px; border-radius: 14px; }
+
+/* ── 3. 品牌按钮 ────────────────────────────── */
+.ks-btn{
+  display: inline-flex;
+  align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-family: var(--ks-font);
+  font-size: 14px; font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .2s, border-color .2s, transform .12s;
+  border: 1px solid transparent;
+  line-height: 1.4;
+}
+.ks-btn:hover{ transform: translateY(-1px); }
+.ks-btn:active{ transform: translateY(0); }
+
+/* 主色按钮 */
+.ks-btn-primary{
+  background: var(--ks-brand);
+  color: #fff;
+  border-color: var(--ks-brand);
+}
+.ks-btn-primary:hover{ background: var(--ks-brand2); }
+
+/* 幽灵按钮（深色背景用） */
+.ks-btn-ghost-dark{
+  background: rgba(255,255,255,.06);
+  color: #f4f8ff;
+  border-color: rgba(255,255,255,.14);
+}
+.ks-btn-ghost-dark:hover{ background: rgba(255,255,255,.12); }
+
+/* 幽灵按钮（浅色背景用） */
+.ks-btn-ghost-light{
+  background: #fff;
+  color: var(--ks-brand);
+  border-color: var(--ks-brand);
+}
+.ks-btn-ghost-light:hover{ background: rgba(47,111,235,.06); }
+
+/* ── 4. 品牌徽章 ────────────────────────────── */
+.ks-badge{
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px; font-weight: 600;
+  line-height: 1.6;
+}
+.ks-badge-blue{
+  background: rgba(var(--ks-brand-rgb),.14);
+  color: var(--ks-brand);
+}
+.ks-badge-green{
+  background: rgba(34,197,94,.14);
+  color: #16a34a;
+}
+.ks-badge-gray{
+  background: #f1f5f9;
+  color: #64748b;
+}
