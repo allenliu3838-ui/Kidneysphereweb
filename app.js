@@ -136,8 +136,8 @@ function injectNav(){
         <div class="nav-dropdown-menu">
           <a href="https://kidneysphereregistry.cn" target="_blank" rel="noopener">🔬 科研 Registry</a>
           <a href="https://kidneyspherefollowup.cn" target="_blank" rel="noopener">📋 AI 随访工作台</a>
-          <a href="https://kidneyspheredoctorapp.cn" target="_blank" rel="noopener">👨‍⚕️ 医生工作台</a>
-          <a class="disabled" aria-disabled="true">📡 远程协作 <span class="badge">即将上线</span></a>
+          <a href="https://kidneysphereremote.cn" target="_blank" rel="noopener">👨‍⚕️ 医生工作台</a>
+          <a href="https://kidneyspheredoctorapp.cn" target="_blank" rel="noopener">📱 医生 App</a>
         </div>
       </div>
       <div class="auth" data-auth>
@@ -318,8 +318,8 @@ function initMobileDrawer(){
        <div class="drawer-section-title">产品工具</div>
        <a href="https://kidneysphereregistry.cn" target="_blank" rel="noopener">🔬 科研 Registry</a>
        <a href="https://kidneyspherefollowup.cn" target="_blank" rel="noopener">📋 AI 随访工作台</a>
-       <a href="https://kidneyspheredoctorapp.cn" target="_blank" rel="noopener">👨‍⚕️ 医生工作台</a>
-       <a class="disabled" aria-disabled="true">📡 远程协作 · 即将上线</a>`;
+       <a href="https://kidneysphereremote.cn" target="_blank" rel="noopener">👨‍⚕️ 医生工作台</a>
+       <a href="https://kidneyspheredoctorapp.cn" target="_blank" rel="noopener">📱 医生 App</a>`;
   }
 
   const body = document.body;

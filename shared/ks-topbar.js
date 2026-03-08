@@ -15,8 +15,8 @@
     { label: '社区',      emoji: '💬', href: 'https://kidneysphere.com',              host: 'kidneysphere.com' },
     { label: 'Registry',  emoji: '🔬', href: 'https://kidneysphereregistry.cn',       host: 'kidneysphereregistry.cn' },
     { label: '随访工作台', emoji: '📋', href: 'https://kidneyspherefollowup.cn',       host: 'kidneyspherefollowup.cn' },
-    { label: '医生工作台', emoji: '👨‍⚕️', href: 'https://kidneyspheredoctorapp.cn',     host: 'kidneyspheredoctorapp.cn' },
-    { label: '远程协作',   emoji: '📡', href: '#',                                     host: '', disabled: true, soon: true }
+    { label: '医生工作台', emoji: '👨‍⚕️', href: 'https://kidneysphereremote.cn',         host: 'kidneysphereremote.cn' },
+    { label: '医生App',   emoji: '📱', href: 'https://kidneyspheredoctorapp.cn',      host: 'kidneyspheredoctorapp.cn' }
   ];
 
   var currentHost = location.hostname.replace(/^www\./, '');
