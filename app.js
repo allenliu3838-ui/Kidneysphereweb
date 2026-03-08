@@ -131,6 +131,15 @@ function injectNav(){
         <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
         <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
         <a data-nav href="search.html"><span class="zh">搜索</span><span class="en">Search</span></a>
+        <div class="nav-dropdown">
+          <button type="button" class="nav-dropdown-trigger"><span class="zh">产品工具</span><span class="en">Products</span><span class="chev">▾</span></button>
+          <div class="nav-dropdown-menu">
+            <a href="https://kidneysphereregistry.cn" target="_blank" rel="noopener">🔬 科研 Registry</a>
+            <a href="https://kidneyspherefollowup.cn" target="_blank" rel="noopener">📋 AI 随访工作台</a>
+            <a href="https://kidneyspheredoctorapp.cn" target="_blank" rel="noopener">👨‍⚕️ 医生工作台</a>
+            <a class="disabled" aria-disabled="true">📡 远程协作 <span class="badge">即将上线</span></a>
+          </div>
+        </div>
       </nav>
       <div class="auth" data-auth>
         <a class="btn" href="login.html">登录</a>
@@ -268,7 +277,13 @@ function initMobileDrawer(){
       const badgeAttr = bt ? ` data-badge="${escapeAttr(bt)}"` : '';
       const dot = bt ? `<span class="badge-dot" aria-hidden="true"></span>` : '';
       return `<a data-nav${badgeAttr} href="${escapeAttr(href)}">${l.html}${dot}</a>`;
-    }).join('');
+    }).join('')
+    + `<div class="drawer-divider"></div>
+       <div class="drawer-section-title">产品工具</div>
+       <a href="https://kidneysphereregistry.cn" target="_blank" rel="noopener">🔬 科研 Registry</a>
+       <a href="https://kidneyspherefollowup.cn" target="_blank" rel="noopener">📋 AI 随访工作台</a>
+       <a href="https://kidneyspheredoctorapp.cn" target="_blank" rel="noopener">👨‍⚕️ 医生工作台</a>
+       <a class="disabled" aria-disabled="true">📡 远程协作 · 即将上线</a>`;
   }
 
   const body = document.body;
