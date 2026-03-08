@@ -18,10 +18,10 @@ const gridEl = document.getElementById('trainingProgramsGrid');
 const hintEl = document.getElementById('trainingProgramsHint');
 
 const DEMO_PROGRAMS = [
-  { title: '肾小球与间质性肾病培训项目', status:'planning', badge:'1月中旬启动', description:'课程表与报名将陆续发布。', sort: 10 },
-  { title: '肾移植内科培训项目', status:'planning', badge:'规划中', description:'围绕随访管理、感染与免疫、并发症管理等。', sort: 20 },
-  { title: '儿童肾脏病培训项目', status:'planning', badge:'筹备中', description:'儿童遗传肾病、肾综、透析/移植随访等。', sort: 30 },
-  { title: 'AI 肾病培训项目', status:'planning', badge:'筹备中', description:'AI 在肾病学中的应用与实践案例（筹备中）。', sort: 40 },
+  { title: '肾小球与间质性肾病培训项目', status:'active', badge:'进行中', description:'覆盖 IgAN、膜性肾病、FSGS、ANCA 相关肾炎等核心病种，系统化课程体系。', sort: 10 },
+  { title: '肾移植内科培训项目', status:'coming_soon', badge:'即将启动', description:'围绕随访管理、感染与免疫、并发症管理等。', sort: 20 },
+  { title: '儿童肾脏病培训项目', status:'coming_soon', badge:'即将启动', description:'儿童遗传肾病、肾综、透析/移植随访等方向。', sort: 30 },
+  { title: 'AI 肾病培训项目', status:'coming_soon', badge:'即将启动', description:'AI 在肾病学中的应用与实践案例。', sort: 40 },
 ];
 
 function esc(str){
@@ -35,7 +35,7 @@ function chip(status){
   if(s === 'active') return { cls:'soon', label:'进行中' };
   if(s === 'archived') return { cls:'todo', label:'已结束' };
   if(s === 'coming_soon') return { cls:'todo', label:'即将启动' };
-  return { cls:'todo', label:'规划中' };
+  return { cls:'todo', label:'即将启动' };
 }
 
 function normalize(rows){
@@ -78,7 +78,7 @@ function renderGrid(rows){
         <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
           <div style="min-width:0">
             <h3 style="margin:0 0 6px">${esc(p.title)}</h3>
-            ${desc ? `<p class="small" style="margin:0 0 10px">${desc}</p>` : `<p class="small muted" style="margin:0 0 10px">（暂无简介，可在后台补充）</p>`}
+            ${desc ? `<p class="small" style="margin:0 0 10px">${desc}</p>` : ``}
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
               <span class="chip ${c.cls}">${badgeText}</span>
               ${cta}
@@ -128,7 +128,7 @@ async function loadPrograms(){
     if(rows.length === 0){
       renderHome([]);
       renderGrid([]);
-      showHint('<b>提示：</b>当前没有培训项目。管理员可在“管理后台 → 培训项目”新增。');
+      showHint('<b>提示：</b>培训项目即将上线，敬请关注。');
       return;
     }
 

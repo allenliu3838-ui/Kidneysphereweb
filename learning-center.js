@@ -97,7 +97,7 @@ function renderHotArticles(items){
   if(!els.hotArticlesList) return;
   const list = Array.isArray(items) ? items : [];
   if(!list.length){
-    els.hotArticlesList.innerHTML = '<div class="muted small">暂无文章。管理员可在「写文章」中发布。</div>';
+    els.hotArticlesList.innerHTML = '<div class="muted small">暂无文章，敬请关注。</div>';
     return;
   }
   // Match the "training project" card layout: no nested mini-cards inside the card,
