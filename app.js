@@ -1206,7 +1206,7 @@ async function initAboutShowcase(){
   if(!isConfigured()){
     Object.keys(lists).forEach(k=>{
       if(lists[k]){
-        lists[k].innerHTML = `<div class="muted small">（演示模式）配置 Supabase 后可由管理员在此增删条目。</div>`;
+        lists[k].innerHTML = `<div class="muted small skeleton-text">&nbsp;</div>`;
       }
     });
     return;
