@@ -115,9 +115,9 @@ function injectNav(){
   header.innerHTML = `
     <div class="container nav-inner">
       <a class="brand" href="index.html" aria-label="KidneySphere Home">
-        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <img src="assets/logo.png" alt="KidneySphere Logo" />
         <div class="title">
-          <b>肾域AI · KidneySphereAI</b>
+          <b>KidneySphere · 肾域</b>
         </div>
       </a>
       <nav class="menu" aria-label="Primary">
@@ -134,10 +134,9 @@ function injectNav(){
       <div class="nav-dropdown">
         <button type="button" class="nav-dropdown-trigger" aria-haspopup="true" aria-expanded="false"><span class="zh">产品工具</span><span class="en">Products</span><span class="chev">▾</span></button>
         <div class="nav-dropdown-menu">
-          <a href="https://kidneysphereregistry.cn" target="_blank" rel="noopener">🔬 科研 Registry</a>
-          <a href="https://kidneyspherefollowup.cn" target="_blank" rel="noopener">📋 AI 随访工作台</a>
-          <a href="https://kidneysphereremote.cn" target="_blank" rel="noopener">👨‍⚕️ 医生工作台</a>
-          <a href="https://kidneyspheredoctorapp.cn" target="_blank" rel="noopener">📱 医生 App</a>
+          <a href="https://kidneysphereregistry.cn" target="_blank" rel="noopener">🔬 Research · 科研 Registry</a>
+          <a href="https://kidneyspherefollowup.cn" target="_blank" rel="noopener">📋 Practice · AI 随访</a>
+          <a href="https://kidneysphereremote.cn" target="_blank" rel="noopener">👨‍⚕️ Practice · 医生工作台</a>
         </div>
       </div>
       <div class="auth" data-auth>
@@ -195,7 +194,7 @@ function injectFooter(){
       <div>
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
           <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
-          <b>KidneySphere × KidneySphere AI</b>
+          <b>KidneySphere · 肾域</b>
         </div>
         <div class="small">${blurb}</div>
       </div>

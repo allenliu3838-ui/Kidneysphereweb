@@ -2290,3 +2290,26 @@ textarea.prose-input{
   font-size:22px;
   color:rgba(147,197,253,.95);
 }
+
+/* Skeleton loading placeholder (replaces "加载中…" text) */
+@keyframes skeleton-pulse{
+  0%{opacity:.15}
+  50%{opacity:.35}
+  100%{opacity:.15}
+}
+.skeleton-text{
+  display:block;
+  height:14px;
+  max-width:180px;
+  border-radius:6px;
+  background:var(--border);
+  animation:skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+/* Product card highlight (Research recommended) */
+.product-card-highlight{
+  border:1.5px solid rgba(var(--brand-rgb),.35);
+}
+.product-card-highlight:hover{
+  border-color:rgba(var(--brand-rgb),.6);
+}

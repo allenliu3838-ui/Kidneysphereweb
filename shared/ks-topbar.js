@@ -12,11 +12,9 @@
 
   /* ── 产品列表（按顺序显示） ────────────────── */
   var products = [
-    { label: '社区',      emoji: '💬', href: 'https://kidneysphere.com',              host: 'kidneysphere.com' },
-    { label: 'Registry',  emoji: '🔬', href: 'https://kidneysphereregistry.cn',       host: 'kidneysphereregistry.cn' },
-    { label: '随访工作台', emoji: '📋', href: 'https://kidneyspherefollowup.cn',       host: 'kidneyspherefollowup.cn' },
-    { label: '医生工作台', emoji: '👨‍⚕️', href: 'https://kidneysphereremote.cn',         host: 'kidneysphereremote.cn' },
-    { label: '医生App',   emoji: '📱', href: 'https://kidneyspheredoctorapp.cn',      host: 'kidneyspheredoctorapp.cn' }
+    { label: 'Academy',   emoji: '💬', href: 'https://kidneysphere.com',              host: 'kidneysphere.com' },
+    { label: 'Research',   emoji: '🔬', href: 'https://kidneysphereregistry.cn',       host: 'kidneysphereregistry.cn' },
+    { label: 'Practice',   emoji: '👨‍⚕️', href: 'https://kidneyspherefollowup.cn',      host: 'kidneyspherefollowup.cn' }
   ];
 
   var currentHost = location.hostname.replace(/^www\./, '');
@@ -32,7 +30,7 @@
   // 品牌区
   var brand = '<a class="ks-tb-brand" href="https://kidneysphere.com">'
     + '<img src="https://kidneysphere.com/assets/logo.png" alt="KS">'
-    + '<span>肾域AI · KidneySphere</span></a>'
+    + '<span>KidneySphere · 肾域</span></a>'
     + '<span class="ks-tb-sep"></span>';
 
   // 产品链接
