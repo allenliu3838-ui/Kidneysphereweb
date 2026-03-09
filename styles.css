@@ -2334,3 +2334,221 @@ textarea.prose-input{
 .product-card-highlight:hover{
   border-color:rgba(var(--brand-rgb),.6);
 }
+
+/* ================================================================
+   v5 Homepage Redesign — Platform-first commercial homepage
+   ================================================================ */
+
+/* ── Hero Platform ────────────────────────────────────────────── */
+.hero-platform{
+  padding:64px 0 40px;
+}
+.hero-content{
+  max-width:760px;
+}
+.hero-platform h1{
+  font-size: clamp(26px, 3.5vw, 40px);
+  line-height:1.3;
+  letter-spacing:.3px;
+}
+.hero-sub{
+  font-size: clamp(14px, 1.2vw, 17px);
+  color:var(--muted);
+  line-height:1.7;
+  margin:0 0 20px;
+}
+.hero-cta{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+.hero-link{
+  display:inline-block;
+  margin-top:14px;
+  font-size:13px;
+  color:rgba(147,197,253,.9);
+  text-decoration:underline;
+  text-underline-offset:3px;
+}
+.hero-link:hover{opacity:1; color:rgba(147,197,253,1)}
+
+/* Large button variant */
+.btn-lg{
+  padding:13px 22px;
+  font-size:15px;
+}
+
+/* ── Product Grid (5 cards: 3+2) ─────────────────────────────── */
+.product-grid{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:14px;
+}
+.product-card-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:auto;
+  padding-top:8px;
+}
+.badge-recommend{
+  background:rgba(47,111,235,.12);
+  border-color:rgba(47,111,235,.35);
+  color:#7db4ff;
+}
+
+/* ── Why Centers ──────────────────────────────────────────────── */
+.why-centers h2{margin-bottom:20px}
+.why-card{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.why-icon{
+  font-size:28px;
+  line-height:1;
+  margin-bottom:4px;
+}
+.why-card h3{margin:0; font-size:15px}
+.why-card p{margin:0; font-size:13px; color:var(--muted); line-height:1.65}
+
+/* ── Final CTA ────────────────────────────────────────────────── */
+.final-cta-card{
+  text-align:center;
+  padding:48px 24px;
+  border:1px solid rgba(var(--brand-rgb),.25);
+  background:
+    radial-gradient(600px 300px at 50% 50%, rgba(var(--brand-rgb),.08), transparent 70%),
+    var(--panel);
+}
+.final-cta-card h2{
+  font-size:26px;
+  margin-bottom:10px;
+}
+.final-cta-card p{
+  max-width:560px;
+  margin:0 auto 24px;
+  font-size:14px;
+}
+.final-cta-card .hero-cta{
+  justify-content:center;
+}
+
+/* ── New Footer ───────────────────────────────────────────────── */
+.footer[data-custom-footer]{
+  padding:36px 0 28px;
+  border-top:1px solid rgba(255,255,255,.10);
+  color:rgba(233,241,255,.72);
+  font-size:13px;
+}
+.footer-new{
+  display:grid;
+  grid-template-columns: 1.6fr 1fr 1fr 1fr;
+  gap:24px 32px;
+}
+.footer-col{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.footer-col a{
+  color:rgba(233,241,255,.7);
+  text-decoration:none;
+  font-size:13px;
+  line-height:1.8;
+}
+.footer-col a:hover{color:rgba(233,241,255,.95)}
+.footer-heading{
+  font-size:13px;
+  font-weight:600;
+  color:rgba(233,241,255,.9);
+  margin-bottom:4px;
+}
+.footer-bottom{
+  grid-column: 1 / -1;
+  padding-top:18px;
+  margin-top:8px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+
+/* ── Mobile Sticky CTA ────────────────────────────────────────── */
+.mobile-sticky-cta{
+  display:none;
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  z-index:45;
+  padding:10px 16px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  background:rgba(2,6,15,.92);
+  backdrop-filter:blur(12px);
+  border-top:1px solid rgba(255,255,255,.10);
+  gap:10px;
+}
+
+/* ── Mobile Responsive (v5 additions) ─────────────────────────── */
+@media (max-width:980px){
+  /* Product grid: single column on mobile */
+  .product-grid{
+    grid-template-columns: 1fr;
+  }
+  /* Hero */
+  .hero-platform{
+    padding:36px 0 24px;
+  }
+  .hero-platform h1{
+    font-size:24px;
+  }
+  .hero-cta{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  .hero-cta .btn{
+    text-align:center;
+  }
+  /* Footer */
+  .footer-new{
+    grid-template-columns: 1fr 1fr;
+  }
+  .footer-brand-col{
+    grid-column: 1 / -1;
+  }
+  /* Why grid */
+  .why-grid{
+    grid-template-columns:1fr;
+  }
+  /* Final CTA */
+  .final-cta-card{
+    padding:32px 18px;
+  }
+  .final-cta-card .hero-cta{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  /* Mobile sticky CTA visible */
+  .mobile-sticky-cta{
+    display:flex;
+  }
+  /* Add bottom padding so sticky CTA doesn't overlap footer */
+  .footer[data-custom-footer]{
+    padding-bottom: calc(70px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width:600px){
+  .footer-new{
+    grid-template-columns:1fr;
+  }
+  .product-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+/* Product grid: 2-col on tablet */
+@media (min-width:601px) and (max-width:980px){
+  .product-grid{
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
