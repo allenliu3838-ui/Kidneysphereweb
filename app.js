@@ -127,7 +127,7 @@ function injectNav(){
         <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
         <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
         <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
-        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="research-pilot.html"><span class="zh">科研试点</span><span class="en">Research</span></a>
         <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
         <a data-nav href="search.html"><span class="zh">搜索</span><span class="en">Search</span></a>
       </nav>
@@ -189,6 +189,8 @@ function injectFooter(){
   if(!footer) return;
   // Skip if the footer already has child elements (custom footer kept in HTML)
   if(footer.children.length > 0) return;
+  // Skip if the page defines its own footer structure
+  if(footer.hasAttribute('data-custom-footer')) return;
   const blurb = escapeHtml(footer.getAttribute('data-blurb') || '以病例讨论与学习体系为核心，逐步建设可沉淀、可检索的肾脏病知识社区。');
   footer.innerHTML = `
     <div class="container footer-grid">

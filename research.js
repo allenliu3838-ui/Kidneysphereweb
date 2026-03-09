@@ -1,4 +1,26 @@
-import { supabase, ensureSupabase, isConfigured, toast, getCurrentUser, getUserProfile, isAdminRole, normalizeRole } from './supabaseClient.js?v=20260128_030';
+import { supabase, ensureSupabase, isConfigured, toast, getCurrentUser, getUserProfile, isAdminRole, normalizeRole } from './supabaseClient.js?v=20260309_001';
+
+    // ── Auth guard: only admin users can access this page ──
+    // Public visitors are redirected to the public research pilot page.
+    (async function guardResearchPage(){
+      if(!isConfigured()) {
+        location.replace('research-pilot.html');
+        return;
+      }
+      try{
+        if(!supabase) await ensureSupabase();
+        const u = await getCurrentUser();
+        if(!u){ location.replace('research-pilot.html'); return; }
+        const p = await getUserProfile(u);
+        if(!isAdminRole(normalizeRole(p?.role))){
+          location.replace('research-pilot.html');
+          return;
+        }
+      }catch(_e){
+        location.replace('research-pilot.html');
+        return;
+      }
+    })();
 
     const grid = document.getElementById('projectGrid');
     const adminBox = document.getElementById('adminBox');

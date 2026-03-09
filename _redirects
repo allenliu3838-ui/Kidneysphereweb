@@ -4,7 +4,8 @@
 /about          /about.html          200
 /events         /events.html         200
 /frontier       /frontier.html       200
-/research       /research.html       200
+/research       /research-pilot.html 200
+/research-pilot /research-pilot.html 200
 /board          /board.html          200
 /case           /case.html           200
 /post-case      /post-case.html      200
