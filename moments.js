@@ -818,7 +818,7 @@ function setHint(msg, type='info'){
   }
   els.composerHint.style.display = 'block';
   els.composerHint.className = type === 'err' ? 'note' : 'note';
-  els.composerHint.innerHTML = msg;
+  els.composerHint.textContent = msg;
 }
 
 function setPublishState(msg){
