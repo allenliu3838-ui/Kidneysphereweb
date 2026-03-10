@@ -263,7 +263,7 @@ async function bindAdminActions(isAdmin){
 
     const { error } = await supabase.from('sections').insert(payload);
     if(error){
-      toast('添加失败', error.message + '（请确认已建表 sections 并配置 RLS / unique key。）', 'err');
+      toast('添加失败', error.message, 'err');
       return;
     }
 
@@ -292,7 +292,7 @@ async function bindAdminActions(isAdmin){
       .upsert(rows, { onConflict: 'channel_id,key', ignoreDuplicates: true });
 
     if(error){
-      toast('写入失败', error.message + '（请确认 sections 有唯一约束 channel_id+key。）', 'err');
+      toast('写入失败', error.message, 'err');
       return;
     }
 

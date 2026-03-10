@@ -426,7 +426,7 @@ export function toast(title, message = '', type = 'ok') {
   // Go-live polish: avoid leaking internal deployment / migration / backend details to end users.
   // Super admins can still see the raw message by enabling admin UI mode.
   const showDev = Boolean(typeof window !== 'undefined' && window.__SHOW_DEV_HINTS__);
-  const devKw = /(Supabase|MIGRATION_|Reload schema|schema cache|SQL Editor|Settings\s*→\s*API|assets\/config\.js|SUPABASE_URL|SUPABASE_ANON_KEY|service_role|bucket|Policies|RLS|PostgREST)/i;
+  const devKw = /(Supabase|MIGRATION_|Reload schema|schema cache|SQL Editor|Settings\s*→\s*API|assets\/config\.js|SUPABASE_URL|SUPABASE_ANON_KEY|service_role|bucket|Policies|RLS|PostgREST|PGRST\d|row.level.security|permission denied|unique.constraint|Could not find the function|duplicate key|violates|pg_|relation "|column "|\.sql\b)/i;
 
   let t = rawTitle;
   let m = rawMessage;
