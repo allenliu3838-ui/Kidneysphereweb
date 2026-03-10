@@ -203,7 +203,7 @@ function injectFooter(){
       </div>
       <div class="small">
         <div>© 2025–2026 肾域 KidneySphere</div>
-        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@kidneysphere.com">china@kidneysphere.com</a></div>
       </div>
     </div>`;
 }
