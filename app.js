@@ -115,10 +115,9 @@ function injectNav(){
   header.innerHTML = `
     <div class="container nav-inner">
       <a class="brand" href="index.html" aria-label="KidneySphere Home">
-        <img src="assets/logo.png" alt="KidneySphere AI Logo" />
+        <img src="assets/logo.png" alt="KidneySphere Logo" />
         <div class="title">
-          <b>肾域AI · KidneySphereAI</b>
-          <span>GlomCon中国 × KidneySphere AI</span>
+          <b>KidneySphere · 肾域</b>
         </div>
       </a>
       <nav class="menu" aria-label="Primary">
@@ -128,10 +127,19 @@ function injectNav(){
         <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
         <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
         <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
-        <a data-nav href="research.html"><span class="zh">临床研究中心</span><span class="en">Research</span></a>
+        <a data-nav href="research-pilot.html"><span class="zh">科研试点</span><span class="en">Research</span></a>
         <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
         <a data-nav href="search.html"><span class="zh">搜索</span><span class="en">Search</span></a>
       </nav>
+      <div class="nav-dropdown">
+        <button type="button" class="nav-dropdown-trigger" aria-haspopup="true" aria-expanded="false"><span class="zh">产品工具</span><span class="en">Products</span><span class="chev">▾</span></button>
+        <div class="nav-dropdown-menu">
+          <a href="https://kidneysphereregistry.cn" target="_blank" rel="noopener">🔬 肾域·科研</a>
+          <a href="https://kidneysphereremote.cn" target="_blank" rel="noopener">👨‍⚕️ 肾域·随诊</a>
+          <a href="https://kidneyspherefollowup.cn" target="_blank" rel="noopener">📋 肾域·记录</a>
+          <a href="https://kidneyspheredoctorapp.cn" target="_blank" rel="noopener">📱 肾域·医生</a>
+        </div>
+      </div>
       <div class="auth" data-auth>
         <a class="btn" href="login.html">登录</a>
         <a class="btn primary" href="register.html">注册</a>
@@ -139,24 +147,63 @@ function injectNav(){
     </div>`;
 }
 
+function initNavDropdown(){
+  const dropdown = document.querySelector('.nav-dropdown');
+  if(!dropdown) return;
+  const trigger = dropdown.querySelector('.nav-dropdown-trigger');
+  if(!trigger) return;
+
+  trigger.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const open = dropdown.classList.toggle('open');
+    trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+
+  // Close when a menu link is clicked
+  dropdown.querySelector('.nav-dropdown-menu')?.addEventListener('click', (e)=>{
+    if(e.target.closest('a:not(.disabled)')){
+      dropdown.classList.remove('open');
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // Close on outside click
+  document.addEventListener('click', (e)=>{
+    if(!e.target.closest('.nav-dropdown')){
+      dropdown.classList.remove('open');
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape'){
+      dropdown.classList.remove('open');
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+  });
+}
+
 function injectFooter(){
   const footer = document.querySelector('footer.footer');
   if(!footer) return;
   // Skip if the footer already has child elements (custom footer kept in HTML)
   if(footer.children.length > 0) return;
+  // Skip if the page defines its own footer structure
+  if(footer.hasAttribute('data-custom-footer')) return;
   const blurb = escapeHtml(footer.getAttribute('data-blurb') || '以病例讨论与学习体系为核心，逐步建设可沉淀、可检索的肾脏病知识社区。');
   footer.innerHTML = `
     <div class="container footer-grid">
       <div>
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
           <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
-          <b>KidneySphere × KidneySphere AI</b>
+          <b>KidneySphere · 肾域</b>
         </div>
         <div class="small">${blurb}</div>
       </div>
       <div class="small">
-        <div>© 2025–2026 KidneySphere</div>
-        <div style="margin-top:8px">联系：<a href="mailto:china@glomcon.org">china@glomcon.org</a></div>
+        <div>© 2025–2026 肾域 KidneySphere</div>
+        <div style="margin-top:8px">联系：<a href="mailto:china@kidneysphere.com">china@kidneysphere.com</a></div>
       </div>
     </div>`;
 }
@@ -245,7 +292,7 @@ function initMobileDrawer(){
         <div class="auth" data-auth></div>
 
         <div class="drawer-links" data-drawer-links></div>
-        <div class="small muted" style="margin-top:auto">© 2025 KidneySphere</div>
+        <div class="small muted" style="margin-top:auto">© 2025–2026 肾域 KidneySphere</div>
       </div>
     `;
 
@@ -268,7 +315,13 @@ function initMobileDrawer(){
       const badgeAttr = bt ? ` data-badge="${escapeAttr(bt)}"` : '';
       const dot = bt ? `<span class="badge-dot" aria-hidden="true"></span>` : '';
       return `<a data-nav${badgeAttr} href="${escapeAttr(href)}">${l.html}${dot}</a>`;
-    }).join('');
+    }).join('')
+    + `<div class="drawer-divider"></div>
+       <div class="drawer-section-title">肾域产品</div>
+       <a href="https://kidneysphereregistry.cn" target="_blank" rel="noopener">🔬 肾域·科研</a>
+       <a href="https://kidneysphereremote.cn" target="_blank" rel="noopener">👨‍⚕️ 肾域·随诊</a>
+       <a href="https://kidneyspherefollowup.cn" target="_blank" rel="noopener">📋 肾域·记录</a>
+       <a href="https://kidneyspheredoctorapp.cn" target="_blank" rel="noopener">📱 肾域·医生</a>`;
   }
 
   const body = document.body;
@@ -509,6 +562,7 @@ async function renderAuthArea(){
         <div class="user-dropdown" data-user-dropdown role="menu" aria-label="用户菜单">
           <div class="ud-scroll">
             <div class="ud-meta">
+              <div class="ud-avatar">${avatarUrl ? `<img alt="avatar" src="${escapeAttr(avatarUrl)}">` : `<span class="ud-avatar-initial">${initial}</span>`}</div>
               <b>${escapeHtml(name)}</b>
               <div>${escapeHtml(statusLineWithPoints)}</div>
               ${isAdmin ? `<div class="small muted" style="margin-top:4px">（可切换：管理员 ↔ 普通会员）</div>` : ``}
@@ -632,6 +686,29 @@ async function renderAuthArea(){
       }
     });
   }
+
+  // 为发帖/评论区域注入用户头像
+  injectComposerAvatars(avatarUrl, initial);
+}
+
+/** 在 composer / comment form 前显示当前用户头像 */
+function injectComposerAvatars(avatarUrl, initial){
+  const selectors = [
+    '#composer',        // moments composer
+    '#commentForm',     // case / moment comment form
+    '#caseForm',        // post-case form
+  ];
+  selectors.forEach(sel => {
+    const el = document.querySelector(sel);
+    if(!el || el.dataset.ksAvatar) return;
+    el.dataset.ksAvatar = '1';
+    const badge = document.createElement('div');
+    badge.className = 'composer-avatar';
+    badge.innerHTML = avatarUrl
+      ? `<img alt="avatar" src="${escapeAttr(avatarUrl)}">`
+      : `<span class="composer-avatar-initial">${initial}</span>`;
+    el.insertBefore(badge, el.firstChild);
+  });
 }
 
 function escapeHtml(str){
@@ -640,14 +717,24 @@ function escapeHtml(str){
 
 function toggleAdminOnly(isAdmin){
   document.querySelectorAll('[data-admin-only]').forEach(el=>{
-    el.hidden = !isAdmin;
+    if(isAdmin){
+      el.hidden = false;
+      el.classList.add('admin-visible');
+    } else {
+      el.remove();   // 非管理员：从 DOM 彻底移除，防止源码泄露管理入口
+    }
   });
 }
 
-// “开发/初始化提示”：仅超级管理员在“管理模式”下可见
+// “开发/初始化提示”：仅超级管理员在”管理模式”下可见
 function toggleSuperAdminOnly(canSee){
   document.querySelectorAll('[data-superadmin-only]').forEach(el=>{
-    el.hidden = !canSee;
+    if(canSee){
+      el.hidden = false;
+      el.classList.add('superadmin-visible');
+    } else {
+      el.remove();
+    }
   });
 }
 
@@ -1002,12 +1089,25 @@ async function updateUnreadBadges(){
 
 
 injectNav();
+initNavDropdown();
 injectFooter();
 ensureToast();
 initSearchHotkey();
 initMobileDrawer();
 setActiveNav();
 renderAuthArea();
+
+// 语音录入模块 — 自动为所有文本框添加麦克风按钮
+(function loadVoiceModule(){
+  var link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'shared/ks-voice.css';
+  document.head.appendChild(link);
+  var script = document.createElement('script');
+  script.src = 'shared/ks-voice.js';
+  script.defer = true;
+  document.body.appendChild(script);
+})();
 
 // keep auth UI updated
 if(isConfigured()){
@@ -1154,7 +1254,7 @@ async function initAboutShowcase(){
   if(!isConfigured()){
     Object.keys(lists).forEach(k=>{
       if(lists[k]){
-        lists[k].innerHTML = `<div class="muted small">（演示模式）配置 Supabase 后可由管理员在此增删条目。</div>`;
+        lists[k].innerHTML = `<div class="muted small skeleton-text">&nbsp;</div>`;
       }
     });
     return;
@@ -1709,7 +1809,8 @@ async function initAboutShowcase(){
       .order('sort', { ascending: true })
       .order('created_at', { ascending: false });
     if(error){
-      Object.keys(lists).forEach(k=>{ if(lists[k]) lists[k].innerHTML = `<div class="muted small">读取失败：${escapeHtml(error.message)}</div>`; });
+      const _errMsg = (window.__SHOW_DEV_HINTS__) ? escapeHtml(error.message) : '请稍后重试';
+      Object.keys(lists).forEach(k=>{ if(lists[k]) lists[k].innerHTML = `<div class="muted small">读取失败：${_errMsg}</div>`; });
       return;
     }
     const byCat = {

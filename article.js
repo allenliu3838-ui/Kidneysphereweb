@@ -703,8 +703,8 @@ async function main(){
     // --- Sharing (WeChat Moments / Timeline) ---
     // Build a stable URL without cache-busting params.
     const shareUrl = buildStableUrl();
-    const shareTitle = `${title} · 肾域AI`;
-    const shareDesc = summary || excerptFromMd(previewBody || '', 120) || 'KidneySphere 学术文章';
+    const shareTitle = `${title} · KidneySphere`;
+    const shareDesc = summary || excerptFromMd(data.content_md || '', 120) || 'KidneySphere 学术文章';
     // WeChat/朋友圈链接预览对 JS 执行不稳定；
     // 为保证所有文章分享都有统一封面，这里固定使用站点封面图。
     const shareImg = 'assets/wechat_share_logo.png';

@@ -102,7 +102,7 @@ async function load(){
       ${desc ? `<div style="line-height:1.8;white-space:pre-wrap">${nl2br(desc)}</div>` : `<div class="muted">（暂无简介）</div>`}
 
       <div class="hr" style="margin:16px 0"></div>
-      <div class="note"><b>声明：</b>本页内容由合作单位提供或由管理员整理，仅作信息展示。</div>
+      <div class="note"><b>声明：</b>本页内容由合作单位提供或由编辑团队整理，仅作信息展示。</div>
     `;
   }catch(e){
     bodyEl.innerHTML = `<div class="note"><b>加载失败</b><div class="small" style="margin-top:6px">${esc(e?.message || String(e))}</div></div>`;

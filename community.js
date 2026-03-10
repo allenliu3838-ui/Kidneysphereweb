@@ -45,7 +45,7 @@ const DEFAULT_CHANNELS = [
     id: 'english',
     title_zh: '国际讨论专区',
     title_en: 'English Discussion',
-    description: '面向国际协作与学术沟通的英语版块（即将开放）。',
+    description: '面向国际协作与学术沟通的英语版块（预约演示）。',
     status: 'coming_soon',
   },
 ];
@@ -153,7 +153,7 @@ function renderSections(sections, isAdmin){
       <h3>+ 更多分区</h3>
       <p class="small">核心社区会持续扩容（例如：肾脏病理、肾脏感染、肿瘤相关肾病等）。国际讨论专区（英语）将于后续开放。</p>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
-        ${isAdmin ? `<button class="btn primary" id="jumpAdminBtn" type="button">新增分区</button>` : `<span class="small">（管理员开放后可新增）</span>`}
+        ${isAdmin ? `<button class="btn primary" id="jumpAdminBtn" type="button">新增分区</button>` : ``}
       </div>
     </div>
   `;
@@ -263,7 +263,7 @@ async function bindAdminActions(isAdmin){
 
     const { error } = await supabase.from('sections').insert(payload);
     if(error){
-      toast('添加失败', error.message + '（请确认已建表 sections 并配置 RLS / unique key。）', 'err');
+      toast('添加失败', error.message, 'err');
       return;
     }
 
@@ -292,7 +292,7 @@ async function bindAdminActions(isAdmin){
       .upsert(rows, { onConflict: 'channel_id,key', ignoreDuplicates: true });
 
     if(error){
-      toast('写入失败', error.message + '（请确认 sections 有唯一约束 channel_id+key。）', 'err');
+      toast('写入失败', error.message, 'err');
       return;
     }
 

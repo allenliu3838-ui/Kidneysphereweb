@@ -20,7 +20,7 @@ const els = {
 };
 
 function esc(str){
-  return String(str ?? '').replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]));
+  return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
 }
 
 function escAll(str){
@@ -308,7 +308,7 @@ async function loadAndRender(){
       <div class="note"><b>演示模式：</b>请在 assets/config.js 配置 Supabase 后启用数据库驱动的 Frontier。</div>
       <div class="card soft" style="padding:18px">
         <h3 style="margin:0">IgA 申明 · 最新要务（示例）</h3>
-        <div class="small muted" style="margin-top:6px">上线后可由管理员随时新增/维护板块与卡片。</div>
+        <div class="small muted" style="margin-top:6px">肾脏专科领域的最新指南、试验与进展。</div>
         <div style="margin-top:14px" class="grid cols-2">
           <div class="card soft" style="padding:16px"><b>IgAN 新药：iptacopan</b><div class="small muted" style="margin-top:6px">机制、试验进展与临床要点。</div></div>
           <div class="card soft" style="padding:16px"><b>补体相关病：C3G/aHUS</b><div class="small muted" style="margin-top:6px">诊疗路径与最新综述。</div></div>

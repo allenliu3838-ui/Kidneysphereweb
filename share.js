@@ -71,7 +71,7 @@ export function applyShareMeta({
   image,
   url,
   type = 'website',
-  siteName = '肾域AI · KidneySphereAI',
+  siteName = 'KidneySphere · 肾域',
 } = {}){
   const t = String(title || '').trim() || document.title || 'KidneySphere';
   const d = String(description || '').trim() || '';
