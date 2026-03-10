@@ -45,11 +45,12 @@ const titleB = document.getElementById('titleB');
 const proofFile = document.getElementById('proofFile');
 
 function esc(s){
-  return String(s ?? '').replace(/[&<>"]/g, (c)=>({
+  return String(s ?? '').replace(/[&<>"']/g, (c)=>({
     '&': '&amp;',
     '<': '&lt;',
     '>': '&gt;',
     '"': '&quot;',
+    "'": '&#39;',
   }[c]));
 }
 
