@@ -22,6 +22,12 @@
   --prose-space: 0.9em;
   --media-radius: 16px;
 }
+/* ── 管理控件：CSS 兜底隐藏（防止 hidden 被覆盖泄露） ── */
+[data-admin-only],
+[data-superadmin-only]{ display:none !important; }
+[data-admin-only].admin-visible,
+[data-superadmin-only].superadmin-visible{ display:revert !important; }
+
 *{box-sizing:border-box}
 html,body{height:100%}
 /* Prevent any 1-2px horizontal overflow from making sections look misaligned on mobile */

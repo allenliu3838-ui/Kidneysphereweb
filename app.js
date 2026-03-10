@@ -717,14 +717,24 @@ function escapeHtml(str){
 
 function toggleAdminOnly(isAdmin){
   document.querySelectorAll('[data-admin-only]').forEach(el=>{
-    el.hidden = !isAdmin;
+    if(isAdmin){
+      el.hidden = false;
+      el.classList.add('admin-visible');
+    } else {
+      el.remove();   // 非管理员：从 DOM 彻底移除，防止源码泄露管理入口
+    }
   });
 }
 
-// “开发/初始化提示”：仅超级管理员在“管理模式”下可见
+// “开发/初始化提示”：仅超级管理员在”管理模式”下可见
 function toggleSuperAdminOnly(canSee){
   document.querySelectorAll('[data-superadmin-only]').forEach(el=>{
-    el.hidden = !canSee;
+    if(canSee){
+      el.hidden = false;
+      el.classList.add('superadmin-visible');
+    } else {
+      el.remove();
+    }
   });
 }
 

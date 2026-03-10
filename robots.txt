@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+
+# 不索引：登录/注册/回调/管理/编辑等非公开页面
+Disallow: /login
+Disallow: /register
+Disallow: /forgot
+Disallow: /reset
+Disallow: /auth-callback
+Disallow: /admin
+Disallow: /article-editor
+Disallow: /verify-doctor
+Disallow: /profile
+Disallow: /notifications
+Disallow: /favorites
+Disallow: /post-case
+Disallow: /notes
+
+Sitemap: https://kidneysphere.com/sitemap.xml
