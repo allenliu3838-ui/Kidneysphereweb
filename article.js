@@ -12,6 +12,7 @@ import {
 import { applyShareMeta, copyToClipboard, buildStableUrl } from './share.js?v=20260118_001';
 
 import { renderSafeHtml } from './ks_richtext.js?v=20260213_001';
+import { fetchContentById, fetchMe } from './content-api.js?v=20260305_001';
 
 const root = document.getElementById('articleRoot');
 const editBtn = document.getElementById('editArticleBtn');
@@ -555,31 +556,68 @@ async function main(){
   await loadLikeState(user, id);
 
   try{
-    // If not admin, only allow published
-    let q = supabase.from('articles').select('*').eq('id', id).maybeSingle();
-    if(!isAdmin) q = q.eq('status', 'published').is('deleted_at', null);
+    let data = null;
+    let previewBody = '';
+    let fullBody = '';
+    let fullMode = 'preview';
 
-    const { data, error } = await q;
-    if(error) throw error;
-    if(!data){
-      root.innerHTML = `<div class="muted small">文章不存在，或你没有权限查看。</div>`;
-      return;
+    try{
+      const previewRes = await fetchContentById(id, 'preview');
+      if(!previewRes?.item) throw new Error('not_found');
+      data = previewRes.item || {};
+      previewBody = String(previewRes.body || '').trim();
+      fullBody = previewBody;
+
+      try{
+        const me = await fetchMe();
+        const perms = Array.isArray(me?.permissions) ? me.permissions : [];
+        if(perms.includes('member') || isAdmin || data.paywall !== 'members_only'){
+          const fullRes = await fetchContentById(id, 'full');
+          if(fullRes?.body){
+            fullBody = String(fullRes.body || '').trim() || previewBody;
+            fullMode = 'full';
+          }
+        }
+      }catch(_e){
+        // 非会员/未登录时将停留在 preview。
+      }
+    }catch(_apiErr){
+      // API 不可用时回退 legacy 文章表，保证 article.html 仍可读。
+      let q = supabase.from('articles').select('*').eq('id', id).maybeSingle();
+      if(!isAdmin) q = q.eq('status', 'published').is('deleted_at', null);
+      const { data: legacy, error: legacyErr } = await q;
+      if(legacyErr) throw legacyErr;
+      if(!legacy){
+        root.innerHTML = `<div class="muted small">文章不存在，或你没有权限查看。</div>`;
+        return;
+      }
+      data = {
+        ...legacy,
+        title_zh: legacy.title,
+        summary_zh: legacy.summary,
+        paywall: 'free_preview',
+        legacy_article_id: legacy.id,
+      };
+      previewBody = String(legacy.content_html || legacy.content_md || '').trim();
+      fullBody = previewBody;
+      fullMode = 'full';
     }
 
-    const title = data.title || '未命名';
-    const summary = String(data.summary || '').trim();
+    const title = data.title_zh || data.title || '未命名';
+    const summary = String(data.summary_zh || data.summary || '').trim();
     const cover = String(data.cover_url || '').trim();
     const author = data.author_name || '';
-    const status = String(data.status || 'draft');
+    const status = String(data.status || 'published');
     const publishedAt = data.published_at;
     const createdAt = data.created_at;
 
     // Views (optional): only available after MIGRATION_20260109_ARTICLE_VIEWCOUNT.sql
-    const hasViewCount = Object.prototype.hasOwnProperty.call(data, 'view_count');
+    const legacyId = data.legacy_article_id || id;
+    const hasViewCount = Object.prototype.hasOwnProperty.call(data, 'view_count') && Boolean(legacyId);
     let viewCount = hasViewCount ? Number(data.view_count || 0) : null;
-    if(hasViewCount && status === 'published' && shouldCountArticleView(id)){
+    if(hasViewCount && status === 'published' && shouldCountArticleView(legacyId)){
       try{
-        const { data: newCount, error: incErr } = await supabase.rpc('increment_article_view', { p_article_id: id });
+        const { data: newCount, error: incErr } = await supabase.rpc('increment_article_view', { p_article_id: legacyId });
         if(!incErr && typeof newCount === 'number' && isFinite(newCount)){
           viewCount = newCount;
         }
@@ -589,11 +627,11 @@ async function main(){
     }
 
     // Downloads (optional): only available after MIGRATION_20260130_DOWNLOADCOUNT_ARTICLE_PPT.sql
-    const hasDownloadCount = Object.prototype.hasOwnProperty.call(data, 'download_count');
+    const hasDownloadCount = Object.prototype.hasOwnProperty.call(data, 'download_count') && Boolean(legacyId);
     let downloadCount = hasDownloadCount ? Number(data.download_count || 0) : null;
 
     // Likes (optional): available after MIGRATION_20260203_ARTICLE_LIKES.sql
-    const hasLikeCount = Object.prototype.hasOwnProperty.call(data, 'like_count');
+    const hasLikeCount = Object.prototype.hasOwnProperty.call(data, 'like_count') && Boolean(legacyId);
     let likeCount = hasLikeCount ? Number(data.like_count || 0) : null;
 
     const meta = [
@@ -616,11 +654,10 @@ async function main(){
 
         <div class="hr"></div>
 
-        <div class="article-content ks-prose ks-reading">
+        <div class="article-content ks-prose ks-reading" data-read-mode="${esc(fullMode)}">
           ${(() => {
-            const html = String(data.content_html || '').trim();
-            if(html) return renderSafeHtml(html, { mode:'article', linkify:true });
-            return mdToHtml(data.content_md || '');
+            if(/<[^>]+>/.test(fullBody)) return renderSafeHtml(fullBody, { mode:'article', linkify:true });
+            return mdToHtml(fullBody || previewBody || '');
           })()}
         </div>
       </div>
@@ -643,7 +680,7 @@ async function main(){
     const bumpDownload = async () => {
       if (!hasDownloadCount) return;
       try {
-        const { data: newCount, error: incErr } = await supabase.rpc('increment_article_download', { p_article_id: id });
+        const { data: newCount, error: incErr } = await supabase.rpc('increment_article_download', { p_article_id: legacyId });
         if (!incErr && typeof newCount === 'number' && isFinite(newCount)) {
           downloadCount = newCount;
           const cEl = document.getElementById('articleDownloadCount');

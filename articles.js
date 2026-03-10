@@ -8,6 +8,7 @@ import {
   getUserProfile,
   isAdminRole,
 } from './supabaseClient.js?v=20260128_030';
+import { fetchContentList } from './content-api.js?v=20260305_001';
 
 const listEl = document.getElementById('articlesList');
 const countEl = document.getElementById('articlesCount');
@@ -259,65 +260,49 @@ async function loadArticles(){
   const effectiveScope = isAdmin ? scope : 'published';
 
   try{
-    const buildQuery = (mode)=>{
-      // mode: 'both' | 'view' | 'like' | 'none'
-      const fields = mode === 'both'
-        ? 'id, title, summary, cover_url, tags, status, pinned, author_name, created_at, published_at, deleted_at, view_count, download_count, like_count'
-        : mode === 'view'
-          ? 'id, title, summary, cover_url, tags, status, pinned, author_name, created_at, published_at, deleted_at, view_count, like_count'
-          : mode === 'like'
-            ? 'id, title, summary, cover_url, tags, status, pinned, author_name, created_at, published_at, deleted_at, like_count'
-            : 'id, title, summary, cover_url, tags, status, pinned, author_name, created_at, published_at, deleted_at';
-
+    let items = [];
+    try{
+      const response = await fetchContentList({ type: 'article', q, tag: filterTag, limit: 50 });
+      items = (response?.items || []).map((a)=>(
+        {
+          ...a,
+          title: a.title_zh || a.title || '未命名',
+          summary: a.summary_zh || a.summary || '',
+          cover_url: '',
+        }
+      ));
+    }catch(_apiErr){
+      // API 不可用时回退 legacy 表，避免页面空白（兼容渐进迁移）。
       let query = supabase
         .from('articles')
-        .select(fields)
-        .is('deleted_at', null);
+        .select('id, title, summary, cover_url, tags, status, pinned, author_name, created_at, published_at, deleted_at, view_count, download_count, like_count')
+        .is('deleted_at', null)
+        .order('pinned', { ascending: false })
+        .order('published_at', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-      if(effectiveScope === 'published'){
-        query = query.eq('status', 'published');
-      }
-
+      if(effectiveScope === 'published') query = query.eq('status', 'published');
+      if(filterTag) query = query.contains('tags', [filterTag]);
       if(q){
-        const qq = q.replace(/%/g, '\\%');
-        query = query.or(`title.ilike.%${qq}%,summary.ilike.%${qq}%`);
+        const like = `%${q.replace(/[%_]/g, '\\$&')}%`;
+        query = query.or(`title.ilike.${like},summary.ilike.${like},content_md.ilike.${like}`);
       }
-
-      if(filterTag){
-        // tags is a text[] column; contains([tag]) means the article has this tag.
-        query = query.contains('tags', [filterTag]);
-      }
-
-      return query;
-    };
-
-    const runWithOrder = async (query)=>{
-      // Order: pinned first (if exists), then published_at/created_at
-      let r = await query.order('pinned', { ascending: false }).order('published_at', { ascending: false }).order('created_at', { ascending: false }).limit(50);
-      // Backward compatibility (if pinned doesn't exist yet)
-      if(r.error && String(r.error.message||'').includes('pinned')){
-        r = await query.order('published_at', { ascending: false }).order('created_at', { ascending: false }).limit(50);
-      }
-      return r;
-    };
-
-    let r = await runWithOrder(buildQuery('both'));
-    // Backward compatibility: download_count may not exist yet.
-    if(r.error && /download_count/i.test(String(r.error.message||''))){
-      r = await runWithOrder(buildQuery('view'));
-    }
-    // Backward compatibility: view_count may not exist yet.
-    if(r.error && /view_count/i.test(String(r.error.message||''))){
-      r = await runWithOrder(buildQuery('like'));
-    }
-    // Backward compatibility: like_count may not exist yet.
-    if(r.error && /like_count/i.test(String(r.error.message||''))){
-      r = await runWithOrder(buildQuery('none'));
+      const { data, error } = await query;
+      if(error) throw error;
+      items = (data || []).map((a)=>({ ...a, legacy_article_id: a.id }));
     }
 
-    if(r.error) throw r.error;
-
-    const items = r.data || [];
+    if(effectiveScope !== 'published' && isAdmin){
+      const { data } = await supabase
+        .from('articles')
+        .select('id, title, summary, cover_url, tags, status, pinned, author_name, created_at, published_at')
+        .is('deleted_at', null)
+        .neq('status', 'published')
+        .order('created_at', { ascending: false })
+        .limit(20);
+      items = items.concat((data || []).map((a)=>({ ...a, legacy_article_id: a.id })));
+    }
     if(countEl){
       const tagInfo = filterTag ? ` · 标签：${filterTag}` : '';
       countEl.textContent = items.length ? `共 ${items.length} 篇${tagInfo}` : (filterTag ? `标签：${filterTag}` : '');
@@ -334,12 +319,12 @@ async function loadArticles(){
 
     // Favorites
     canFavorite = true;
-    await loadFavoritesForArticles(currentUserId, items.map(a => String(a.id)));
+    await loadFavoritesForArticles(currentUserId, items.map(a => String(a.legacy_article_id || a.id)));
 
     listEl.innerHTML = items.map(a => renderItem(a, {
       isAdmin,
       canFavorite,
-      faved: canFavorite ? favedSet.has(String(a.id)) : false,
+      faved: canFavorite ? favedSet.has(String(a.legacy_article_id || a.id)) : false,
     })).join('');
 
   }catch(e){
