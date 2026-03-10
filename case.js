@@ -1515,8 +1515,17 @@ function _isMissingRpc(err, fnName){
 
 function _humanizeRlsError(err){
   const msg = String((err && (err.message || err.error_description)) ? (err.message || err.error_description) : (err || ''));
-  if(/row-level security|rls|permission denied|403/i.test(msg)){
-    return msg + '\n\n提示：这通常是 Supabase 的 RLS 权限/策略未配置好导致。请在 Supabase → SQL Editor 重新运行最新版 SUPABASE_SETUP.sql，然后到 Settings → API 执行 Reload schema 再重试。';
+  const showDev = Boolean(typeof window !== 'undefined' && window.__SHOW_DEV_HINTS__);
+  if(/row-level security|rls|permission denied|403|PGRST/i.test(msg)){
+    if(showDev){
+      return msg + '\n\n提示：这通常是 Supabase 的 RLS 权限/策略未配置好导致。请在 Supabase → SQL Editor 重新运行最新版 SUPABASE_SETUP.sql，然后到 Settings → API 执行 Reload schema 再重试。';
+    }
+    return '操作失败，权限不足或系统维护中，请稍后重试。';
+  }
+  if(showDev) return msg;
+  // Strip potential database internals for non-admin users
+  if(/PGRST|pg_|relation "|column "|duplicate key|violates|Could not find/i.test(msg)){
+    return '操作失败，请稍后重试或联系管理员。';
   }
   return msg;
 }

@@ -1809,7 +1809,8 @@ async function initAboutShowcase(){
       .order('sort', { ascending: true })
       .order('created_at', { ascending: false });
     if(error){
-      Object.keys(lists).forEach(k=>{ if(lists[k]) lists[k].innerHTML = `<div class="muted small">读取失败：${escapeHtml(error.message)}</div>`; });
+      const _errMsg = (window.__SHOW_DEV_HINTS__) ? escapeHtml(error.message) : '请稍后重试';
+      Object.keys(lists).forEach(k=>{ if(lists[k]) lists[k].innerHTML = `<div class="muted small">读取失败：${_errMsg}</div>`; });
       return;
     }
     const byCat = {

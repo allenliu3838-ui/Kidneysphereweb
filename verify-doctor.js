@@ -45,11 +45,12 @@ const titleB = document.getElementById('titleB');
 const proofFile = document.getElementById('proofFile');
 
 function esc(s){
-  return String(s ?? '').replace(/[&<>"]/g, (c)=>({
+  return String(s ?? '').replace(/[&<>"']/g, (c)=>({
     '&': '&amp;',
     '<': '&lt;',
     '>': '&gt;',
     '"': '&quot;',
+    "'": '&#39;',
   }[c]));
 }
 
@@ -66,7 +67,12 @@ function setStatus(html){
 function getNext(){
   try{
     const u = new URL(location.href);
-    return String(u.searchParams.get('next') || '').trim();
+    const raw = String(u.searchParams.get('next') || '').trim();
+    // Prevent open redirect: only allow relative paths, block absolute URLs and path traversal.
+    if(raw && !raw.startsWith('http') && !raw.startsWith('//') && !raw.includes('..')){
+      return raw;
+    }
+    return '';
   }catch(_e){
     return '';
   }
