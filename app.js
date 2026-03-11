@@ -1895,6 +1895,7 @@ async function initAboutShowcase(){
     if(isAdminUi){
       el.querySelectorAll('[data-del]').forEach(btn=>{
         btn.addEventListener('click', async ()=>{
+          if(!confirm('确定删除该条目吗？此操作不可恢复。')) return;
           const id = btn.getAttribute('data-del');
           const { error } = await supabase.from('about_showcase').delete().eq('id', id);
           if(error){ toast('删除失败', error.message, 'err'); return; }

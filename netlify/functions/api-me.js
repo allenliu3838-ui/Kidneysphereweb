@@ -4,11 +4,35 @@ const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
 
+// ── Simple in-memory rate limiter (per-IP, resets on cold start) ──
+const rateMap = new Map();
+const RATE_WINDOW_MS = 60_000; // 1 minute
+const RATE_MAX = 60;           // 60 requests per minute per IP
+function rateCheck(ip){
+  const now = Date.now();
+  let entry = rateMap.get(ip);
+  if(!entry || now - entry.ts > RATE_WINDOW_MS){
+    entry = { ts: now, count: 0 };
+    rateMap.set(ip, entry);
+  }
+  entry.count++;
+  // Evict stale entries periodically
+  if(rateMap.size > 5000){
+    for(const [k,v] of rateMap){ if(now - v.ts > RATE_WINDOW_MS) rateMap.delete(k); }
+  }
+  return entry.count <= RATE_MAX;
+}
+
 function pickToken(event){
   const h = event.headers || {};
   const auth = h.authorization || h.Authorization || '';
   if(/^Bearer\s+/i.test(auth)) return auth.replace(/^Bearer\s+/i, '').trim();
   return '';
+}
+
+function getClientIp(event){
+  const h = event.headers || {};
+  return h['x-nf-client-connection-ip'] || h['x-forwarded-for']?.split(',')[0]?.trim() || h['client-ip'] || 'unknown';
 }
 
 async function sb(path){
@@ -22,17 +46,27 @@ async function sb(path){
   return res;
 }
 
+const GUEST_RESPONSE = { user: null, membership: null, permissions: ['guest'], role: 'guest' };
+
 exports.handler = async (event) => {
   try{
+    const ip = getClientIp(event);
+    if(!rateCheck(ip)){
+      return json(429, { error: 'rate_limited', message: '请求过于频繁，请稍后再试。' });
+    }
+
     const token = pickToken(event);
-    if(!token || !SUPABASE_URL || !SUPABASE_ANON_KEY){
-      return json(200, { user: null, membership: null, permissions: ['guest'], role: 'guest' });
+    if(!SUPABASE_URL || !SUPABASE_ANON_KEY){
+      return json(500, { error: 'server_not_configured' });
+    }
+    if(!token){
+      return json(401, GUEST_RESPONSE);
     }
 
     const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
       headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
     });
-    if(!userRes.ok) return json(200, { user: null, membership: null, permissions: ['guest'], role: 'guest' });
+    if(!userRes.ok) return json(401, GUEST_RESPONSE);
 
     const user = await userRes.json();
     const pid = encodeURIComponent(user.id);

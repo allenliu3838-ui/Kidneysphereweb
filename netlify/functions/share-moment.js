@@ -31,7 +31,32 @@ const typeLabel = (t) => {
   return '学习总结';
 };
 
+// ── Simple in-memory rate limiter (per-IP, resets on cold start) ──
+const rateMap = new Map();
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX = 30;
+function rateCheck(ip){
+  const now = Date.now();
+  let entry = rateMap.get(ip);
+  if(!entry || now - entry.ts > RATE_WINDOW_MS){
+    entry = { ts: now, count: 0 };
+    rateMap.set(ip, entry);
+  }
+  entry.count++;
+  if(rateMap.size > 5000){
+    for(const [k,v] of rateMap){ if(now - v.ts > RATE_WINDOW_MS) rateMap.delete(k); }
+  }
+  return entry.count <= RATE_MAX;
+}
+
 exports.handler = async function handler(event) {
+  const clientIp = (event.headers || {})['x-nf-client-connection-ip']
+    || (event.headers || {})['x-forwarded-for']?.split(',')[0]?.trim()
+    || 'unknown';
+  if(!rateCheck(clientIp)){
+    return { statusCode: 429, headers: { 'content-type': 'text/plain; charset=utf-8' }, body: '请求过于频繁，请稍后再试。' };
+  }
+
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 

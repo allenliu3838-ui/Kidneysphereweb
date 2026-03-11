@@ -34,7 +34,13 @@ export async function fetchContentById(id, mode='preview'){
 }
 
 export async function fetchMe(){
-  return apiFetch('/api/me');
+  try{
+    return await apiFetch('/api/me');
+  }catch(e){
+    // 401 = unauthenticated — return guest payload for backward compatibility
+    if(e?.status === 401 && e?.payload) return e.payload;
+    throw e;
+  }
 }
 
 export async function isLoggedIn(){
