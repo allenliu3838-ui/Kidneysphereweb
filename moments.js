@@ -599,7 +599,7 @@ function momentShareUrl(momentId){
 
 function momentShareDesc(m){
   const raw = String(m?.content || '').replace(/\s+/g, ' ').trim();
-  if(!raw) return '来自 KidneySphere 的一条社区动态';
+  if(!raw) return '来自 肾域 的一条社区动态';
   const MAX = 110;
   return raw.length <= MAX ? raw : (raw.slice(0, MAX).trim() + '…');
 }
@@ -721,8 +721,8 @@ async function shareImage(url, filename, title, text, shareUrl){
 
 链接：${shareUrl}` : '';
     await navigator.share({
-      title: title || 'KidneySphere · 社区动态',
-      text: (txt || '来自 KidneySphere 的一条动态') + urlText,
+      title: title || '肾域 · 社区动态',
+      text: (txt || '来自 肾域 的一条动态') + urlText,
       files: [file],
     });
     return true;
@@ -736,8 +736,8 @@ async function openMomentShareDialog(m){
 
   const meta = applyShareForMoment(m);
   const shareUrl = meta?.url || momentShareUrl(m?.id);
-  const title = meta?.title || 'KidneySphere · 社区动态';
-  const text = (meta?.description || '').trim() || ((m?.content || '').slice(0, 80) || '来自 KidneySphere 的一条动态');
+  const title = meta?.title || '肾域 · 社区动态';
+  const text = (meta?.description || '').trim() || ((m?.content || '').slice(0, 80) || '来自 肾域 的一条动态');
 
   const imgUrl = momentFirstImageUrl(m);
   const nativeBtn = modal.querySelector('#momentShareNativeBtn');
@@ -2171,7 +2171,7 @@ async function loadFeed(opts={}){
   if(!isConfigured() || !supabase){
     els.feed.innerHTML = `
       <div class="note"><b>演示模式：</b>请在 assets/config.js 配置 Supabase 后启用真实 Moments。</div>
-      <div class="card soft"><b>KidneySphere</b><div class="small muted" style="margin-top:4px">演示数据</div><div style="margin-top:10px">欢迎使用 Moments：支持拖拽图片与 Ctrl+V 粘贴截图。</div></div>
+      <div class="card soft"><b>肾域</b><div class="small muted" style="margin-top:4px">演示数据</div><div style="margin-top:10px">欢迎使用 Moments：支持拖拽图片与 Ctrl+V 粘贴截图。</div></div>
     `;
     _setFeedHint('');
     feedReachedEnd = true;
@@ -2253,8 +2253,8 @@ async function loadFeed(opts={}){
     // Default moments share meta
     try{
       applyShareMeta({
-        title: '社区动态 · KidneySphere',
-        description: 'KidneySphere · Moments',
+        title: '社区动态 · 肾域',
+        description: '肾域 · Moments',
         image: 'assets/logo.png',
         url: buildStableUrl(),
         type: 'website'

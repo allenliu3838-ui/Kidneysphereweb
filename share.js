@@ -1,5 +1,5 @@
 // share.js
-// Unified sharing helpers for KidneySphere.
+// Unified sharing helpers for 肾域.
 // Works on static hosting (Netlify) and dynamic client-rendered pages.
 
 function toAbsUrl(url){
@@ -71,9 +71,9 @@ export function applyShareMeta({
   image,
   url,
   type = 'website',
-  siteName = 'KidneySphere · 肾域',
+  siteName = '肾域 · 肾域',
 } = {}){
-  const t = String(title || '').trim() || document.title || 'KidneySphere';
+  const t = String(title || '').trim() || document.title || '肾域';
   const d = String(description || '').trim() || '';
   const shareUrl = String(url || '').trim() || buildStableUrl();
 

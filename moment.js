@@ -89,7 +89,7 @@ async function sharePost(){
   if(!currentPost) return;
   const origin = location.origin;
   const shareUrl = `${origin}/s/${currentPost.id}`;
-  const title = currentPost.title || `KidneySphere 社区动态（${typeLabel(currentPost.type)}）`;
+  const title = currentPost.title || `肾域 社区动态（${typeLabel(currentPost.type)}）`;
   const text = (currentPost.body || '').slice(0, 80);
 
   if(navigator.share){

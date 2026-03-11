@@ -1,4 +1,4 @@
-/*  KidneySphere 跨产品导航条  ks-topbar.js
+/*  肾域 跨产品导航条  ks-topbar.js
  *  ─────────────────────────────────────────
  *  子站点只需在 <head> 加入：
  *    <link rel="stylesheet" href="https://kidneysphere.com/shared/ks-topbar.css">
@@ -32,7 +32,7 @@
   // 品牌区
   var brand = '<a class="ks-tb-brand" href="https://kidneysphere.com">'
     + '<img src="https://kidneysphere.com/assets/logo.png" alt="KS">'
-    + '<span>KidneySphere · 肾域</span></a>'
+    + '<span>肾域</span></a>'
     + '<span class="ks-tb-sep"></span>';
 
   // 产品链接

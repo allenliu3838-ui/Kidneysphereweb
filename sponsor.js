@@ -68,7 +68,7 @@ async function load(){
     const s = data;
     const name = s.name || 'Sponsor';
     if(titleEl) titleEl.textContent = name;
-    document.title = `${name} · 赞助商 · KidneySphere`;
+    document.title = `${name} · 赞助商 · 肾域`;
 
     const logo = s.logo_url
       ? `<img alt="${esc(name)}" src="${esc(s.logo_url)}" style="width:76px;height:76px;object-fit:contain;border-radius:18px;background:rgba(255,255,255,.04);padding:10px" />`

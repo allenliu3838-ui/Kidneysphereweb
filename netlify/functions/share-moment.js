@@ -49,14 +49,14 @@ exports.handler = async function handler(event) {
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>KidneySphere 社区动态</title>
-<meta property="og:title" content="KidneySphere 社区动态"/>
+<title>肾域 社区动态</title>
+<meta property="og:title" content="肾域 社区动态"/>
 <meta property="og:description" content="查看社区动态（文献/病理/学习总结）"/>
 <meta property="og:image" content="${htmlEscape(fallbackLogo)}"/>
-<meta name="description" content="KidneySphere 社区动态"/>
+<meta name="description" content="肾域 社区动态"/>
 </head>
 <body style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; padding:16px">
-  <h2>KidneySphere 社区动态</h2>
+  <h2>肾域 社区动态</h2>
   <p>分享页暂不可用（缺少参数或环境变量）。</p>
   <p><a href="${htmlEscape(origin ? origin + '/moments.html' : 'moments.html')}">进入社区动态</a></p>
 </body>
@@ -92,8 +92,8 @@ exports.handler = async function handler(event) {
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>动态不存在 · KidneySphere</title>
-<meta property="og:title" content="动态不存在 · KidneySphere"/>
+<title>动态不存在 · 肾域</title>
+<meta property="og:title" content="动态不存在 · 肾域"/>
 <meta property="og:description" content="该动态不存在或已删除"/>
 <meta property="og:image" content="${htmlEscape(fallbackLogo)}"/>
 </head>
@@ -112,8 +112,8 @@ exports.handler = async function handler(event) {
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>KidneySphere 社区动态</title>
-<meta property="og:title" content="KidneySphere 社区动态"/>
+<title>肾域 社区动态</title>
+<meta property="og:title" content="肾域 社区动态"/>
 <meta property="og:description" content="该动态未开启公开分享"/>
 <meta property="og:image" content="${htmlEscape(fallbackLogo)}"/>
 </head>
@@ -126,8 +126,8 @@ exports.handler = async function handler(event) {
       return { statusCode: 200, headers: { 'content-type': 'text/html; charset=utf-8' }, body: html };
     }
 
-    const title = strip(post.title) || `KidneySphere 社区动态（${typeLabel(post.type)}）`;
-    const desc = shortText(post.body, 100) || 'KidneySphere 社区动态';
+    const title = strip(post.title) || `肾域 社区动态（${typeLabel(post.type)}）`;
+    const desc = shortText(post.body, 100) || '肾域 社区动态';
     const image = Array.isArray(post.image_urls) && post.image_urls.length ? post.image_urls[0] : fallbackLogo;
 
     const openLink = `${origin}/moment.html?id=${encodeURIComponent(post.id)}`;
@@ -177,7 +177,7 @@ exports.handler = async function handler(event) {
       <h1>${htmlEscape(title)}</h1>
       <p>${htmlEscape(desc)}</p>
       ${image ? `<img alt="cover" src="${htmlEscape(image)}"/>` : ``}
-      <a class="btn" href="${htmlEscape(openLink)}">打开 KidneySphere 查看完整内容</a>
+      <a class="btn" href="${htmlEscape(openLink)}">打开 肾域 查看完整内容</a>
       <div class="muted">提示：完整内容可能需要登录。分享病理/病例相关内容请确保已去标识化。</div>
     </div>
   </div>
@@ -191,8 +191,8 @@ exports.handler = async function handler(event) {
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>KidneySphere 社区动态</title>
-<meta property="og:title" content="KidneySphere 社区动态"/>
+<title>肾域 社区动态</title>
+<meta property="og:title" content="肾域 社区动态"/>
 <meta property="og:description" content="分享页加载失败"/>
 <meta property="og:image" content="${htmlEscape(fallbackLogo)}"/>
 </head>
