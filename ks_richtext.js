@@ -4,7 +4,7 @@
 // Goals
 // - Word/Office paste: remove "mso" noise but keep semantics (headings/lists/tables).
 // - Security: strict allowlist of tags/attributes/styles; block XSS vectors.
-// - Output HTML matches KidneySphere typography (CSS: .ks-prose / .article-content).
+// - Output HTML matches 肾域 typography (CSS: .ks-prose / .article-content).
 
 const _DEFAULT_TEXT_COLORS = [
   '#f8fafc',

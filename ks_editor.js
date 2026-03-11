@@ -1,5 +1,5 @@
 // ks_editor.js
-// A lightweight Word-like editor for KidneySphere (no external deps).
+// A lightweight Word-like editor for 肾域 (no external deps).
 //
 // Notes
 // - Uses contenteditable + execCommand (deprecated but still widely supported).

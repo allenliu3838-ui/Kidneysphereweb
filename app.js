@@ -114,20 +114,18 @@ function injectNav(){
   if(!header) return;
   header.innerHTML = `
     <div class="container nav-inner">
-      <a class="brand" href="index.html" aria-label="KidneySphere Home">
-        <img src="assets/logo.png" alt="KidneySphere Logo" />
+      <a class="brand" href="index.html" aria-label="肾域 Home">
+        <img src="assets/logo.png" alt="肾域 Logo" />
         <div class="title">
-          <b>KidneySphere · 肾域</b>
+          <b>肾域</b>
         </div>
       </a>
       <nav class="menu" aria-label="Primary">
         <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="research-pilot.html"><span class="zh">科研试点</span><span class="en">Research</span></a>
         <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
         <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
-        <a data-nav href="frontier.html"><span class="zh">前沿进展</span><span class="en">Frontier</span></a>
-        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
         <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
-        <a data-nav href="research-pilot.html"><span class="zh">科研试点</span><span class="en">Research</span></a>
         <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
         <a data-nav href="search.html"><span class="zh">搜索</span><span class="en">Search</span></a>
       </nav>
@@ -197,12 +195,12 @@ function injectFooter(){
       <div>
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
           <img src="assets/logo.png" alt="logo" style="width:26px;height:26px;border-radius:8px">
-          <b>KidneySphere · 肾域</b>
+          <b>肾域</b>
         </div>
         <div class="small">${blurb}</div>
       </div>
       <div class="small">
-        <div>© 2025–2026 肾域 KidneySphere</div>
+        <div>© 2025–2026 肾域</div>
         <div style="margin-top:8px">联系：<a href="mailto:china@kidneysphere.com">china@kidneysphere.com</a></div>
       </div>
     </div>`;
@@ -292,7 +290,7 @@ function initMobileDrawer(){
         <div class="auth" data-auth></div>
 
         <div class="drawer-links" data-drawer-links></div>
-        <div class="small muted" style="margin-top:auto">© 2025–2026 肾域 KidneySphere</div>
+        <div class="small muted" style="margin-top:auto">© 2025–2026 肾域</div>
       </div>
     `;
 
