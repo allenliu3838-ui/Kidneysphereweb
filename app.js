@@ -124,6 +124,7 @@ function injectNav(){
         <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
         <a data-nav href="research-pilot.html"><span class="zh">科研试点</span><span class="en">Research</span></a>
         <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
+        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
         <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
         <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
         <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
@@ -1894,6 +1895,7 @@ async function initAboutShowcase(){
     if(isAdminUi){
       el.querySelectorAll('[data-del]').forEach(btn=>{
         btn.addEventListener('click', async ()=>{
+          if(!confirm('确定删除该条目吗？此操作不可恢复。')) return;
           const id = btn.getAttribute('data-del');
           const { error } = await supabase.from('about_showcase').delete().eq('id', id);
           if(error){ toast('删除失败', error.message, 'err'); return; }

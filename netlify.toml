@@ -10,6 +10,7 @@
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
     Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
     X-XSS-Protection = "1; mode=block"
+    Cross-Origin-Opener-Policy = "same-origin"
     Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://esm.sh https://cdn.skypack.dev https://registry.npmmirror.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://eaatpwakhcjxjonlyfii.supabase.co; frame-src https://player.bilibili.com https://view.officeapps.live.com; media-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'"
 
 # Avoid caching the runtime config during rapid iterations

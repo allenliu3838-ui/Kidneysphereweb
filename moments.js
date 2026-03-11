@@ -1414,6 +1414,9 @@ function extFromVideoFile(file){
 
 async function uploadOne(file){
   if(!file) throw new Error('未选择图片文件。');
+  if(!String(file.type || '').startsWith('image/')){
+    throw new Error(`不支持的图片格式：${file.type || '未知'}。请选择 JPG/PNG/GIF/WebP 等图片文件。`);
+  }
   if((file.size || 0) > MAX_IMAGE_BYTES){
     const mb = Math.round((file.size || 0) / 1024 / 1024);
     throw new Error(`图片过大（${mb}MB）。建议每张不超过 ${Math.round(MAX_IMAGE_BYTES/1024/1024)}MB，或先压缩/截图后再上传。`);
@@ -1451,6 +1454,9 @@ async function uploadOne(file){
 
 async function uploadVideo(file){
   if(!file) throw new Error('未选择视频文件。');
+  if(!String(file.type || '').startsWith('video/')){
+    throw new Error(`不支持的视频格式：${file.type || '未知'}。请选择 MP4/MOV/WebM 等视频文件。`);
+  }
   if((file.size || 0) > MAX_VIDEO_BYTES){
     const mb = Math.round((file.size || 0) / 1024 / 1024);
     throw new Error(`视频过大（${mb}MB）。建议不超过 ${Math.round(MAX_VIDEO_BYTES/1024/1024)}MB（可先剪辑/压缩后再上传）。`);

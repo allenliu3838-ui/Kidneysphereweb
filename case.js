@@ -258,6 +258,13 @@ function tagChip(t){
 // ------------------------------------------------------------
 const MAX_ATTACH_BYTES = 20 * 1024 * 1024; // 20MB per file
 const MAX_ATTACH_COUNT = 9;
+const ALLOWED_ATTACH_MIMES = [
+  'image/jpeg','image/png','image/gif','image/webp','image/bmp',
+  'application/pdf',
+  'application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-powerpoint','application/vnd.openxmlformats-officedocument.presentationml.presentation',
+];
+const ALLOWED_ATTACH_EXTS = /\.(jpe?g|png|gif|webp|bmp|pdf|docx?|pptx?)$/i;
 let attachPicks = []; // { file, id, url? }
 
 function fmtSize(n){
@@ -326,12 +333,24 @@ function renderAttachDraft(){
   }).join('');
 }
 
+function isAllowedAttachment(file){
+  const mime = String(file.type || '').toLowerCase();
+  const name = String(file.name || '');
+  if(ALLOWED_ATTACH_MIMES.includes(mime)) return true;
+  if(ALLOWED_ATTACH_EXTS.test(name)) return true;
+  return false;
+}
+
 function addAttachFiles(files){
   const list = Array.from(files || []);
   if(!list.length) return;
   const next = [...attachPicks];
   for(const f of list){
     if(next.length >= MAX_ATTACH_COUNT) break;
+    if(!isAllowedAttachment(f)){
+      toast('文件类型不支持', `${f.name} 不在允许的类型范围内。支持：图片、PDF、Word、PPT。`, 'err');
+      continue;
+    }
     if((f.size || 0) > MAX_ATTACH_BYTES){
       const mb = Math.round((f.size || 0) / 1024 / 1024);
       toast('附件过大', `${f.name}（${mb}MB）超出限制（单个≤${Math.round(MAX_ATTACH_BYTES/1024/1024)}MB）。`, 'err');

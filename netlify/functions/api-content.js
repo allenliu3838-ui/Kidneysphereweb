@@ -4,6 +4,29 @@ const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
 
+// ── Simple in-memory rate limiter (per-IP, resets on cold start) ──
+const rateMap = new Map();
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX = 60;
+function rateCheck(ip){
+  const now = Date.now();
+  let entry = rateMap.get(ip);
+  if(!entry || now - entry.ts > RATE_WINDOW_MS){
+    entry = { ts: now, count: 0 };
+    rateMap.set(ip, entry);
+  }
+  entry.count++;
+  if(rateMap.size > 5000){
+    for(const [k,v] of rateMap){ if(now - v.ts > RATE_WINDOW_MS) rateMap.delete(k); }
+  }
+  return entry.count <= RATE_MAX;
+}
+
+function getClientIp(event){
+  const h = event.headers || {};
+  return h['x-nf-client-connection-ip'] || h['x-forwarded-for']?.split(',')[0]?.trim() || h['client-ip'] || 'unknown';
+}
+
 function pickToken(event){
   const h = event.headers || {};
   const auth = h.authorization || h.Authorization || '';
@@ -71,6 +94,11 @@ function normalizeItem(row){
 
 exports.handler = async (event) => {
   try{
+    const ip = getClientIp(event);
+    if(!rateCheck(ip)){
+      return json(429, { error: 'rate_limited', message: '请求过于频繁，请稍后再试。' });
+    }
+
     if(!SUPABASE_URL || !(SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY)){
       return json(500, { error: 'server_not_configured' });
     }
