@@ -77,6 +77,24 @@ function fmtDate(iso){
     return formatBeijingDate(iso);
   }catch{ return '' }
 }
+// Extract Alibaba Cloud vid from embed HTML or raw vid string
+function extractAliyunVid(input){
+  const s = String(input || '').trim();
+  if(!s) return null;
+  // Direct vid (hex string, 32 chars)
+  if(/^[0-9a-f]{20,}$/i.test(s)) return s;
+  // vid:"..." or vid:'...' in embed code
+  const m = s.match(/vid\s*[:=]\s*["']([0-9a-f]{20,})["']/i);
+  if(m) return m[1];
+  return null;
+}
+
+// Check if input looks like pasted HTML embed code
+function looksLikeHtml(input){
+  const s = String(input || '').trim();
+  return /^\s*</.test(s) || /<\/?(?:script|html|head|body|link|div|meta)\b/i.test(s);
+}
+
 function extractBvid(input){
   const s = String(input || '').trim();
   if(!s) return null;
@@ -304,13 +322,49 @@ async function saveVideo(currentUser){
 
   const title = String(els.videoTitle.value || '').trim();
   const category = String(els.videoCategory.value || '').trim();
-  const url = String(els.videoUrl?.value || '').trim();
+  let url = String(els.videoUrl?.value || '').trim();
   const file = els.videoMp4?.files?.[0] || null;
-  const aliyunUrl = String(els.videoAliyunUrl?.value || '').trim();
-  const aliyunVid = String(els.videoAliyunVid?.value || '').trim();
+  let aliyunUrl = String(els.videoAliyunUrl?.value || '').trim();
+  let aliyunVid = String(els.videoAliyunVid?.value || '').trim();
 
   if(!title){ toast('请输入名称', '请填写视频名称。', 'err'); return; }
   if(!category){ toast('请选择分类', '请先选择一个视频分类。', 'err'); return; }
+
+  // Detect if user pasted Alibaba Cloud HTML embed code in any field
+  const allInput = url || aliyunUrl || '';
+  if(looksLikeHtml(allInput)){
+    const extractedVid = extractAliyunVid(allInput);
+    if(extractedVid){
+      toast('请粘贴播放地址',
+        '检测到你粘贴了阿里云的 HTML 嵌入代码（已自动提取视频 ID：' + extractedVid + '）。\n\n' +
+        '请改为粘贴视频的播放地址：\n' +
+        '阿里云控制台 → 点击视频 → 「视频地址」标签页 → 复制 MP4 播放地址（以 https:// 开头）。',
+        'err');
+      // Auto-fill the vid field for convenience
+      if(els.videoAliyunVid) els.videoAliyunVid.value = extractedVid;
+      // Clear the bad input
+      if(looksLikeHtml(url) && els.videoUrl) els.videoUrl.value = '';
+      if(looksLikeHtml(aliyunUrl) && els.videoAliyunUrl) els.videoAliyunUrl.value = '';
+    }else{
+      toast('格式错误', '检测到粘贴了 HTML 代码。请粘贴视频的播放地址（以 https:// 开头），而不是嵌入代码。', 'err');
+    }
+    return;
+  }
+
+  // Also detect vid pasted into URL field (not a URL)
+  if(url && !file && !aliyunUrl && !/^https?:\/\//i.test(url) && !extractBvid(url)){
+    const vid = extractAliyunVid(url);
+    if(vid){
+      toast('请粘贴播放地址',
+        '检测到你粘贴的是阿里云视频 ID（' + vid + '），请改为粘贴播放地址。\n\n' +
+        '获取方式：阿里云控制台 → 点击视频 → 「视频地址」标签页 → 复制 MP4 地址。',
+        'err');
+      if(els.videoAliyunVid) els.videoAliyunVid.value = vid;
+      if(els.videoUrl) els.videoUrl.value = '';
+      return;
+    }
+  }
+
   if(!url && !file && !aliyunUrl){ toast('缺少内容', '请填写链接、选择 MP4 文件或填写阿里云视频地址。', 'err'); return; }
 
   await ensureSupabase();

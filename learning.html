@@ -130,9 +130,12 @@
 
           <div class="form-row">
             <div style="flex:1;min-width:240px">
-              <label>阿里云视频播放地址</label>
-              <input class="input" id="videoAliyunUrl" placeholder="粘贴阿里云点播的 MP4/M3U8 播放地址（可选）" />
-              <div class="small muted" style="margin-top:6px">从阿里云控制台 → 视频地址 → 复制播放地址。使用 Aliplayer 播放。</div>
+              <label>阿里云视频播放地址（MP4 链接）</label>
+              <input class="input" id="videoAliyunUrl" placeholder="https://xxx.aliyuncs.com/xxx.mp4" />
+              <div class="small muted" style="margin-top:6px">
+                获取方式：阿里云控制台 → 点击视频 → <b>「视频地址」</b>标签页 → 复制 MP4 地址。<br/>
+                <span style="color:var(--c-warn,#ffa050)">⚠ 请粘贴以 https:// 开头的播放地址，不要粘贴"Web播放器代码"里的 HTML 代码。</span>
+              </div>
             </div>
             <div style="min-width:220px">
               <label>阿里云视频ID（可选）</label>
