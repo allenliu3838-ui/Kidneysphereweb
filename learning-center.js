@@ -265,12 +265,23 @@ async function loadAdminVideos(){
   if(!supabase) return;
 
   try{
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('learning_videos')
       .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,created_at,enabled,deleted_at')
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .limit(12);
+    // Backward compat: retry without aliyun_vid if column doesn't exist yet
+    if(error && /aliyun_vid/i.test(String(error.message || ''))){
+      const r2 = await supabase
+        .from('learning_videos')
+        .select('id,title,category,kind,source_url,mp4_url,bvid,created_at,enabled,deleted_at')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(12);
+      data = r2.data;
+      error = r2.error;
+    }
     if(error) throw error;
     renderVideoAdminList(data || []);
   }catch(e){
