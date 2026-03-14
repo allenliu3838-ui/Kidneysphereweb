@@ -462,7 +462,10 @@ async function deleteVideo(id){
     toast('已删除', '已从视频库移除。', 'ok');
     await loadAdminVideos();
   }catch(e){
-    toast('删除失败', String(e?.message || e || ''), 'err');
+    const rawMsg = String(e?.message || e?.code || e || '');
+    console.error('[deleteVideo] raw error:', e);
+    // Show real error to admin (bypass toast sanitization)
+    alert('删除失败（管理员可见原始错误）:\n\n' + rawMsg);
   }
 }
 
