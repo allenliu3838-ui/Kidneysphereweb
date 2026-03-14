@@ -146,12 +146,10 @@
           });
         }else{
           // Fallback if Aliplayer SDK didn't load
-          wrap.innerHTML = \`
-            <video controls playsinline style="width:100%;max-width:980px;border-radius:16px;background:#000;border:1px solid rgba(255,255,255,.12)">
-              <source src="\${esc(aliSource)}" type="video/mp4" />
-              你的浏览器不支持播放。
-            </video>
-          \`;
+          var fallbackHtml = '<video controls playsinline style="width:100%;max-width:980px;border-radius:16px;background:#000;border:1px solid rgba(255,255,255,.12)">';
+          fallbackHtml += '<source src="' + esc(aliSource) + '" type="video/mp4" />';
+          fallbackHtml += '你的浏览器不支持播放。</video>';
+          wrap.innerHTML = fallbackHtml;
         }
       }else if(kind === 'mp4'){
         wrap.innerHTML = `
