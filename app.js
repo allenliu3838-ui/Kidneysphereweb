@@ -581,6 +581,7 @@ async function renderAuthArea(){
             <a role="menuitem" href="moments.html" data-badge="moments">进入动态 <span class="badge-dot" aria-hidden="true"></span></a>
             <a role="menuitem" href="community.html" data-badge="cases">进入社区 <span class="badge-dot" aria-hidden="true"></span></a>
             <a role="menuitem" href="learning.html#hot-articles" data-badge="articles">文献库 <span class="badge-dot" aria-hidden="true"></span></a>
+            <a role="menuitem" href="videos.html" data-badge="videos">视频库 <span class="badge-dot" aria-hidden="true"></span></a>
             <a role="menuitem" href="moments.html#composer">发布动态</a>
 
             ${isAdminUi ? `
@@ -769,6 +770,15 @@ const UNREAD_CFG = {
     orderBy: 'created_at',
     filters: (q)=>q,
     pages: ['community','board','case','post-case']
+  },
+  videos: {
+    badgeSelector: '[data-badge="videos"]',
+    seenKey: 'ks_seen_videos',
+    table: 'learning_videos',
+    tsCols: ['created_at'],
+    orderBy: 'created_at',
+    filters: (q)=> { try{ q = q.eq('enabled', true).is('deleted_at', null); }catch(_e){ q = q.eq('enabled', true); } return q; },
+    pages: ['videos','watch']
   }
 };
 
@@ -1025,7 +1035,7 @@ async function updateUnreadBadges(){
     const targets = cache.targets || {};
     for(const [k,v] of Object.entries(state)) applyUnreadUI(k, v);
     applyAnyUnreadUI(Object.values(state).some(Boolean));
-    applyNotificationsUnreadUI(state.moments || state.cases || state.articles);
+    applyNotificationsUnreadUI(state.moments || state.cases || state.articles || state.videos);
     applyCasesTargetHref(targets.cases || null);
     return;
   }
@@ -1036,7 +1046,7 @@ async function updateUnreadBadges(){
     const targets = res?.targets || {};
     for(const [k,v] of Object.entries(state)) applyUnreadUI(k, v);
     applyAnyUnreadUI(Object.values(state).some(Boolean));
-    applyNotificationsUnreadUI(state.moments || state.cases || state.articles);
+    applyNotificationsUnreadUI(state.moments || state.cases || state.articles || state.videos);
     applyCasesTargetHref(targets.cases || null);
     return;
   }
@@ -1082,7 +1092,7 @@ async function updateUnreadBadges(){
 
   for(const [k,v] of Object.entries(state)) applyUnreadUI(k, v);
   applyAnyUnreadUI(Object.values(state).some(Boolean));
-  applyNotificationsUnreadUI(state.moments || state.cases || state.articles);
+  applyNotificationsUnreadUI(state.moments || state.cases || state.articles || state.videos);
   applyCasesTargetHref(targets.cases || null);
 }
 

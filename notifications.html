@@ -19,7 +19,7 @@
             <div>
               <span class="badge">通知 · Notifications</span>
               <h2 style="margin-top:10px">通知中心</h2>
-              <p class="small muted" style="margin-top:6px">用于提示 <b>新病例</b>、病例讨论的 <b>新回复</b> 与 <b>新社区动态</b>。默认以本设备的“最近阅读时间”为基准（红点逻辑一致）。</p>
+              <p class=”small muted” style=”margin-top:6px”>用于提示 <b>新病例</b>、病例讨论的 <b>新回复</b>、<b>新社区动态</b> 与 <b>新视频</b>。默认以本设备的”最近阅读时间”为基准（红点逻辑一致）。</p>
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap">
               <button class="btn" type="button" id="refreshBtn">刷新</button>
@@ -59,6 +59,21 @@
               <div class="hr" style="margin:12px 0"></div>
               <div id="momentsList"><div class="muted small">加载中…</div></div>
             </div>
+          </div>
+
+          <div class="card soft" style="padding:16px;margin-top:16px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
+              <div>
+                <h3 style="margin:0">新视频</h3>
+                <div class="small muted" style="margin-top:6px">仅展示你上次查看后新增的学习视频。</div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <span class="badge" id="videosCount">0</span>
+                <button class="btn tiny" type="button" id="markVideosBtn">标记已读</button>
+              </div>
+            </div>
+            <div class="hr" style="margin:12px 0"></div>
+            <div id="videosList"><div class="muted small">加载中…</div></div>
           </div>
 
           <div class="hr"></div>
