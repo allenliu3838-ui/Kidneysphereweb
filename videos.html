@@ -102,7 +102,11 @@
   }
 
   function videoCard(v){
-    const kind = v.kind || (v.bvid ? 'bilibili' : 'external');
+    let kind = v.kind || (v.bvid ? 'bilibili' : 'external');
+    // Auto-detect aliyun URLs regardless of stored kind
+    if(kind !== 'aliyun' && /aliyuncs\.com|alicdn\.com|aliyun\.com/i.test(v.source_url || v.mp4_url || '')){
+      kind = 'aliyun';
+    }
     const badge = v.needs_check ? `<span class="badge" style="border-color:rgba(255,160,160,.5);background:rgba(255,160,160,.08)">待核对</span>` : '';
     const speaker = (v.speaker || '').trim();
     const metaLine = speaker ? `主讲：${esc(speaker)}` : `分类：${esc(v.category || '')}`;
