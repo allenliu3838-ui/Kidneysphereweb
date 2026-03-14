@@ -106,7 +106,7 @@
     const badge = v.needs_check ? `<span class="badge" style="border-color:rgba(255,160,160,.5);background:rgba(255,160,160,.08)">待核对</span>` : '';
     const speaker = (v.speaker || '').trim();
     const metaLine = speaker ? `主讲：${esc(speaker)}` : `分类：${esc(v.category || '')}`;
-    const openText = kind === 'mp4' ? '打开视频' : (kind === 'external' ? '打开链接' : '打开B站');
+    const openText = kind === 'aliyun' ? '阿里云播放' : (kind === 'mp4' ? '打开视频' : (kind === 'external' ? '打开链接' : '打开B站'));
     const openUrl = v.mp4_url || v.source_url || '';
     const canOpen = !!openUrl;
     return `
@@ -170,7 +170,7 @@
     try{
       const { data, error } = await supabase
         .from('learning_videos')
-        .select('id,title,category,kind,source_url,mp4_url,bvid,speaker,created_at,enabled,deleted_at')
+        .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,speaker,created_at,enabled,deleted_at')
         .eq('enabled', true)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
@@ -185,6 +185,7 @@
         category: v.category || 'other',
         kind: v.kind || (v.bvid ? 'bilibili' : 'external'),
         bvid: v.bvid || null,
+        aliyun_vid: v.aliyun_vid || null,
         source_url: v.source_url || v.mp4_url || '',
         mp4_url: v.mp4_url || null,
       }));

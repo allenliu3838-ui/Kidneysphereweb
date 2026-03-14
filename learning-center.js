@@ -30,6 +30,8 @@ const els = {
   videoCategory: document.getElementById('videoCategory'),
   videoUrl: document.getElementById('videoUrl'),
   videoMp4: document.getElementById('videoMp4'),
+  videoAliyunUrl: document.getElementById('videoAliyunUrl'),
+  videoAliyunVid: document.getElementById('videoAliyunVid'),
   // Backward/forward compatible ids (some versions used videoSave/videoAdminHint)
   videoSave: document.getElementById('videoSave') || document.getElementById('videoSubmit'),
   videoAdminHint: document.getElementById('videoAdminHint') || document.getElementById('videoHint'),
@@ -232,8 +234,8 @@ function renderVideoAdminList(rows){
   els.videoAdminList.innerHTML = list.map(v=>{
     const cat = catMap.get(String(v.category || ''));
     const tag = cat ? (String(cat.zh || '').trim() ? `${String(cat.zh).trim()}${cat.en ? ' / ' + String(cat.en).trim() : ''}` : (cat.en || cat.key)) : (v.category || '未分类');
-    const kindLabel = v.kind === 'mp4' ? 'MP4' : (v.kind === 'bilibili' ? 'B站' : '链接');
-    const openUrl = v.kind === 'mp4' ? (v.mp4_url || v.source_url || '') : (v.source_url || '');
+    const kindLabel = v.kind === 'mp4' ? 'MP4' : (v.kind === 'bilibili' ? 'B站' : (v.kind === 'aliyun' ? '阿里云' : '链接'));
+    const openUrl = (v.kind === 'mp4' || v.kind === 'aliyun') ? (v.mp4_url || v.source_url || '') : (v.source_url || '');
     return `
       <div class="card" style="padding:12px">
         <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
@@ -265,7 +267,7 @@ async function loadAdminVideos(){
   try{
     const { data, error } = await supabase
       .from('learning_videos')
-      .select('id,title,category,kind,source_url,mp4_url,bvid,created_at,enabled,deleted_at')
+      .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,created_at,enabled,deleted_at')
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .limit(12);
@@ -293,10 +295,12 @@ async function saveVideo(currentUser){
   const category = String(els.videoCategory.value || '').trim();
   const url = String(els.videoUrl?.value || '').trim();
   const file = els.videoMp4?.files?.[0] || null;
+  const aliyunUrl = String(els.videoAliyunUrl?.value || '').trim();
+  const aliyunVid = String(els.videoAliyunVid?.value || '').trim();
 
   if(!title){ toast('请输入名称', '请填写视频名称。', 'err'); return; }
   if(!category){ toast('请选择分类', '请先选择一个视频分类。', 'err'); return; }
-  if(!url && !file){ toast('缺少内容', '请填写链接或选择 MP4 文件。', 'err'); return; }
+  if(!url && !file && !aliyunUrl){ toast('缺少内容', '请填写链接、选择 MP4 文件或填写阿里云视频地址。', 'err'); return; }
 
   await ensureSupabase();
   if(!supabase){ toast('初始化失败', 'Supabase 未就绪。', 'err'); return; }
@@ -309,8 +313,14 @@ async function saveVideo(currentUser){
     let source_url = url || null;
     let bvid = null;
     let mp4_url = null;
+    let aliyun_vid = null;
 
-    if(file){
+    if(aliyunUrl){
+      kind = 'aliyun';
+      source_url = aliyunUrl;
+      mp4_url = aliyunUrl;
+      aliyun_vid = aliyunVid || null;
+    }else if(file){
       if((file.size || 0) > MAX_MP4_BYTES){
         const mb = Math.round((file.size || 0) / 1024 / 1024);
         toast('文件过大', `当前 ${mb}MB，超过上限 50MB。`, 'err');
@@ -346,6 +356,7 @@ async function saveVideo(currentUser){
         source_url,
         mp4_url,
         bvid,
+        aliyun_vid,
         enabled: true,
         deleted_at: null,
         created_by: currentUser.id,
@@ -356,6 +367,8 @@ async function saveVideo(currentUser){
     if(els.videoTitle) els.videoTitle.value = '';
     if(els.videoUrl) els.videoUrl.value = '';
     if(els.videoMp4) els.videoMp4.value = '';
+    if(els.videoAliyunUrl) els.videoAliyunUrl.value = '';
+    if(els.videoAliyunVid) els.videoAliyunVid.value = '';
 
     await loadAdminVideos();
   }catch(e){
