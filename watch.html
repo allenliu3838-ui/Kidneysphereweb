@@ -118,15 +118,29 @@
       metaEl.textContent = '可能链接已更新或目录尚未同步。';
       wrap.innerHTML = `<div class="note">找不到视频：<code>${esc(id)}</code></div>`;
     }else{
-      const kind = v.kind || (v.bvid ? 'bilibili' : (v.mp4_url ? 'mp4' : 'external'));
+      // Auto-detect aliyun URLs regardless of stored kind
+      function isAliyunUrl(url){
+        if(!url) return false;
+        return /aliyuncs\.com|alicdn\.com|aliyun\.com/i.test(url);
+      }
+      let kind = v.kind || (v.bvid ? 'bilibili' : (v.mp4_url ? 'mp4' : 'external'));
+      if(kind !== 'aliyun' && (isAliyunUrl(v.source_url) || isAliyunUrl(v.mp4_url))){
+        kind = 'aliyun';
+      }
       const cat = getCategoryMeta(v.category);
       titleEl.textContent = v.title || '（无标题）';
       const sp = String(v.speaker || '').trim();
       metaEl.textContent = `频道：${cat ? (cat.zh + ' / ' + cat.en) : (v.category || '')}${sp ? (' · 主讲：' + sp) : ''}`;
 
-      // Open button
+      // Open button — only set href if it looks like a real URL
       const openUrl = v.mp4_url || v.source_url || '';
-      openBili.href = openUrl || 'https://www.bilibili.com';
+      const isValidUrl = /^https?:\/\//i.test(openUrl);
+      if(isValidUrl){
+        openBili.href = openUrl;
+      }else{
+        openBili.href = 'javascript:void(0)';
+        openBili.title = '无可用链接';
+      }
       openBili.textContent = (kind === 'aliyun') ? '打开视频源' : (kind === 'mp4') ? '打开视频文件' : (kind === 'external' ? '打开来源链接' : '打开B站');
 
       if(kind === 'aliyun'){

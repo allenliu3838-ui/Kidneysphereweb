@@ -327,6 +327,7 @@ async function saveVideo(currentUser){
     let aliyun_vid = null;
 
     if(aliyunUrl){
+      // Try 'aliyun' kind first; fallback to 'mp4' if migration not run
       kind = 'aliyun';
       source_url = aliyunUrl;
       mp4_url = aliyunUrl;
@@ -358,20 +359,18 @@ async function saveVideo(currentUser){
       }
     }
 
-    const { error } = await supabase
-      .from('learning_videos')
-      .insert({
-        title,
-        category,
-        kind,
-        source_url,
-        mp4_url,
-        bvid,
-        aliyun_vid,
-        enabled: true,
-        deleted_at: null,
-        created_by: currentUser.id,
-      });
+    const row = { title, category, kind, source_url, mp4_url, bvid, enabled: true, deleted_at: null, created_by: currentUser.id };
+    if(aliyun_vid) row.aliyun_vid = aliyun_vid;
+
+    let { error } = await supabase.from('learning_videos').insert(row);
+
+    // Fallback: if 'aliyun' kind or aliyun_vid column not supported yet, retry as 'mp4'
+    if(error && kind === 'aliyun'){
+      delete row.aliyun_vid;
+      row.kind = 'mp4';
+      const r2 = await supabase.from('learning_videos').insert(row);
+      error = r2.error;
+    }
     if(error) throw error;
 
     toast('已保存', '视频已添加到视频库。', 'ok');
