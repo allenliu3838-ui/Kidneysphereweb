@@ -108,6 +108,11 @@ security definer
 set search_path = public
 as $$
 begin
+  -- Only admins may publish content
+  if not public.is_admin() then
+    raise exception 'permission_denied: only admins can publish content';
+  end if;
+
   update public.content_versions
   set status = 'published',
       approved_by = coalesce(p_actor, approved_by)
@@ -143,6 +148,83 @@ begin
   where id = p_content_id;
 end;
 $$;
+
+-- ────────────────────────────────────────────────────────────
+-- RLS policies for content_items, content_versions, memberships
+-- ────────────────────────────────────────────────────────────
+alter table public.content_items enable row level security;
+
+create policy content_items_select_published
+  on public.content_items for select
+  using (status = 'published');
+
+create policy content_items_select_admin
+  on public.content_items for select to authenticated
+  using (public.is_admin());
+
+create policy content_items_insert_admin
+  on public.content_items for insert to authenticated
+  with check (public.is_admin());
+
+create policy content_items_update_admin
+  on public.content_items for update to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
+
+create policy content_items_delete_admin
+  on public.content_items for delete to authenticated
+  using (public.is_admin());
+
+alter table public.content_versions enable row level security;
+
+create policy content_versions_select_published
+  on public.content_versions for select
+  using (
+    exists (
+      select 1 from public.content_items ci
+      where ci.id = content_id and ci.status = 'published'
+    )
+  );
+
+create policy content_versions_select_admin
+  on public.content_versions for select to authenticated
+  using (public.is_admin());
+
+create policy content_versions_insert_admin
+  on public.content_versions for insert to authenticated
+  with check (public.is_admin());
+
+create policy content_versions_update_admin
+  on public.content_versions for update to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
+
+create policy content_versions_delete_admin
+  on public.content_versions for delete to authenticated
+  using (public.is_admin());
+
+alter table public.memberships enable row level security;
+
+create policy memberships_select_own
+  on public.memberships for select to authenticated
+  using (user_id = auth.uid());
+
+create policy memberships_select_admin
+  on public.memberships for select to authenticated
+  using (public.is_admin());
+
+create policy memberships_insert_admin
+  on public.memberships for insert to authenticated
+  with check (public.is_admin());
+
+create policy memberships_update_admin
+  on public.memberships for update to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
+
+create policy memberships_delete_admin
+  on public.memberships for delete to authenticated
+  using (public.is_admin());
 
 -- bootstrap content hub from legacy published articles (idempotent)
 insert into public.content_items (legacy_article_id, type, title_zh, summary_zh, tags, status, paywall, author_name, published_at)

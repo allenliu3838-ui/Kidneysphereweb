@@ -7,6 +7,9 @@
   <meta name="description" content="肾域 — 面向肾脏专科的学术社区、临床科研与医生工具平台">
   <link rel="icon" href="assets/logo.png" />
   <link rel="stylesheet" href="styles.css?v=20260213_001" />
+  <!-- Aliplayer SDK for Alibaba Cloud VOD -->
+  <link rel="stylesheet" href="https://g.alicdn.com/apsara-media-box/imp-web-player/2.35.4/skins/default/aliplayer-min.css" />
+  <script type="text/javascript" src="https://g.alicdn.com/apsara-media-box/imp-web-player/2.35.4/aliplayer-min.js"></script>
 </head>
 <body>
   <header class="nav"></header>
@@ -28,10 +31,10 @@
 
       <div class="note small" style="margin-top:12px">
         如果播放器无法显示/卡住：
-        <ul class="list" style="margin:8px 0 0">
-          <li>请先确认已登录（本页为“注册后观看”）。</li>
+        <ul class=”list” style=”margin:8px 0 0”>
+          <li>请先确认已登录（本页为”注册后观看”）。</li>
           <li>尝试刷新页面；或使用无痕窗口；或清理站点缓存后重试。</li>
-          <li>仍不行可点击下方“打开B站”在 B站里直接观看。</li>
+          <li>仍不行可点击下方按钮在原始平台（B站/阿里云等）直接观看。</li>
         </ul>
       </div>
 
@@ -78,7 +81,7 @@
         if(supabase){
           const { data, error } = await supabase
             .from('learning_videos')
-            .select('id,title,category,kind,source_url,mp4_url,bvid,speaker,created_at,enabled,deleted_at')
+            .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,speaker,created_at,enabled,deleted_at')
             .eq('id', id)
             .maybeSingle();
           if(!error && data && !data.deleted_at && data.enabled !== false){
@@ -88,6 +91,7 @@
               category: data.category || 'other',
               kind: data.kind || (data.bvid ? 'bilibili' : (data.mp4_url ? 'mp4' : 'external')),
               bvid: data.bvid || null,
+              aliyun_vid: data.aliyun_vid || null,
               speaker: data.speaker || '',
               source_url: data.source_url || data.mp4_url || '',
               mp4_url: data.mp4_url || null,
@@ -113,9 +117,43 @@
       // Open button
       const openUrl = v.mp4_url || v.source_url || '';
       openBili.href = openUrl || 'https://www.bilibili.com';
-      openBili.textContent = (kind === 'mp4') ? '打开视频文件' : (kind === 'external' ? '打开来源链接' : '打开B站');
+      openBili.textContent = (kind === 'aliyun') ? '打开视频源' : (kind === 'mp4') ? '打开视频文件' : (kind === 'external' ? '打开来源链接' : '打开B站');
 
-      if(kind === 'mp4'){
+      if(kind === 'aliyun'){
+        // Alibaba Cloud VOD — use Aliplayer SDK with source URL
+        const aliSource = v.mp4_url || v.source_url || openUrl;
+        wrap.innerHTML = `<div id="aliyun-player" style="width:100%;max-width:980px;border-radius:16px;overflow:hidden;background:#000;border:1px solid rgba(255,255,255,.12)"></div>`;
+        if(typeof Aliplayer !== 'undefined'){
+          new Aliplayer({
+            id: 'aliyun-player',
+            source: aliSource,
+            width: '100%',
+            height: '560px',
+            autoplay: false,
+            isLive: false,
+            controlBarVisibility: 'hover',
+            skinLayout: [
+              { name: 'bigPlayButton', align: 'cc' },
+              { name: 'H5Loading', align: 'cc' },
+              { name: 'controlBar', align: 'blabs', x: 0, y: 0, children: [
+                { name: 'progress', align: 'blabs', x: 0, y: 44 },
+                { name: 'playButton', align: 'tl', x: 15, y: 12 },
+                { name: 'timeDisplay', align: 'tl', x: 10, y: 7 },
+                { name: 'fullScreenButton', align: 'tr', x: 10, y: 12 },
+                { name: 'volume', align: 'tr', x: 5, y: 10 },
+              ]}
+            ]
+          });
+        }else{
+          // Fallback if Aliplayer SDK didn't load
+          wrap.innerHTML = \`
+            <video controls playsinline style="width:100%;max-width:980px;border-radius:16px;background:#000;border:1px solid rgba(255,255,255,.12)">
+              <source src="\${esc(aliSource)}" type="video/mp4" />
+              你的浏览器不支持播放。
+            </video>
+          \`;
+        }
+      }else if(kind === 'mp4'){
         wrap.innerHTML = `
           <video controls playsinline style="width:100%;max-width:980px;border-radius:16px;background:#000;border:1px solid rgba(255,255,255,.12)">
             <source src="${esc(openUrl)}" type="video/mp4" />
