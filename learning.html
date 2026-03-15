@@ -156,8 +156,12 @@
           <div class="section-title" style="margin:0">
             <div>
               <h3 style="margin:0">最近添加的视频</h3>
-              <p class="small muted">可在此删除（软删除）。</p>
+              <p class="small muted">可在此删除（软删除）或恢复。</p>
             </div>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px">
+              <input type="checkbox" id="showDeletedVideos" />
+              显示已删除
+            </label>
           </div>
           <div id="videoAdminList" style="margin-top:10px">
             <div class="muted small skeleton-text">&nbsp;</div>
