@@ -66,6 +66,41 @@
     return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   }
 
+  /**
+   * Check if an Aliyun OSS pre-signed URL has expired.
+   * Pre-signed URLs contain an `Expires` query parameter (Unix epoch seconds).
+   * Returns { expired: true, expiresAt: Date } or { expired: false }.
+   */
+  function checkAliyunUrlExpiry(url){
+    if(!url) return { expired: false };
+    try{
+      const u = new URL(url);
+      const exp = u.searchParams.get('Expires');
+      if(!exp) return { expired: false }; // No expiry = permanent or CDN URL
+      const expiresAt = new Date(Number(exp) * 1000);
+      if(isNaN(expiresAt.getTime())) return { expired: false };
+      return { expired: expiresAt.getTime() < Date.now(), expiresAt };
+    }catch{ return { expired: false }; }
+  }
+
+  function renderExpiredMessage(expiresAt){
+    const ts = expiresAt ? expiresAt.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) : '未知';
+    return `
+      <div class="note" style="border-color:rgba(255,120,120,.4);background:rgba(255,120,120,.06)">
+        <h3 style="margin:0 0 8px">视频链接已过期</h3>
+        <p>该视频使用的阿里云临时播放地址已于 <b>${esc(ts)}</b> 过期。</p>
+        <p class="small muted" style="margin-top:8px">
+          <b>管理员请注意：</b>阿里云 OSS 签名 URL 会在指定时间后过期。建议：<br/>
+          ① 在阿里云控制台重新获取播放地址，并在管理后台更新该视频的链接；<br/>
+          ② 如需长期有效链接，建议使用 CDN 加速域名 或 开启 Bucket 公共读取。
+        </p>
+        <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+          <a class="btn" href="videos.html">返回视频目录</a>
+        </div>
+      </div>
+    `;
+  }
+
   if(!id){
     titleEl.textContent = '视频参数缺失';
     metaEl.textContent = '请从视频目录进入。';
@@ -143,13 +178,25 @@
       }
       openBili.textContent = (kind === 'aliyun') ? '打开视频源' : (kind === 'mp4') ? '打开视频文件' : (kind === 'external' ? '打开来源链接' : '打开B站');
 
-      if(kind === 'aliyun'){
+      // Check for expired Aliyun pre-signed URLs before attempting playback
+      const playUrl = v.mp4_url || v.source_url || openUrl;
+      const expiry = checkAliyunUrlExpiry(playUrl);
+      if(expiry.expired){
+        wrap.innerHTML = renderExpiredMessage(expiry.expiresAt);
+        // hide the open button too since the URL is expired
+        openBili.style.display = 'none';
+      }else if(kind === 'aliyun'){
         // Alibaba Cloud VOD — use Aliplayer SDK with source URL
         const aliSource = v.mp4_url || v.source_url || openUrl;
         wrap.innerHTML = '<div id="aliyun-player" style="width:100%;max-width:980px;border-radius:16px;overflow:hidden;background:#000;border:1px solid rgba(255,255,255,.12)"></div>';
 
+        function showPlayerError(){
+          var el = document.getElementById('aliyun-player');
+          if(el) el.innerHTML = renderExpiredMessage(checkAliyunUrlExpiry(aliSource).expiresAt || new Date());
+        }
+
         function initAliplayer(){
-          new Aliplayer({
+          var player = new Aliplayer({
             id: 'aliyun-player',
             source: aliSource,
             width: '100%',
@@ -169,11 +216,17 @@
               ]}
             ]
           });
+          if(player && typeof player.on === 'function'){
+            player.on('error', function(){ showPlayerError(); });
+          }
         }
 
         function fallbackPlayer(){
           var el = document.getElementById('aliyun-player');
-          if(el) el.innerHTML = '<video controls playsinline style="width:100%;height:560px;background:#000"><source src="' + esc(aliSource) + '" type="video/mp4" />你的浏览器不支持播放。</video>';
+          if(!el) return;
+          el.innerHTML = '<video controls playsinline style="width:100%;height:560px;background:#000"><source src="' + esc(aliSource) + '" type="video/mp4" />你的浏览器不支持播放。</video>';
+          var vid = el.querySelector('video');
+          if(vid) vid.addEventListener('error', function(){ showPlayerError(); });
         }
 
         if(typeof Aliplayer !== 'undefined'){
@@ -199,6 +252,14 @@
             你的浏览器不支持 MP4 播放。
           </video>
         `;
+        {
+          const vid = wrap.querySelector('video');
+          if(vid) vid.addEventListener('error', function(){
+            const ex = checkAliyunUrlExpiry(openUrl);
+            if(ex.expired) wrap.innerHTML = renderExpiredMessage(ex.expiresAt);
+            else wrap.innerHTML = '<div class="note" style="border-color:rgba(255,120,120,.4)">视频加载失败，请刷新页面重试或联系管理员。</div>';
+          });
+        }
       }else if(kind === 'external'){
         wrap.innerHTML = `
           <div class="note">
