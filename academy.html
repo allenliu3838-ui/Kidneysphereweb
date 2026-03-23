@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>培训与定价 · 肾域学院</title>
+  <meta name="description" content="肾域学院 — 重症肾内科 · 肾移植内科培训项目，含直播互动、专属学习群与视频回放。查看课程详情、定价与报名方式。">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260323_001" />
+  <style>
+    /* ── Hero ── */
+    .ac-hero{background:linear-gradient(160deg,rgba(30,58,138,.35) 0%,rgba(15,23,42,0) 60%);border-bottom:1px solid rgba(255,255,255,.07)}
+    .ac-hero h1{font-size:clamp(24px,4vw,40px);line-height:1.25;margin:12px 0 10px}
+    .ac-hero .sub{font-size:15px;opacity:.75;max-width:600px;line-height:1.65}
+    .ac-hero-cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+
+    /* ── 三类产品总览 ── */
+    .tier-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:20px}
+    .tier-card{border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:20px;background:rgba(255,255,255,.03);display:flex;flex-direction:column;gap:8px}
+    .tier-card.highlight{border-color:rgba(63,131,248,.5);background:rgba(63,131,248,.07)}
+    .tier-icon{font-size:28px}
+    .tier-title{font-size:17px;font-weight:700}
+    .tier-for{font-size:12px;opacity:.6}
+    .tier-features{list-style:none;padding:0;margin:6px 0;font-size:13px;line-height:1.8;opacity:.85}
+    .tier-features li::before{content:"✓ "}
+    .tier-cta{margin-top:auto;display:flex;gap:8px;flex-wrap:wrap}
+
+    /* ── 专科 Tab ── */
+    .spec-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 20px}
+    .spec-tabs .btn.active{background:var(--accent,#3f83f8);color:#fff;border-color:var(--accent,#3f83f8)}
+    .spec-panel{display:none}.spec-panel.active{display:block}
+
+    /* ── 项目卡片 ── */
+    .proj-card{border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:20px;background:rgba(255,255,255,.03);margin-bottom:16px}
+    .proj-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .proj-title{font-size:18px;font-weight:700}
+    .proj-status{font-size:11px;font-weight:600;padding:3px 10px;border-radius:8px;border:1px solid}
+    .proj-status.enrollment{border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.1);color:#4ade80}
+    .proj-status.live{border-color:rgba(99,202,255,.5);background:rgba(99,202,255,.1);color:#67e8f9}
+    .proj-status.planning{border-color:rgba(234,179,8,.5);background:rgba(234,179,8,.1);color:#fbbf24}
+    .proj-status.concluded{border-color:rgba(156,163,175,.4);background:rgba(156,163,175,.07);color:#9ca3af}
+    .proj-meta{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:13px;opacity:.75}
+    .proj-meta span::before{margin-right:4px}
+    .proj-pricing{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;margin:12px 0}
+    .price-option{flex:1;min-width:140px;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,.03)}
+    .price-option.recommended{border-color:rgba(63,131,248,.5);background:rgba(63,131,248,.07)}
+    .price-option .rec-tag{font-size:10px;font-weight:700;color:#3f83f8;letter-spacing:.5px;margin-bottom:4px}
+    .price-option .p-label{font-size:12px;opacity:.65;margin-bottom:6px}
+    .price-option .p-price{font-size:20px;font-weight:700}
+    .price-option .p-orig{font-size:13px;opacity:.5;text-decoration:line-through;margin-left:4px}
+    .price-option .p-includes{font-size:12px;opacity:.7;margin-top:6px;line-height:1.6}
+    .price-option .p-btn{margin-top:10px}
+
+    /* ── Bundle 横幅 ── */
+    .bundle-banner{border:1px solid rgba(251,191,36,.35);background:rgba(251,191,36,.05);border-radius:14px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:8px}
+    .bundle-banner .bb-text{font-size:14px;line-height:1.6}
+    .bundle-banner .bb-price{font-size:22px;font-weight:700;white-space:nowrap}
+    .bundle-banner .bb-orig{font-size:13px;opacity:.5;text-decoration:line-through;margin-left:4px}
+
+    /* ── 购买后流程 ── */
+    .flow-steps{display:flex;gap:0;flex-wrap:wrap;margin-top:20px;counter-reset:step}
+    .flow-step{flex:1;min-width:140px;display:flex;flex-direction:column;align-items:center;text-align:center;padding:14px 10px;position:relative}
+    .flow-step::after{content:"→";position:absolute;right:-8px;top:20px;opacity:.4;font-size:18px}
+    .flow-step:last-child::after{display:none}
+    .flow-num{width:32px;height:32px;border-radius:999px;background:rgba(63,131,248,.2);border:1px solid rgba(63,131,248,.4);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#93c5fd;margin-bottom:8px;counter-increment:step}
+    .flow-label{font-size:13px;font-weight:600;margin-bottom:4px}
+    .flow-desc{font-size:11px;opacity:.6;line-height:1.5}
+    @media(max-width:640px){.flow-step::after{display:none}.flow-steps{flex-direction:column;align-items:flex-start;gap:10px}.flow-step{flex-direction:row;text-align:left;gap:12px;padding:8px 0}.flow-num{min-width:32px}}
+
+    /* ── FAQ ── */
+    .faq-item{border-bottom:1px solid rgba(255,255,255,.08);padding:14px 0}
+    .faq-q{font-weight:600;font-size:14px;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
+    .faq-q .chev{opacity:.5;transition:transform .2s}
+    .faq-item.open .faq-q .chev{transform:rotate(180deg)}
+    .faq-a{font-size:13px;line-height:1.7;opacity:.8;margin-top:8px;display:none}
+    .faq-item.open .faq-a{display:block}
+
+    /* ── 状态 badge（登录后显示） ── */
+    .my-status-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:12px 16px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:12px;margin-bottom:20px;font-size:13px}
+    .my-status-bar[hidden]{display:none}
+    #acStatusBar[hidden]{display:none}
+  </style>
+</head>
+<body>
+  <header class="nav"></header>
+
+  <main>
+
+<!-- ① Hero -->
+<section class="hero ac-hero">
+  <div class="container">
+    <div style="max-width:740px;padding:10px 0 20px">
+      <span class="badge badge-recommend">肾域学院 · 2026</span>
+      <h1>培训项目 · 视频课程<br/>一站式肾脏专科进阶平台</h1>
+      <p class="ac-hero sub">
+        从免费视频入门，到系统化培训进阶——<br/>
+        课程、直播、专属学习群、视频回放，整合到同一平台。
+      </p>
+      <div class="ac-hero-cta">
+        <a class="btn primary btn-lg" href="#training-projects">查看培训项目</a>
+        <a class="btn btn-lg" href="#pricing">查看价格与报名</a>
+        <a class="btn" href="register.html">免费注册体验</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ② 用户当前状态（登录后展示） -->
+<div class="container" style="margin-top:16px">
+  <div id="acStatusBar" hidden class="my-status-bar">
+    <span id="acStatusText">加载中…</span>
+    <a class="btn tiny" href="my-learning.html">进入我的学习</a>
+  </div>
+</div>
+
+<!-- ③ 三类产品总览 -->
+<section class="section">
+  <div class="container">
+    <h2 style="margin-bottom:6px">选择适合你的方式</h2>
+    <p class="small muted">三种路径，覆盖不同阶段的学习需求</p>
+    <div class="tier-grid">
+
+      <div class="tier-card">
+        <div class="tier-icon">🎬</div>
+        <div class="tier-title">免费注册</div>
+        <div class="tier-for">先体验，再决定</div>
+        <ul class="tier-features">
+          <li>全部免费视频（注册后观看）</li>
+          <li>病例讨论社区</li>
+          <li>文献库与专家 PPT</li>
+          <li>会议与活动资讯</li>
+        </ul>
+        <div class="tier-cta">
+          <a class="btn" href="register.html">免费注册</a>
+          <a class="btn" href="videos.html">进入视频库</a>
+        </div>
+      </div>
+
+      <div class="tier-card highlight">
+        <div class="tier-icon">📚</div>
+        <div class="tier-title">培训项目</div>
+        <div class="tier-for">系统进阶，按班期学习</div>
+        <ul class="tier-features">
+          <li>系统化专科课程模块</li>
+          <li>直播互动（现场 Q&A）</li>
+          <li>专属微信学习群</li>
+          <li>全程视频回放</li>
+          <li>班期制，有节奏地学</li>
+        </ul>
+        <div class="tier-cta">
+          <a class="btn primary" href="#training-projects">查看项目详情</a>
+        </div>
+      </div>
+
+      <div class="tier-card">
+        <div class="tier-icon">🎯</div>
+        <div class="tier-title">专科整套课</div>
+        <div class="tier-for">永久解锁，自主学习</div>
+        <ul class="tier-features">
+          <li>一次购买，永久回放</li>
+          <li>该专科所有课程视频</li>
+          <li>适合无法跟班期的医生</li>
+          <li>早鸟价限时优惠</li>
+        </ul>
+        <div class="tier-cta">
+          <a class="btn" href="#pricing">查看套课价格</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ④ 培训项目详情 -->
+<section class="section section-alt" id="training-projects">
+  <div class="container">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px">
+      <div>
+        <h2 style="margin:0">当前培训项目</h2>
+        <p class="small muted" style="margin-top:4px">按专科选择，查看班期与报名方式</p>
+      </div>
+      <a class="btn" href="my-learning.html">我的学习</a>
+    </div>
+
+    <!-- 专科 Tab -->
+    <div class="spec-tabs">
+      <button class="btn active" data-spec-tab="icu" type="button">重症肾内科</button>
+      <button class="btn" data-spec-tab="tx" type="button">肾移植内科</button>
+    </div>
+
+    <!-- 重症肾内科 -->
+    <div class="spec-panel active" id="spec-icu">
+      <div class="proj-card" id="proj-card-icu">
+        <div class="proj-head">
+          <div>
+            <div class="proj-title">重症肾内科培训项目 2026</div>
+            <div style="font-size:13px;opacity:.7;margin-top:4px">电解质/酸碱 · 连续性肾脏替代治疗 · AKI 管理 · 重症病例讨论</div>
+          </div>
+          <span class="proj-status enrollment" id="proj-status-icu">招募中</span>
+        </div>
+
+        <div class="proj-meta">
+          <span>📅 <span id="proj-date-icu">开班时间待定</span></span>
+          <span>🎯 适合：住院医 / 主治医 / ICU 轮转医生</span>
+          <span>📺 直播 + 回放 + 学习群</span>
+        </div>
+
+        <div class="proj-pricing" id="proj-pricing-icu">
+          <div class="price-option recommended">
+            <div class="rec-tag">★ 推荐</div>
+            <div class="p-label">报名版（完整版）</div>
+            <div>
+              <span class="p-price">¥1,280</span>
+              <span class="p-orig">¥1,580</span>
+            </div>
+            <div class="p-includes">含直播互动 + 学习群 + 全程回放</div>
+            <div class="p-btn">
+              <a class="btn primary" data-buy-icu-full href="checkout.html">立即报名</a>
+            </div>
+          </div>
+          <div class="price-option">
+            <div class="p-label">视频版（回放版）</div>
+            <div>
+              <span class="p-price">¥780</span>
+              <span class="p-orig">¥980</span>
+            </div>
+            <div class="p-includes">仅含视频回放，不含直播与学习群</div>
+            <div class="p-btn">
+              <a class="btn" data-buy-icu-video href="checkout.html">购买视频版</a>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size:12px;opacity:.55;margin-top:4px">早鸟价有效期至班期确定前；价格届时更新。登录后购买。</div>
+      </div>
+
+      <!-- ICU Bundle -->
+      <div class="bundle-banner" id="bundle-icu">
+        <div class="bb-text">
+          <b>重症肾内科 · 专科整套课</b><br/>
+          一次购买，永久解锁全部课程视频。适合无法跟班期或希望反复回顾的医生。
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+          <div><span class="bb-price">¥980</span><span class="bb-orig">¥1,200</span></div>
+          <a class="btn" data-buy-icu-bundle href="checkout.html">购买整套课</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 肾移植内科 -->
+    <div class="spec-panel" id="spec-tx">
+      <div class="proj-card" id="proj-card-tx">
+        <div class="proj-head">
+          <div>
+            <div class="proj-title">肾移植内科培训项目 2026</div>
+            <div style="font-size:13px;opacity:.7;margin-top:4px">免疫抑制方案 · 排斥反应处理 · 肾移植术后并发症 · 真实病例讨论</div>
+          </div>
+          <span class="proj-status enrollment" id="proj-status-tx">招募中</span>
+        </div>
+
+        <div class="proj-meta">
+          <span>📅 <span id="proj-date-tx">开班时间待定</span></span>
+          <span>🎯 适合：肾移植科医生 / 泌外科医生 / 肾内科主治</span>
+          <span>📺 直播 + 回放 + 学习群</span>
+        </div>
+
+        <div class="proj-pricing" id="proj-pricing-tx">
+          <div class="price-option recommended">
+            <div class="rec-tag">★ 推荐</div>
+            <div class="p-label">报名版（完整版）</div>
+            <div>
+              <span class="p-price">¥1,280</span>
+              <span class="p-orig">¥1,580</span>
+            </div>
+            <div class="p-includes">含直播互动 + 学习群 + 全程回放</div>
+            <div class="p-btn">
+              <a class="btn primary" data-buy-tx-full href="checkout.html">立即报名</a>
+            </div>
+          </div>
+          <div class="price-option">
+            <div class="p-label">视频版（回放版）</div>
+            <div>
+              <span class="p-price">¥780</span>
+              <span class="p-orig">¥980</span>
+            </div>
+            <div class="p-includes">仅含视频回放，不含直播与学习群</div>
+            <div class="p-btn">
+              <a class="btn" data-buy-tx-video href="checkout.html">购买视频版</a>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size:12px;opacity:.55;margin-top:4px">早鸟价有效期至班期确定前；价格届时更新。登录后购买。</div>
+      </div>
+
+      <!-- TX Bundle -->
+      <div class="bundle-banner" id="bundle-tx">
+        <div class="bb-text">
+          <b>肾移植内科 · 专科整套课</b><br/>
+          一次购买，永久解锁全部课程视频。适合无法跟班期或希望反复回顾的医生。
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+          <div><span class="bb-price">¥980</span><span class="bb-orig">¥1,200</span></div>
+          <a class="btn" data-buy-tx-bundle href="checkout.html">购买整套课</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ⑤ 价格对比（锚点 #pricing） -->
+<section class="section" id="pricing">
+  <div class="container">
+    <h2 style="margin-bottom:6px">价格与权益对比</h2>
+    <p class="small muted" style="margin-bottom:20px">以下价格为早鸟价，开班后恢复正价</p>
+
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <thead>
+          <tr style="border-bottom:1px solid rgba(255,255,255,.15)">
+            <th style="text-align:left;padding:10px 12px;opacity:.6;font-weight:500">权益</th>
+            <th style="text-align:center;padding:10px 12px">免费注册</th>
+            <th style="text-align:center;padding:10px 12px;background:rgba(63,131,248,.08);border-radius:8px">报名版 ¥1,280</th>
+            <th style="text-align:center;padding:10px 12px">视频版 ¥780</th>
+            <th style="text-align:center;padding:10px 12px">整套课 ¥980</th>
+          </tr>
+        </thead>
+        <tbody id="pricingTableBody">
+          <tr style="border-bottom:1px solid rgba(255,255,255,.06)">
+            <td style="padding:10px 12px">免费视频库</td>
+            <td style="text-align:center">✅</td>
+            <td style="text-align:center;background:rgba(63,131,248,.05)">✅</td>
+            <td style="text-align:center">✅</td>
+            <td style="text-align:center">✅</td>
+          </tr>
+          <tr style="border-bottom:1px solid rgba(255,255,255,.06)">
+            <td style="padding:10px 12px">课程视频回放</td>
+            <td style="text-align:center">—</td>
+            <td style="text-align:center;background:rgba(63,131,248,.05)">✅</td>
+            <td style="text-align:center">✅</td>
+            <td style="text-align:center">✅</td>
+          </tr>
+          <tr style="border-bottom:1px solid rgba(255,255,255,.06)">
+            <td style="padding:10px 12px">直播互动（现场 Q&A）</td>
+            <td style="text-align:center">—</td>
+            <td style="text-align:center;background:rgba(63,131,248,.05)">✅</td>
+            <td style="text-align:center">—</td>
+            <td style="text-align:center">—</td>
+          </tr>
+          <tr style="border-bottom:1px solid rgba(255,255,255,.06)">
+            <td style="padding:10px 12px">专属微信学习群</td>
+            <td style="text-align:center">—</td>
+            <td style="text-align:center;background:rgba(63,131,248,.05)">✅</td>
+            <td style="text-align:center">—</td>
+            <td style="text-align:center">—</td>
+          </tr>
+          <tr style="border-bottom:1px solid rgba(255,255,255,.06)">
+            <td style="padding:10px 12px">班期制结构化学习</td>
+            <td style="text-align:center">—</td>
+            <td style="text-align:center;background:rgba(63,131,248,.05)">✅</td>
+            <td style="text-align:center">✅</td>
+            <td style="text-align:center">—</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 12px">有效期</td>
+            <td style="text-align:center">长期</td>
+            <td style="text-align:center;background:rgba(63,131,248,.05)">班期内</td>
+            <td style="text-align:center">班期内</td>
+            <td style="text-align:center">永久</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note small" style="margin-top:12px">价格不含发票；如需发票请在订单备注中说明。审核通过后自动开通权益，一般 24 小时内完成。</div>
+  </div>
+</section>
+
+<!-- ⑥ 购买后流程 -->
+<section class="section section-alt">
+  <div class="container">
+    <h2 style="margin-bottom:4px">买完之后，下一步是什么</h2>
+    <p class="small muted" style="margin-bottom:0">从付款到开始学习，全流程说明</p>
+
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div>
+          <div class="flow-label">选择商品</div>
+          <div class="flow-desc">在本页选择专科和版本，点击「立即报名」</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div>
+          <div class="flow-label">完成支付</div>
+          <div class="flow-desc">微信 / 支付宝 / 对公转账，上传支付截图</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div>
+          <div class="flow-label">等待审核</div>
+          <div class="flow-desc">管理员 24 小时内审核，审核通过后权益自动开通</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div>
+          <div class="flow-label">进入我的学习</div>
+          <div class="flow-desc">在「我的学习」查看班期安排和课程权限</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">5</div>
+        <div>
+          <div class="flow-label">加入学习群</div>
+          <div class="flow-desc">报名版学员在「我的学习→已报名项目」获取入群二维码</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn primary" href="#training-projects">立即查看项目</a>
+      <a class="btn" href="my-learning.html">我的学习</a>
+      <a class="btn" href="mailto:china@kidneysphere.com">有问题联系我们</a>
+    </div>
+  </div>
+</section>
+
+<!-- ⑦ 常见问题 FAQ -->
+<section class="section">
+  <div class="container" style="max-width:760px">
+    <h2 style="margin-bottom:16px">常见问题</h2>
+
+    <div class="faq-item open">
+      <div class="faq-q">报名版和视频版有什么区别？<span class="chev">▾</span></div>
+      <div class="faq-a">报名版（完整版）包含：直播互动课（现场 Q&A）、专属微信学习群、以及全程视频回放。视频版仅包含视频回放，适合时间不固定、无法跟直播的医生。两个版本的视频内容相同。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">整套课和报名版有什么不同？<span class="chev">▾</span></div>
+      <div class="faq-a">整套课是「永久解锁该专科所有课程视频」，没有班期限制，适合自主学习。报名版/视频版是按班期制的结构化学习，含具体的开课时间和学习节奏。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">如何付款？支持哪些方式？<span class="chev">▾</span></div>
+      <div class="faq-a">支持微信支付、支付宝、以及对公银行转账。选择好商品后进入结算页，按提示扫码或转账，并上传支付截图/转账凭证。管理员将在 24 小时内审核。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">支付后多久能看到权益？<span class="chev">▾</span></div>
+      <div class="faq-a">提交支付凭证后，管理员将在 24 小时内（工作日）完成审核。审核通过后，权益将自动开通，你可以在「我的学习」页面查看。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">班期还没有确定，可以先报名吗？<span class="chev">▾</span></div>
+      <div class="faq-a">可以。当前早鸟价有效期至班期正式确定前，建议尽早报名锁定优惠价。班期确定后我们会通过学习群和通知中心告知。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">已购买单个视频，可以抵扣课程费用吗？<span class="chev">▾</span></div>
+      <div class="faq-a">当前暂不支持抵扣。如有疑问请联系 china@kidneysphere.com 说明情况。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">发票怎么开？<span class="chev">▾</span></div>
+      <div class="faq-a">如需发票，请在提交支付凭证时在「备注」栏填写发票抬头、税号和邮箱，或完成支付后发邮件至 china@kidneysphere.com 说明。</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ⑧ 最终 CTA -->
+<section class="section section-alt">
+  <div class="container">
+    <div class="card" style="text-align:center;padding:32px">
+      <h2 style="margin-bottom:8px">准备好开始了吗</h2>
+      <p class="muted" style="margin-bottom:20px">选择专科和版本，现在报名锁定早鸟价</p>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <a class="btn primary btn-lg" href="#training-projects">查看培训项目</a>
+        <a class="btn btn-lg" href="register.html">免费注册体验</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+  </main>
+
+  <footer class="footer"></footer>
+
+  <script type="module" src="app.js?v=20260323_001"></script>
+  <script type="module" src="academy.js?v=20260323_001"></script>
+
+  <script>
+  // FAQ accordion (no module needed)
+  document.querySelectorAll('.faq-q').forEach(q => {
+    q.addEventListener('click', () => {
+      const item = q.closest('.faq-item');
+      const wasOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+      if (!wasOpen) item.classList.add('open');
+    });
+  });
+  // Spec tabs
+  document.querySelectorAll('[data-spec-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const spec = btn.dataset.specTab;
+      document.querySelectorAll('[data-spec-tab]').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.spec-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('spec-' + spec)?.classList.add('active');
+    });
+  });
+  </script>
+</body>
+</html>

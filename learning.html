@@ -16,12 +16,20 @@
 <section class="hero">
   <div class="container">
     <div class="card">
-      <span class="badge">学习中心 · Learning</span>
+      <span class="badge">学习中心</span>
       <h2 style="margin-top:10px">学习中心：培训项目 + 免费视频库</h2>
       <p class="small">
-        培训项目与学习资源汇总，便于系统学习与回顾。<br/>
-        培训项目持续更新中，欢迎关注。
+        免费注册后可观看免费视频库；报名培训项目获得直播、学习群与回放权益。
       </p>
+
+      <!-- 顶部引导 banner -->
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:14px;padding:14px 16px;background:rgba(63,131,248,.1);border:1px solid rgba(63,131,248,.3);border-radius:12px">
+        <div>
+          <div style="font-weight:600;font-size:15px">查看当前培训项目与定价</div>
+          <div class="small muted" style="margin-top:3px">重症肾内科 · 肾移植内科 · 专科整套课</div>
+        </div>
+        <a class="btn primary" href="academy.html">查看培训与定价 →</a>
+      </div>
 
       <div class="hr"></div>
 
@@ -31,7 +39,7 @@
           <h3>文献库（UpToDate 风格）</h3>
           <p>像公众号一样沉淀：会议纪要 / 综述解读 / 指南要点 / 临床研究进展。首页会动态推荐最新文章。</p>
         </div>
-        <span class="badge">Articles</span>
+        <span class="badge">文献库</span>
       </div>
 
         <div class="grid cols-2" style="margin-top:12px">
@@ -73,7 +81,7 @@
         </div>
         <div style=”display:flex;gap:8px;flex-wrap:wrap;align-items:center”>
           <a class=”btn” href=”my-learning.html”>我的学习</a>
-          <span class=”badge”>Programs</span>
+          <a class=”btn primary” href=”academy.html”>查看价格与报名</a>
         </div>
       </div>
 
@@ -89,7 +97,7 @@
           <h3>免费视频库（注册后观看）</h3>
           <p>注册登录后可在站内直接观看。</p>
         </div>
-        <span class="badge">Free</span>
+        <span class="badge">注册免费</span>
       </div>
 
       <div class="card soft" id="videoAdminPanel" data-admin-only hidden style="margin-top:12px">
@@ -98,7 +106,7 @@
             <h3 style=”margin:0”>新增视频（B站/阿里云/链接/MP4）</h3>
             <div class=”small muted” style=”margin-top:6px”>新增后会自动出现在”免费视频库”对应频道中。支持阿里云视频点播。</div>
           </div>
-          <span class="badge">Admin</span>
+          <span class="badge" data-admin-only hidden>管理员</span>
         </div>
 
         <div class="hr"></div>

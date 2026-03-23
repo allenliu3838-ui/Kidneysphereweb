@@ -210,16 +210,46 @@
 <!-- ⑥ 学习中心 -->
 <section class="section section-alt section-divider" aria-label="学习中心">
   <div class="container">
-    <div class="card soft">
-      <h2 style="margin-bottom:4px">学习中心 · 培训项目</h2>
-      <ul class="mini" id="homeTrainingList">
-        <li class="muted skeleton-text">&nbsp;</li>
-      </ul>
-      <p class="small" style="margin-top:12px">培训项目持续更新；注册登录后可观看课程与免费视频库内容。</p>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
-        <a class="btn primary" href="learning.html">进入学习中心</a>
-        <a class="btn" href="videos.html">进入免费视频库</a>
+    <h2 style="margin-bottom:4px">学习中心 · 培训项目</h2>
+    <p class="small muted" style="margin-bottom:16px">三种路径，覆盖不同阶段的学习需求</p>
+
+    <div class="product-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+
+      <div class="card soft product-card">
+        <div class="product-icon">🎬</div>
+        <h3>免费视频库</h3>
+        <p class="small">注册即可观看全部免费专科视频，涵盖肾小球病、肾移植、重症肾内、透析等频道。</p>
+        <div class="product-card-actions">
+          <a class="btn" href="videos.html">进入视频库</a>
+          <a class="btn" href="register.html">免费注册</a>
+        </div>
       </div>
+
+      <div class="card soft product-card" style="border-color:rgba(63,131,248,.35)">
+        <div class="product-icon">📚</div>
+        <h3>培训项目</h3>
+        <p class="small">重症肾内科 · 肾移植内科，系统化班期制培训，含直播互动、专属学习群与视频回放。</p>
+        <ul class="mini" id="homeTrainingList" style="margin:8px 0">
+          <li class="muted skeleton-text">&nbsp;</li>
+        </ul>
+        <div class="product-card-actions">
+          <a class="btn primary" href="academy.html">查看项目与定价</a>
+        </div>
+      </div>
+
+      <div class="card soft product-card">
+        <div class="product-icon">📖</div>
+        <h3>学习资料</h3>
+        <p class="small">文献库、专家 PPT、综述笔记——沉淀会议纪要、指南要点与临床研究进展。</p>
+        <div class="product-card-actions">
+          <a class="btn" href="learning.html">进入学习中心</a>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="margin-top:14px;text-align:center">
+      <a class="btn" href="academy.html">查看方案与定价 →</a>
     </div>
   </div>
 </section>
@@ -297,6 +327,7 @@
       </div>
       <div class="footer-col">
         <div class="footer-heading">资源</div>
+        <a href="academy.html">培训与定价</a>
         <a href="learning.html">学习中心</a>
         <a href="events.html">会议与活动</a>
         <a href="frontier.html">前沿进展</a>
