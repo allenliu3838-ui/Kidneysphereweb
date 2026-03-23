@@ -16,26 +16,40 @@
 <section class="hero">
   <div class="container">
     <div class="card">
-      <span class="badge">学习中心 · Videos</span>
-      <h2 style="margin-top:10px">视频库</h2>
-      <p class="small">
-        包含免费公开视频（注册后观看）及付费专科课程视频。付费视频购买后永久解锁。
+      <span class=”badge”>视频库</span>
+      <h2 style=”margin-top:10px”>视频库</h2>
+      <p class=”small”>
+        注册后免费观看公开视频；付费专科课程视频购买后永久解锁。
       </p>
 
-      <div id="loginHint" class="note" style="margin-top:12px">
+      <div id=”loginHint” class=”note” style=”margin-top:12px”>
         正在检测登录状态…
       </div>
 
-      <div class="hr"></div>
+      <!-- 升级引导模块（免费注册用户可见，有权益后自动隐藏） -->
+      <div id=”upgradeModule” style=”margin-top:14px;padding:14px 16px;background:rgba(63,131,248,.08);border:1px solid rgba(63,131,248,.25);border-radius:12px;display:none”>
+        <div style=”display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px”>
+          <div>
+            <div style=”font-weight:600;font-size:14px”>想解锁专科课程视频？</div>
+            <div class=”small muted” style=”margin-top:3px”>报名培训项目后可获得班期视频回放；整套课可永久解锁该专科所有视频。</div>
+          </div>
+          <div style=”display:flex;gap:8px;flex-wrap:wrap”>
+            <a class=”btn primary” href=”academy.html#training-projects”>查看培训项目</a>
+            <a class=”btn” href=”academy.html#pricing”>查看价格</a>
+          </div>
+        </div>
+      </div>
 
-      <div class="section-title">
+      <div class=”hr”></div>
+
+      <div class=”section-title”>
         <div>
           <h3>频道筛选</h3>
-          <p>点击频道筛选。进入播放页会强制要求登录（符合“注册后观看”）。</p>
+          <p>点击频道筛选；付费视频标注 🔒，登录后可购买。</p>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <a class="btn" href="learning.html">学习中心</a>
-          <a class="btn" href="my-learning.html">我的学习</a>
+        <div style=”display:flex;gap:10px;flex-wrap:wrap”>
+          <a class=”btn” href=”academy.html”>培训与定价</a>
+          <a class=”btn” href=”my-learning.html”>我的学习</a>
         </div>
       </div>
 
@@ -327,6 +341,17 @@
     }
     renderVideos();
     renderLoginHint();
+    renderUpgradeModule();
+  }
+
+  function renderUpgradeModule(){
+    const mod = document.getElementById('upgradeModule');
+    if(!mod) return;
+    const hasPaid = DB_VIDEOS.some(v => v.is_paid);
+    if(!hasPaid){ mod.style.display = 'none'; return; }
+    // Hide if user already has entitlements
+    if(_accessSet.size > 0){ mod.style.display = 'none'; return; }
+    mod.style.display = 'block';
   }
 
   init();
