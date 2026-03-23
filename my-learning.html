@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>我的学习 · 肾域</title>
+  <meta name="description" content="肾域 — 我的学习：权益、订单与报名项目">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260323_001" />
+  <style>
+    .ml-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 0}
+    .ml-tabs .btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .ml-panel{display:none}.ml-panel.active{display:block}
+    .ent-card{border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 16px;margin-bottom:10px;background:rgba(255,255,255,.03)}
+    .ent-card .ent-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .ent-card .ent-title{font-weight:600;font-size:15px}
+    .ent-card .ent-meta{font-size:12px;opacity:.6;margin-top:4px}
+    .ent-badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;border:1px solid}
+    .ent-badge.active{border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.1);color:#4ade80}
+    .ent-badge.expiring{border-color:rgba(234,179,8,.5);background:rgba(234,179,8,.1);color:#fbbf24}
+    .ent-badge.expired{border-color:rgba(156,163,175,.4);background:rgba(156,163,175,.07);color:#9ca3af}
+    .order-row{border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+    .order-row .order-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .order-row .order-no{font-family:monospace;font-size:13px;opacity:.7}
+    .order-status{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;border:1px solid}
+    .order-status.pending_payment{border-color:rgba(234,179,8,.5);background:rgba(234,179,8,.1);color:#fbbf24}
+    .order-status.pending_review{border-color:rgba(99,202,255,.5);background:rgba(99,202,255,.1);color:#67e8f9}
+    .order-status.approved{border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.1);color:#4ade80}
+    .order-status.rejected{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.1);color:#f87171}
+    .order-status.cancelled,.order-status.refunded{border-color:rgba(156,163,175,.4);background:rgba(156,163,175,.07);color:#9ca3af}
+    .enroll-card{border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+    .qr-wrap{margin-top:10px;padding:10px;background:rgba(255,255,255,.05);border-radius:8px;text-align:center}
+    .qr-wrap img{max-width:160px;border-radius:8px}
+  </style>
+</head>
+<body>
+  <header class="nav"></header>
+
+  <main>
+<section class="hero">
+  <div class="container">
+    <div class="card">
+      <div class="section-title">
+        <div>
+          <span class="badge">学习中心 · My Learning</span>
+          <h2 style="margin-top:10px">我的学习</h2>
+          <p class="small muted">查看已购权益、历史订单和已报名培训项目。</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <a class="btn" href="learning.html">学习中心</a>
+          <a class="btn" href="videos.html">视频库</a>
+        </div>
+      </div>
+
+      <div id="mlGate" class="note" style="margin-top:12px">正在验证登录状态…</div>
+
+      <div id="mlMain" hidden>
+        <div class="ml-tabs" id="mlTabs">
+          <button class="btn active" data-tab="entitlements" type="button">我的权益</button>
+          <button class="btn" data-tab="orders" type="button">我的订单</button>
+          <button class="btn" data-tab="enrollments" type="button">已报名项目</button>
+        </div>
+
+        <!-- ── 权益 ── -->
+        <div class="ml-panel active" id="ml-panel-entitlements" style="margin-top:14px">
+          <div id="entLoading" class="muted small">加载中…</div>
+          <div id="entList"></div>
+          <div id="entEmpty" hidden class="note">
+            暂无有效权益。<a href="learning.html">浏览培训项目</a>或<a href="videos.html">付费视频</a>完成购买后在此显示。
+          </div>
+        </div>
+
+        <!-- ── 订单 ── -->
+        <div class="ml-panel" id="ml-panel-orders" style="margin-top:14px">
+          <div id="ordLoading" class="muted small">加载中…</div>
+          <div id="ordList"></div>
+          <div id="ordEmpty" hidden class="note">暂无订单记录。</div>
+        </div>
+
+        <!-- ── 报名 ── -->
+        <div class="ml-panel" id="ml-panel-enrollments" style="margin-top:14px">
+          <div id="enrLoading" class="muted small">加载中…</div>
+          <div id="enrList"></div>
+          <div id="enrEmpty" hidden class="note">
+            暂无报名记录。<a href="learning.html">浏览培训项目</a>完成报名后在此显示。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+  </main>
+
+  <footer class="footer"></footer>
+  <script type="module" src="app.js?v=20260323_001"></script>
+  <script type="module" src="my-learning.js?v=20260323_001"></script>
+</body>
+</html>
