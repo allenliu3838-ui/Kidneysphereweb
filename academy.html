@@ -202,19 +202,81 @@
 
     <!-- 专科 Tab -->
     <div class="spec-tabs">
-      <button class="btn active" data-spec-tab="icu" type="button">重症肾内科</button>
+      <button class="btn active" data-spec-tab="glom" type="button">肾小球病 <span style="font-size:10px;color:#4ade80;margin-left:3px">进行中</span></button>
+      <button class="btn" data-spec-tab="icu" type="button">重症肾内科</button>
       <button class="btn" data-spec-tab="tx" type="button">肾移植内科</button>
       <button class="btn" data-spec-tab="patho" type="button">肾脏病理</button>
       <button class="btn" data-spec-tab="da" type="button">透析通路 <span style="font-size:10px;opacity:.6;margin-left:3px">筹备中</span></button>
     </div>
 
+    <!-- 肾小球病 -->
+    <div class="spec-panel active" id="spec-glom">
+      <div class="proj-card" id="proj-card-glom">
+        <div class="proj-head">
+          <div>
+            <div class="proj-title">肾小球病培训项目 2026</div>
+            <div style="font-size:13px;opacity:.7;margin-top:4px">IgA 肾病 · 膜性肾病 · FSGS · MCD · 狼疮性肾炎 · ANCA 相关肾炎</div>
+            <a href="training-glom.html" style="font-size:12px;margin-top:5px;display:inline-block">查看课程内容 →</a>
+          </div>
+          <span class="proj-status enrollment" id="proj-status-glom" style="border-color:rgba(34,197,94,.5);color:#4ade80;background:rgba(34,197,94,.1)">进行中</span>
+        </div>
+
+        <div class="proj-meta">
+          <span>📅 <span id="proj-date-glom">进行中，现在报名立即开始</span></span>
+          <span>🎯 适合：肾内科医生 · 肾脏病研究生 · 住院医</span>
+          <span>📺 直播 + 回放 + 学习群</span>
+        </div>
+
+        <div class="proj-pricing" id="proj-pricing-glom">
+          <div class="price-option recommended">
+            <div class="rec-tag">★ 推荐</div>
+            <div class="p-label">报名版（完整版）</div>
+            <div>
+              <span class="p-price">¥1,280</span>
+              <span class="p-orig">¥1,580</span>
+            </div>
+            <div class="p-includes">含直播互动 + 学习群 + 全程回放</div>
+            <div class="p-btn">
+              <a class="btn primary" href="checkout.html?product_id=GLOM-REG-FULL-2026">立即报名</a>
+            </div>
+          </div>
+          <div class="price-option">
+            <div class="p-label">视频版（回放版）</div>
+            <div>
+              <span class="p-price">¥780</span>
+              <span class="p-orig">¥980</span>
+            </div>
+            <div class="p-includes">仅含视频回放，不含直播与学习群</div>
+            <div class="p-btn">
+              <a class="btn" href="checkout.html?product_id=GLOM-REG-VIDEO-2026">购买视频版</a>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size:12px;opacity:.55;margin-top:4px">早鸟价截止 <b>2026年5月30日</b>，逾期恢复正价。登录后购买。</div>
+      </div>
+
+      <!-- Glom Bundle -->
+      <div class="bundle-banner" id="bundle-glom">
+        <div class="bb-text">
+          <b>肾小球病 · 专科整套课</b><br/>
+          一次购买，永久解锁全部课程视频。适合无法跟班期或希望反复回顾的医生。
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+          <div><span class="bb-price">¥980</span><span class="bb-orig">¥1,200</span></div>
+          <a class="btn" href="checkout.html?product_id=GLOM-BUNDLE-2026">购买整套课</a>
+        </div>
+      </div>
+    </div>
+
     <!-- 重症肾内科 -->
-    <div class="spec-panel active" id="spec-icu">
+    <div class="spec-panel" id="spec-icu">
       <div class="proj-card" id="proj-card-icu">
         <div class="proj-head">
           <div>
             <div class="proj-title">重症肾内科培训项目 2026</div>
             <div style="font-size:13px;opacity:.7;margin-top:4px">电解质/酸碱 · 连续性肾脏替代治疗 · AKI 管理 · 重症病例讨论</div>
+            <a href="training-icu.html" style="font-size:12px;margin-top:5px;display:inline-block">查看课程内容 →</a>
           </div>
           <span class="proj-status enrollment" id="proj-status-icu">招募中</span>
         </div>
@@ -274,6 +336,7 @@
           <div>
             <div class="proj-title">肾移植内科培训项目 2026</div>
             <div style="font-size:13px;opacity:.7;margin-top:4px">免疫抑制方案 · 排斥反应处理 · 肾移植术后并发症 · 真实病例讨论</div>
+            <a href="training-tx.html" style="font-size:12px;margin-top:5px;display:inline-block">查看课程内容 →</a>
           </div>
           <span class="proj-status enrollment" id="proj-status-tx">招募中</span>
         </div>
