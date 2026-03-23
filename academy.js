@@ -48,7 +48,10 @@ async function init(){
   const bySpec = {};
   for(const p of products){
     const code = (p.product_code || '').toUpperCase();
-    const spec = code.startsWith('ICU') ? 'icu' : code.startsWith('TX') ? 'tx' : null;
+    const spec = code.startsWith('ICU') ? 'icu'
+               : code.startsWith('TX')  ? 'tx'
+               : code.startsWith('PATHO') ? 'patho'
+               : null;
     if(!spec) continue;
     if(!bySpec[spec]) bySpec[spec] = {};
     if(/full|完整|reg.*full/i.test(code)) bySpec[spec].full = p;
@@ -70,7 +73,7 @@ async function init(){
   }
 
   // 按专科渲染
-  ['icu','tx'].forEach(spec => {
+  ['icu','tx','patho'].forEach(spec => {
     const ps = bySpec[spec];
     if(!ps) return;
     renderPricingCards(spec, ps, purchasedIds);
@@ -80,7 +83,10 @@ async function init(){
   // 班期信息
   for(const proj of projects){
     const code = (proj.project_code || '').toUpperCase();
-    const spec = code.startsWith('ICU') ? 'icu' : code.startsWith('TX') ? 'tx' : null;
+    const spec = code.startsWith('ICU')   ? 'icu'
+               : code.startsWith('TX')    ? 'tx'
+               : code.startsWith('PATHO') ? 'patho'
+               : null;
     if(!spec) continue;
     renderProjectMeta(spec, proj);
   }
@@ -90,7 +96,7 @@ async function init(){
 async function fetchProducts(){
   const { data, error } = await supabase
     .from('products')
-    .select('id,product_code,title,subtitle,price_cny,list_price_cny,product_type,recommended,is_active,project_id,specialty_id')
+    .select('id,product_code,title,subtitle,price_cny,list_price_cny,product_type,recommended,is_active,project_id,specialty_id,early_bird_deadline')
     .eq('is_active', true)
     .in('product_type', ['project_registration','specialty_bundle'])
     .order('sort_order');
@@ -112,6 +118,18 @@ async function fetchProjects(){
 }
 
 // ── DOM 渲染 ──────────────────────────────────────────────────
+
+function earlyBirdTag(p){
+  if(!p?.early_bird_deadline) return '';
+  const deadline = new Date(p.early_bird_deadline);
+  const now = new Date();
+  if(deadline <= now) return '';   // expired — don't show
+  const days = Math.ceil((deadline - now) / 864e5);
+  const label = days <= 7
+    ? `🐦 早鸟价 · 还剩 ${days} 天`
+    : `🐦 早鸟价 · 截止 ${deadline.toLocaleDateString('zh-CN',{month:'long',day:'numeric'})}`;
+  return `<div style="font-size:11px;font-weight:700;color:#fbbf24;margin-bottom:4px">${label}</div>`;
+}
 
 function renderPricingCards(spec, ps, purchasedIds){
   const container = document.getElementById(`proj-pricing-${spec}`);
@@ -135,6 +153,7 @@ function renderPricingCards(spec, ps, purchasedIds){
     return `
       <div class="price-option${isRec ? ' recommended' : ''}">
         ${isRec ? '<div class="rec-tag">★ 推荐</div>' : ''}
+        ${earlyBirdTag(p)}
         <div class="p-label">${esc(label)}</div>
         <div>
           <span class="p-price">${esc(cur||'—')}</span>
