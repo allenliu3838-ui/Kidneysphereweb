@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>培训与定价 · 肾域学院</title>
-  <meta name="description" content="肾域学院 — 重症肾内科 · 肾移植内科培训项目，含直播互动、专属学习群与视频回放。查看课程详情、定价与报名方式。">
+  <meta name="description" content="肾域学院 — 重症肾内科 · 肾移植内科 · 肾脏病理培训项目，含直播互动、专属学习群与视频回放。2026年8月开课，早鸟价截止5月30日。">
   <link rel="icon" href="assets/logo.png" />
   <link rel="stylesheet" href="styles.css?v=20260323_001" />
   <style>
@@ -50,6 +50,13 @@
     .price-option .p-orig{font-size:13px;opacity:.5;text-decoration:line-through;margin-left:4px}
     .price-option .p-includes{font-size:12px;opacity:.7;margin-top:6px;line-height:1.6}
     .price-option .p-btn{margin-top:10px}
+
+    /* ── 早鸟价标签 ── */
+    .early-bird-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:10px 14px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.35);border-radius:10px;margin-bottom:14px;font-size:13px}
+    .early-bird-bar .eb-label{font-weight:700;color:#fbbf24}
+    .early-bird-bar .eb-countdown{font-size:12px;opacity:.8}
+    .early-bird-bar.expired{background:rgba(156,163,175,.07);border-color:rgba(156,163,175,.25)}
+    .early-bird-bar.expired .eb-label{color:#9ca3af}
 
     /* ── Bundle 横幅 ── */
     .bundle-banner{border:1px solid rgba(251,191,36,.35);background:rgba(251,191,36,.05);border-radius:14px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:8px}
@@ -182,10 +189,23 @@
       <a class="btn" href="my-learning.html">我的学习</a>
     </div>
 
+    <!-- 全局早鸟提示 -->
+    <div class="early-bird-bar" id="globalEarlyBirdBar">
+      <span class="eb-label">🐦 早鸟价 · 三个项目统一优惠</span>
+      <span class="eb-countdown" id="globalEbCountdown">截止 2026年5月30日 · <span id="globalEbDays">—</span> 天后结束</span>
+    </div>
+
+    <!-- 开班说明 -->
+    <div class="note small" style="margin-bottom:16px">
+      📅 三个培训项目均计划 <b>2026年8月开课</b>；早鸟价截止 <b>5月30日</b>，逾期恢复正价。
+    </div>
+
     <!-- 专科 Tab -->
     <div class="spec-tabs">
       <button class="btn active" data-spec-tab="icu" type="button">重症肾内科</button>
       <button class="btn" data-spec-tab="tx" type="button">肾移植内科</button>
+      <button class="btn" data-spec-tab="patho" type="button">肾脏病理</button>
+      <button class="btn" data-spec-tab="da" type="button">透析通路 <span style="font-size:10px;opacity:.6;margin-left:3px">筹备中</span></button>
     </div>
 
     <!-- 重症肾内科 -->
@@ -200,7 +220,7 @@
         </div>
 
         <div class="proj-meta">
-          <span>📅 <span id="proj-date-icu">开班时间待定</span></span>
+          <span>📅 <span id="proj-date-icu">2026年8月开课</span></span>
           <span>🎯 适合：住院医 / 主治医 / ICU 轮转医生</span>
           <span>📺 直播 + 回放 + 学习群</span>
         </div>
@@ -231,7 +251,7 @@
           </div>
         </div>
 
-        <div style="font-size:12px;opacity:.55;margin-top:4px">早鸟价有效期至班期确定前；价格届时更新。登录后购买。</div>
+        <div style="font-size:12px;opacity:.55;margin-top:4px">早鸟价截止 <b>2026年5月30日</b>，逾期恢复正价。登录后购买。</div>
       </div>
 
       <!-- ICU Bundle -->
@@ -259,7 +279,7 @@
         </div>
 
         <div class="proj-meta">
-          <span>📅 <span id="proj-date-tx">开班时间待定</span></span>
+          <span>📅 <span id="proj-date-tx">2026年8月开课</span></span>
           <span>🎯 适合：肾移植科医生 / 泌外科医生 / 肾内科主治</span>
           <span>📺 直播 + 回放 + 学习群</span>
         </div>
@@ -290,7 +310,7 @@
           </div>
         </div>
 
-        <div style="font-size:12px;opacity:.55;margin-top:4px">早鸟价有效期至班期确定前；价格届时更新。登录后购买。</div>
+        <div style="font-size:12px;opacity:.55;margin-top:4px">早鸟价截止 <b>2026年5月30日</b>，逾期恢复正价。登录后购买。</div>
       </div>
 
       <!-- TX Bundle -->
@@ -306,6 +326,127 @@
       </div>
     </div>
 
+    <!-- 肾脏病理 -->
+    <div class="spec-panel" id="spec-patho">
+      <div class="proj-card" id="proj-card-patho">
+        <div class="proj-head">
+          <div>
+            <div class="proj-title">肾脏病理培训项目 2026</div>
+            <div style="font-size:13px;opacity:.7;margin-top:4px">肾活检诊断思路 · 肾小球病理 · 小管间质疾病 · 血管性病变 · 临床病理对照</div>
+            <a href="training-patho.html" style="font-size:12px;margin-top:5px;display:inline-block">查看课程内容 →</a>
+          </div>
+          <span class="proj-status enrollment" id="proj-status-patho">招募中</span>
+        </div>
+
+        <div class="proj-meta">
+          <span>📅 <span id="proj-date-patho">2026年8月开课</span></span>
+          <span>🎯 适合：肾内科医生 / 病理科医生 / 肾脏病研究生</span>
+          <span>📺 直播 + 回放 + 学习群</span>
+        </div>
+
+        <div class="proj-pricing" id="proj-pricing-patho">
+          <div class="price-option recommended">
+            <div class="rec-tag">★ 推荐</div>
+            <div class="p-label">报名版（完整版）</div>
+            <div>
+              <span class="p-price">¥1,280</span>
+              <span class="p-orig">¥1,580</span>
+            </div>
+            <div class="p-includes">含直播互动 + 学习群 + 全程回放</div>
+            <div class="p-btn">
+              <a class="btn primary" data-buy-patho-full href="checkout.html">立即报名</a>
+            </div>
+          </div>
+          <div class="price-option">
+            <div class="p-label">视频版（回放版）</div>
+            <div>
+              <span class="p-price">¥780</span>
+              <span class="p-orig">¥980</span>
+            </div>
+            <div class="p-includes">仅含视频回放，不含直播与学习群</div>
+            <div class="p-btn">
+              <a class="btn" data-buy-patho-video href="checkout.html">购买视频版</a>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size:12px;opacity:.55;margin-top:4px">早鸟价截止 <b>2026年5月30日</b>，逾期恢复正价。登录后购买。</div>
+      </div>
+
+      <!-- Patho Bundle -->
+      <div class="bundle-banner" id="bundle-patho">
+        <div class="bb-text">
+          <b>肾脏病理 · 专科整套课</b><br/>
+          一次购买，永久解锁全部课程视频。适合无法跟班期或希望反复回顾的医生。
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+          <div><span class="bb-price">¥980</span><span class="bb-orig">¥1,200</span></div>
+          <a class="btn" data-buy-patho-bundle href="checkout.html">购买整套课</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 透析通路（筹备中） -->
+    <div class="spec-panel" id="spec-da">
+
+      <!-- 筹备中提示横幅 -->
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:rgba(234,179,8,.07);border:1px solid rgba(234,179,8,.3);border-radius:12px;margin-bottom:16px">
+        <div style="font-size:24px">🚧</div>
+        <div>
+          <div style="font-weight:700;font-size:15px">课程筹备中，敬请期待</div>
+          <div class="small muted" style="margin-top:3px">师资与课程模块正在规划中，开放报名前会通过通知中心告知。</div>
+        </div>
+      </div>
+
+      <div class="proj-card" id="proj-card-da">
+        <div class="proj-head">
+          <div>
+            <div class="proj-title">透析通路培训项目 2026</div>
+            <div style="font-size:13px;opacity:.7;margin-top:4px">AVF/AVG/CVC 建立与维护 · 通路并发症处理 · 腹膜透析置管 · 真实病例讨论</div>
+            <a href="training-da.html" style="font-size:12px;margin-top:5px;display:inline-block">查看课程内容 →</a>
+          </div>
+          <span class="proj-status planning" id="proj-status-da">筹备中</span>
+        </div>
+
+        <div class="proj-meta">
+          <span>📅 <span id="proj-date-da">开班时间待定</span></span>
+          <span>🎯 适合：肾内科医生 / 透析室医护 / 介入科医生</span>
+          <span>📺 直播 + 回放 + 学习群</span>
+        </div>
+
+        <!-- 价格预告（不可购买） -->
+        <div class="proj-pricing">
+          <div class="price-option recommended" style="opacity:.6;pointer-events:none">
+            <div class="rec-tag">★ 推荐</div>
+            <div class="p-label">报名版（完整版）</div>
+            <div><span class="p-price">¥1,280</span><span class="p-orig">¥1,580</span></div>
+            <div class="p-includes">含直播互动 + 学习群 + 全程回放</div>
+            <div class="p-btn"><span class="btn primary" style="cursor:default;opacity:.5">开放后可报名</span></div>
+          </div>
+          <div class="price-option" style="opacity:.6;pointer-events:none">
+            <div class="p-label">视频版（回放版）</div>
+            <div><span class="p-price">¥780</span><span class="p-orig">¥980</span></div>
+            <div class="p-includes">仅含视频回放，不含直播与学习群</div>
+            <div class="p-btn"><span class="btn" style="cursor:default;opacity:.5">开放后可购买</span></div>
+          </div>
+        </div>
+
+        <div style="font-size:12px;opacity:.55;margin-top:4px">价格为预估，正式开放报名时确认。</div>
+      </div>
+
+      <!-- DA Bundle 预告 -->
+      <div class="bundle-banner" style="opacity:.6">
+        <div class="bb-text">
+          <b>透析通路 · 专科整套课</b>（筹备中）<br/>
+          一次购买，永久解锁全部课程视频。正式开放后可购买。
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+          <div><span class="bb-price">¥980</span><span class="bb-orig">¥1,200</span></div>
+          <span class="btn" style="cursor:default;opacity:.5">敬请期待</span>
+        </div>
+      </div>
+    </div>
+
   </div>
 </section>
 
@@ -313,7 +454,7 @@
 <section class="section" id="pricing">
   <div class="container">
     <h2 style="margin-bottom:6px">价格与权益对比</h2>
-    <p class="small muted" style="margin-bottom:20px">以下价格为早鸟价，开班后恢复正价</p>
+    <p class="small muted" style="margin-bottom:20px">以下为早鸟价 · 截止 <b>2026年5月30日</b>，逾期恢复正价</p>
 
     <div style="overflow-x:auto">
       <table style="width:100%;border-collapse:collapse;font-size:14px">
@@ -456,7 +597,7 @@
 
     <div class="faq-item">
       <div class="faq-q">班期还没有确定，可以先报名吗？<span class="chev">▾</span></div>
-      <div class="faq-a">可以。当前早鸟价有效期至班期正式确定前，建议尽早报名锁定优惠价。班期确定后我们会通过学习群和通知中心告知。</div>
+      <div class="faq-a">可以。早鸟价截止 <b>2026年5月30日</b>，三个项目均计划8月开课，现在报名可锁定优惠价。班期最终确认后会通过学习群和通知中心告知。</div>
     </div>
 
     <div class="faq-item">
@@ -494,6 +635,31 @@
   <script type="module" src="academy.js?v=20260323_001"></script>
 
   <script>
+  // ── 早鸟价倒计时 ──
+  (function(){
+    const deadline = new Date('2026-05-30T23:59:59+08:00');
+    const bar = document.getElementById('globalEarlyBirdBar');
+    const daysEl = document.getElementById('globalEbDays');
+    const cntEl  = document.getElementById('globalEbCountdown');
+    function update(){
+      const diff = deadline - Date.now();
+      if(!bar) return;
+      if(diff <= 0){
+        bar.classList.add('expired');
+        if(cntEl) cntEl.textContent = '早鸟价已结束，现为正价';
+        return;
+      }
+      const days = Math.floor(diff / 864e5);
+      const hrs  = Math.floor((diff % 864e5) / 36e5);
+      if(daysEl) daysEl.textContent = days > 0 ? `${days}` : `< 1`;
+      if(cntEl && days <= 7){
+        cntEl.textContent = `截止 2026年5月30日 · 还剩 ${days}天 ${hrs}小时`;
+      }
+    }
+    update();
+    setInterval(update, 36e5);
+  })();
+
   // FAQ accordion (no module needed)
   document.querySelectorAll('.faq-q').forEach(q => {
     q.addEventListener('click', () => {
