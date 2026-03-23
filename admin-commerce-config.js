@@ -24,7 +24,7 @@ let _configData = {};
 
 /* ── image upload helper ── */
 async function uploadQrImage(file, key) {
-  const bucket = 'public-assets';
+  const bucket = 'sponsor_logos';
   const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
   const path = `qr-codes/${key}_${Date.now()}.${ext}`;
 
