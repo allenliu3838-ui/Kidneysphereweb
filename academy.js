@@ -72,7 +72,7 @@ async function init(){
     }catch(_e){}
   }
 
-  // 按专科渲染
+  // 按专科渲染（DA 产品未上线，跳过价格覆盖，保留静态骨架）
   ['icu','tx','patho'].forEach(spec => {
     const ps = bySpec[spec];
     if(!ps) return;
@@ -86,6 +86,7 @@ async function init(){
     const spec = code.startsWith('ICU')   ? 'icu'
                : code.startsWith('TX')    ? 'tx'
                : code.startsWith('PATHO') ? 'patho'
+               : code.startsWith('DA')    ? 'da'
                : null;
     if(!spec) continue;
     renderProjectMeta(spec, proj);
