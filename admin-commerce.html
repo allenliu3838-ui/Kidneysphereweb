@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>商品与订单管理 · 肾域后台</title>
+  <meta name="description" content="统一商品、订单、权益、项目、学习群管理后台" />
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260322_001" />
+  <style>
+    .commerce-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+    .commerce-tabs .btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .tab-panel{display:none} .tab-panel.active{display:block}
+    .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+    .status-dot.green{background:#22c55e} .status-dot.yellow{background:#eab308}
+    .status-dot.red{background:#ef4444} .status-dot.gray{background:#9ca3af}
+    .data-table{width:100%;border-collapse:collapse;font-size:13px}
+    .data-table th,.data-table td{padding:8px 10px;text-align:left;border-bottom:1px solid rgba(255,255,255,.08)}
+    .data-table th{font-weight:600;opacity:.7;font-size:12px;text-transform:uppercase}
+    .data-table tr:hover td{background:rgba(255,255,255,.03)}
+    .inline-form{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+    .inline-form .input{min-width:140px}
+    .stat-card{text-align:center;padding:16px}
+    .stat-card .num{font-size:28px;font-weight:700}
+    .stat-card .label{font-size:12px;opacity:.6;margin-top:4px}
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center}
+    .modal-box{background:var(--card-bg,#1a1a2e);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:24px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto}
+  </style>
+</head>
+<body>
+  <header class="nav"></header>
+
+  <main class="main">
+    <section class="hero">
+      <div class="container">
+        <div class="card">
+          <div class="section-title">
+            <div>
+              <h2>商品与订单管理</h2>
+              <p>统一管理商品、定价、订单、权益、项目报名、学习群。</p>
+            </div>
+            <span class="badge">Commerce Admin</span>
+          </div>
+          <div class="note" id="commerceGate">正在检查登录状态…</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="commerceMain" hidden>
+      <div class="container">
+
+        <!-- Dashboard Stats -->
+        <div class="grid cols-4" id="dashboardStats" style="margin-bottom:18px">
+          <div class="card soft stat-card"><div class="num" id="statOrders">-</div><div class="label">待审核订单</div></div>
+          <div class="card soft stat-card"><div class="num" id="statProducts">-</div><div class="label">在售商品</div></div>
+          <div class="card soft stat-card"><div class="num" id="statEntitlements">-</div><div class="label">活跃权益</div></div>
+          <div class="card soft stat-card"><div class="num" id="statEnrollments">-</div><div class="label">项目报名</div></div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="card">
+          <div class="commerce-tabs" id="commerceTabs">
+            <button class="btn active" data-tab="orders">订单审核</button>
+            <button class="btn" data-tab="products">商品中心</button>
+            <button class="btn" data-tab="config">系统配置</button>
+            <button class="btn" data-tab="entitlements">权益管理</button>
+            <button class="btn" data-tab="projects">项目中心</button>
+            <button class="btn" data-tab="cohorts">班期管理</button>
+            <button class="btn" data-tab="groups">学习群</button>
+            <button class="btn" data-tab="templates">通知模板</button>
+            <button class="btn" data-tab="audit">审计日志</button>
+          </div>
+        </div>
+
+        <!-- ============ ORDERS TAB ============ -->
+        <div class="tab-panel active" id="panel-orders">
+          <div class="card soft">
+            <div class="section-title">
+              <h3>订单核销中心</h3>
+              <div style="display:flex;gap:8px">
+                <select class="input" id="orderFilterStatus" style="width:auto">
+                  <option value="pending_review">待审核</option>
+                  <option value="all">全部</option>
+                  <option value="approved">已通过</option>
+                  <option value="rejected">已驳回</option>
+                  <option value="cancelled">已取消</option>
+                </select>
+                <button class="btn" id="refreshOrders" type="button">刷新</button>
+              </div>
+            </div>
+            <div id="ordersTableWrap" style="overflow-x:auto;margin-top:12px">
+              <div class="muted">加载中…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ PRODUCTS TAB ============ -->
+        <div class="tab-panel" id="panel-products">
+          <div class="card soft">
+            <div class="section-title">
+              <h3>商品中心</h3>
+              <button class="btn primary" id="btnAddProduct" type="button">新建商品</button>
+            </div>
+            <div id="productsTableWrap" style="overflow-x:auto;margin-top:12px">
+              <div class="muted">加载中…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ CONFIG TAB ============ -->
+        <div class="tab-panel" id="panel-config">
+          <div class="card soft">
+            <div class="section-title">
+              <h3>系统配置</h3>
+              <button class="btn" id="refreshConfig" type="button">刷新</button>
+            </div>
+            <p class="small muted">修改后前台将实时读取最新配置，无需重新部署。</p>
+            <div id="configForm" style="margin-top:12px">
+              <div class="muted">加载中…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ ENTITLEMENTS TAB ============ -->
+        <div class="tab-panel" id="panel-entitlements">
+          <div class="card soft">
+            <div class="section-title">
+              <h3>权益管理</h3>
+              <button class="btn" id="refreshEntitlements" type="button">刷新</button>
+            </div>
+            <div class="inline-form" style="margin:12px 0">
+              <input class="input" id="entSearchInput" placeholder="搜索用户ID或邮箱…" />
+              <button class="btn" id="entSearchBtn" type="button">搜索</button>
+            </div>
+            <div id="entitlementsTableWrap" style="overflow-x:auto">
+              <div class="muted">加载中…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ PROJECTS TAB ============ -->
+        <div class="tab-panel" id="panel-projects">
+          <div class="card soft">
+            <div class="section-title">
+              <h3>项目中心</h3>
+              <button class="btn primary" id="btnAddProject" type="button">新建项目</button>
+            </div>
+            <div id="projectsTableWrap" style="overflow-x:auto;margin-top:12px">
+              <div class="muted">加载中…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ COHORTS TAB ============ -->
+        <div class="tab-panel" id="panel-cohorts">
+          <div class="card soft">
+            <div class="section-title">
+              <h3>班期管理</h3>
+              <button class="btn primary" id="btnAddCohort" type="button">新建班期</button>
+            </div>
+            <div id="cohortsTableWrap" style="overflow-x:auto;margin-top:12px">
+              <div class="muted">加载中…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ GROUPS TAB ============ -->
+        <div class="tab-panel" id="panel-groups">
+          <div class="card soft">
+            <div class="section-title">
+              <h3>学习群中心</h3>
+              <button class="btn primary" id="btnAddGroup" type="button">新建学习群</button>
+            </div>
+            <div id="groupsTableWrap" style="overflow-x:auto;margin-top:12px">
+              <div class="muted">加载中…</div>
+            </div>
+            <div class="hr"></div>
+            <h4>入群邀请管理</h4>
+            <div id="groupInvitesWrap" style="overflow-x:auto;margin-top:12px">
+              <div class="muted">加载中…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ TEMPLATES TAB ============ -->
+        <div class="tab-panel" id="panel-templates">
+          <div class="card soft">
+            <div class="section-title">
+              <h3>通知模板</h3>
+              <button class="btn primary" id="btnAddTemplate" type="button">新建模板</button>
+            </div>
+            <div id="templatesTableWrap" style="overflow-x:auto;margin-top:12px">
+              <div class="muted">加载中…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ AUDIT TAB ============ -->
+        <div class="tab-panel" id="panel-audit">
+          <div class="card soft">
+            <div class="section-title">
+              <h3>审计日志</h3>
+              <button class="btn" id="refreshAudit" type="button">刷新</button>
+            </div>
+            <div id="auditTableWrap" style="overflow-x:auto;margin-top:12px">
+              <div class="muted">加载中…</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer"></footer>
+
+  <!-- Modal container -->
+  <div id="modalContainer"></div>
+
+  <script type="module" src="app.js?v=20260322_001"></script>
+  <script type="module" src="admin-commerce.js?v=20260322_001"></script>
+</body>
+</html>

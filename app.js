@@ -589,6 +589,7 @@ async function renderAuthArea(){
                 <summary>管理功能</summary>
                 <div class="ud-group-items">
                   <a role="menuitem" href="admin.html">管理后台</a>
+                  <a role="menuitem" href="admin-commerce.html">商品与订单</a>
                   <a role="menuitem" href="frontier.html">管理前沿</a>
                   <a role="menuitem" href="admin.html#events">管理会议</a>
                   <a role="menuitem" href="admin.html#research">管理研究</a>

@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>结算 · 肾域 Kidneysphere</title>
+  <meta name="description" content="肾域统一结算页面" />
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260322_001" />
+  <style>
+    .pay-methods{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+    .pay-methods .btn.selected{background:var(--brand);color:#fff;border-color:var(--brand)}
+    .qr-box{text-align:center;padding:16px;background:rgba(255,255,255,.04);border-radius:14px;margin:12px 0}
+    .qr-box img{max-width:240px;border-radius:12px}
+    .bank-info{font-size:13px;line-height:1.8;margin:12px 0}
+    .bank-info b{display:inline-block;min-width:72px}
+    .order-summary{background:rgba(255,255,255,.04);border-radius:14px;padding:16px;margin:12px 0}
+    .order-summary .line{display:flex;justify-content:space-between;padding:4px 0}
+    .order-summary .total{font-size:20px;font-weight:700;border-top:1px solid rgba(255,255,255,.1);padding-top:8px;margin-top:8px}
+    .step-indicator{display:flex;gap:8px;margin:16px 0;font-size:13px}
+    .step-indicator .step{padding:6px 14px;border-radius:999px;background:rgba(255,255,255,.06)}
+    .step-indicator .step.active{background:var(--brand);color:#fff}
+    .step-indicator .step.done{background:rgba(34,197,94,.15);color:#22c55e}
+  </style>
+</head>
+<body>
+  <header class="nav"></header>
+
+  <main class="main">
+    <section class="hero">
+      <div class="container" style="max-width:720px">
+        <div class="card">
+          <h2>结算</h2>
+          <p class="muted">完成支付后上传凭证，管理员将在24小时内审核。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container" style="max-width:720px">
+
+        <!-- Gate -->
+        <div class="note" id="checkoutGate">正在检查登录状态…</div>
+
+        <!-- Main checkout flow -->
+        <div id="checkoutMain" hidden>
+
+          <!-- Step indicator -->
+          <div class="step-indicator" id="stepIndicator">
+            <span class="step active" data-step="1">1. 确认订单</span>
+            <span class="step" data-step="2">2. 支付</span>
+            <span class="step" data-step="3">3. 上传凭证</span>
+          </div>
+
+          <!-- Step 1: Order confirmation -->
+          <div class="card" id="step1">
+            <h3>确认订单</h3>
+            <div id="orderSummary" class="order-summary">
+              <div class="muted">加载商品信息…</div>
+            </div>
+            <button class="btn primary" id="btnConfirmOrder" type="button" style="margin-top:12px">确认并生成订单</button>
+          </div>
+
+          <!-- Step 2: Payment -->
+          <div class="card" id="step2" hidden>
+            <h3>选择支付方式</h3>
+            <div class="pay-methods">
+              <button class="btn selected" id="payWechat" type="button">微信支付</button>
+              <button class="btn" id="payAlipay" type="button">支付宝</button>
+              <button class="btn" id="payBank" type="button">对公转账</button>
+            </div>
+
+            <!-- QR code for wechat/alipay -->
+            <div class="qr-box" id="qrBox">
+              <p class="small muted">请扫描二维码完成支付</p>
+              <img id="payQrImg" src="" alt="支付二维码" />
+            </div>
+
+            <!-- Bank transfer info -->
+            <div class="bank-info" id="bankInfo" hidden>
+              <p><b>开户行：</b><span id="bankName">—</span></p>
+              <p><b>账号：</b><span id="bankAccount">—</span></p>
+              <p><b>户名：</b><span id="bankAccountName">—</span></p>
+            </div>
+
+            <div class="note" id="paymentNotice"></div>
+
+            <div style="margin-top:8px">
+              <p class="small muted">订单号: <code id="displayOrderNo">—</code></p>
+              <p class="small muted">请在付款备注中填写上方订单号。</p>
+            </div>
+
+            <button class="btn primary" id="btnGoUpload" type="button" style="margin-top:12px">我已付款，去上传凭证</button>
+          </div>
+
+          <!-- Step 3: Upload proof -->
+          <div class="card" id="step3" hidden>
+            <h3>上传支付凭证</h3>
+            <form id="proofForm">
+              <label>支付截图 *
+                <input class="input" type="file" name="proof" accept="image/*,.pdf" required />
+              </label>
+              <div class="grid cols-2" style="gap:10px;margin-top:10px">
+                <label>付款人姓名<input class="input" name="payer_name" placeholder="可选" /></label>
+                <label>流水号后4位<input class="input" name="ref_last4" maxlength="4" placeholder="可选" /></label>
+              </div>
+              <label style="margin-top:10px">备注<input class="input" name="note" placeholder="可选" /></label>
+              <div id="proofHint" class="small muted" style="margin-top:8px"></div>
+              <button class="btn primary" type="submit" style="margin-top:12px">提交凭证</button>
+            </form>
+          </div>
+
+          <!-- Done -->
+          <div class="card" id="stepDone" hidden>
+            <div style="text-align:center;padding:24px 0">
+              <h3>凭证已提交</h3>
+              <p class="muted">管理员将在24小时内审核，审核通过后权益自动开通。</p>
+              <p class="muted" style="margin-top:8px">订单号: <code id="doneOrderNo">—</code></p>
+              <div style="margin-top:16px;display:flex;gap:8px;justify-content:center">
+                <a class="btn" href="profile.html">我的主页</a>
+                <a class="btn primary" href="learning.html">去学习</a>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- My orders -->
+        <div class="card" style="margin-top:18px" id="myOrdersCard" hidden>
+          <div class="section-title">
+            <h3>我的订单</h3>
+            <button class="btn tiny" id="refreshMyOrders" type="button">刷新</button>
+          </div>
+          <div id="myOrdersList" style="margin-top:12px">
+            <div class="muted">加载中…</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer"></footer>
+
+  <script type="module" src="app.js?v=20260322_001"></script>
+  <script type="module" src="checkout.js?v=20260322_001"></script>
+</body>
+</html>

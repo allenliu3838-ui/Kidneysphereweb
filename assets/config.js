@@ -15,6 +15,13 @@ export const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Feature flags
 export const REQUIRE_DOCTOR_VERIFICATION_FOR_DISCUSSION = false;
 
+// Membership / Payment (legacy – new unified system reads from system_config table)
+export const MEMBERSHIP_ENABLED = true;
+export const MEMBERSHIP_PLAN = "annual";
+export const MEMBERSHIP_PRICE_CNY = 0;
+export const WECHAT_PAY_QR_IMAGE = "";
+export const ALIPAY_PAY_QR_IMAGE = "";
+
 // Backward compatibility (window globals)
 try {
   if (typeof window !== "undefined") {
@@ -22,6 +29,11 @@ try {
     window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
     window.REQUIRE_DOCTOR_VERIFICATION_FOR_DISCUSSION =
       REQUIRE_DOCTOR_VERIFICATION_FOR_DISCUSSION;
+    window.MEMBERSHIP_ENABLED = MEMBERSHIP_ENABLED;
+    window.MEMBERSHIP_PLAN = MEMBERSHIP_PLAN;
+    window.MEMBERSHIP_PRICE_CNY = MEMBERSHIP_PRICE_CNY;
+    window.WECHAT_PAY_QR_IMAGE = WECHAT_PAY_QR_IMAGE;
+    window.ALIPAY_PAY_QR_IMAGE = ALIPAY_PAY_QR_IMAGE;
   }
 } catch (_e) {
   // ignore
