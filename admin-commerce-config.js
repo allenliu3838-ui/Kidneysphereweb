@@ -1,8 +1,16 @@
 /**
- * admin-commerce-config.js — 系统配置模块
+ * admin-commerce-config.js — 系统配置模块（含收款码图片上传）
  */
 import { supabase, toast } from './supabaseClient.js?v=20260322_001';
 import { esc } from './admin-commerce.js?v=20260322_001';
+
+/* keys that should render as image-upload fields */
+const IMAGE_KEYS = new Set(['wechat_pay_qr_url', 'alipay_pay_qr_url']);
+
+const IMAGE_LABELS = {
+  wechat_pay_qr_url: '微信收款码',
+  alipay_pay_qr_url: '支付宝收款码',
+};
 
 const CONFIG_GROUPS = [
   { title: '支付设置', keys: ['wechat_pay_qr_url', 'alipay_pay_qr_url', 'bank_name', 'bank_account', 'bank_account_name', 'payment_notice'] },
@@ -14,6 +22,50 @@ const CONFIG_GROUPS = [
 
 let _configData = {};
 
+/* ── image upload helper ── */
+async function uploadQrImage(file, key) {
+  const bucket = 'public-assets';
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
+  const path = `qr-codes/${key}_${Date.now()}.${ext}`;
+
+  const { error: upErr } = await supabase.storage.from(bucket).upload(path, file, {
+    upsert: true,
+    contentType: file.type || 'image/png',
+  });
+  if (upErr) throw upErr;
+
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+  return data.publicUrl;
+}
+
+/* ── render image upload field ── */
+function renderImageField(key, value) {
+  const label = IMAGE_LABELS[key] || key;
+  const hasImage = !!value;
+  return `
+    <div class="small" style="grid-column:1/-1" data-image-field="${esc(key)}">
+      <div style="margin-bottom:6px"><b>${esc(label)}</b></div>
+      <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
+        <!-- preview -->
+        <div style="width:160px;min-height:80px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center">
+          ${hasImage
+            ? `<img src="${esc(value)}" alt="${esc(label)}" style="max-width:160px;max-height:200px;border-radius:10px" data-preview-img="${esc(key)}" />`
+            : `<span class="muted small" data-preview-img="${esc(key)}">未上传</span>`}
+        </div>
+        <!-- controls -->
+        <div style="flex:1;min-width:200px">
+          <input type="file" accept="image/*" id="fileInput_${key}" style="display:none" />
+          <button class="btn tiny primary" type="button" data-upload-btn="${esc(key)}">上传图片</button>
+          ${hasImage ? `<button class="btn tiny danger" type="button" data-clear-btn="${esc(key)}" style="margin-left:6px">清除</button>` : ''}
+          <div class="small muted" style="margin-top:6px" data-upload-status="${esc(key)}">支持 JPG / PNG，建议 400×400 以上</div>
+          <!-- hidden input holds the URL value for saveConfig -->
+          <input type="hidden" data-config-key="${esc(key)}" value="${esc(value || '')}" />
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ── load config ── */
 async function loadConfig() {
   const wrap = document.getElementById('configForm');
   if (!wrap) return;
@@ -37,7 +89,10 @@ async function loadConfig() {
       const item = _configData[key] || { key, value: '', description: key };
       const desc = item.description || key;
       const isBool = key.endsWith('_enabled');
-      if (isBool) {
+
+      if (IMAGE_KEYS.has(key)) {
+        html += renderImageField(key, item.value || '');
+      } else if (isBool) {
         html += `
           <label class="small">${esc(desc)}
             <select class="input" data-config-key="${esc(key)}">
@@ -78,8 +133,66 @@ async function loadConfig() {
   wrap.innerHTML = html;
 
   document.getElementById('saveConfigBtn')?.addEventListener('click', saveConfig);
+  bindImageUploads();
 }
 
+/* ── bind upload / clear buttons ── */
+function bindImageUploads() {
+  for (const key of IMAGE_KEYS) {
+    const uploadBtn = document.querySelector(`[data-upload-btn="${key}"]`);
+    const clearBtn = document.querySelector(`[data-clear-btn="${key}"]`);
+    const fileInput = document.getElementById(`fileInput_${key}`);
+
+    uploadBtn?.addEventListener('click', () => fileInput?.click());
+
+    fileInput?.addEventListener('change', async () => {
+      const file = fileInput.files?.[0];
+      if (!file) return;
+
+      const status = document.querySelector(`[data-upload-status="${key}"]`);
+      status.textContent = '上传中…';
+      uploadBtn.disabled = true;
+
+      try {
+        const url = await uploadQrImage(file, key);
+        // Update hidden input value
+        const hidden = document.querySelector(`input[data-config-key="${key}"]`);
+        if (hidden) hidden.value = url;
+        // Update preview
+        const previewArea = document.querySelector(`[data-preview-img="${key}"]`);
+        if (previewArea) {
+          if (previewArea.tagName === 'IMG') {
+            previewArea.src = url;
+          } else {
+            previewArea.outerHTML = `<img src="${esc(url)}" alt="${esc(IMAGE_LABELS[key] || key)}" style="max-width:160px;max-height:200px;border-radius:10px" data-preview-img="${esc(key)}" />`;
+          }
+        }
+        status.textContent = '已上传，记得点"保存全部配置"生效。';
+        toast('上传成功', `${IMAGE_LABELS[key]}已上传`, 'ok');
+      } catch (err) {
+        status.textContent = `上传失败: ${err.message}`;
+        toast('上传失败', err.message, 'err');
+      } finally {
+        uploadBtn.disabled = false;
+        fileInput.value = '';
+      }
+    });
+
+    clearBtn?.addEventListener('click', () => {
+      const hidden = document.querySelector(`input[data-config-key="${key}"]`);
+      if (hidden) hidden.value = '';
+      const previewArea = document.querySelector(`[data-preview-img="${key}"]`);
+      if (previewArea) {
+        previewArea.outerHTML = `<span class="muted small" data-preview-img="${esc(key)}">未上传</span>`;
+      }
+      clearBtn.remove();
+      const status = document.querySelector(`[data-upload-status="${key}"]`);
+      if (status) status.textContent = '已清除，记得点"保存全部配置"生效。';
+    });
+  }
+}
+
+/* ── save config ── */
 async function saveConfig() {
   const els = document.querySelectorAll('[data-config-key]');
   let count = 0;
