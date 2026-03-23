@@ -133,6 +133,7 @@ async function init() {
     import('./admin-commerce-products.js?v=20260322_001'),
     import('./admin-commerce-config.js?v=20260322_001'),
     import('./admin-commerce-entitlements.js?v=20260322_001'),
+    import('./admin-commerce-projects.js?v=20260323_001'),
   ]);
   mods.forEach((m, i) => {
     if (m.status === 'fulfilled' && m.value?.init) m.value.init();

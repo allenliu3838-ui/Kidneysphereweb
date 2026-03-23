@@ -44,7 +44,7 @@ import { supabase, ensureSupabase, getSession, getUserProfile, ensureAuthed, sig
 // ------------------------------
 // Build stamp used for cache-busting and consistent navigation.
 // Bump this whenever you ship a new zip.
-const BUILD_VERSION = "20260128_030";
+const BUILD_VERSION = "20260323_001";
 
 // Admin UI view mode (frontend-only)
 // Why: super/admin accounts often want to browse as a normal member.
@@ -575,6 +575,7 @@ async function renderAuthArea(){
             ` : ``}
 
             <a role="menuitem" href="notifications.html" data-badge="notifications">通知中心 <span class="badge-dot" aria-hidden="true"></span></a>
+            <a role="menuitem" href="my-learning.html">我的学习</a>
             <a role="menuitem" href="favorites.html">我的收藏</a>
             <a role="menuitem" href="verify-doctor.html?next=${nextParam}">${doctorMenuLabel}</a>
 

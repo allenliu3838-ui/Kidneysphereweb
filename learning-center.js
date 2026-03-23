@@ -579,3 +579,159 @@ async function init(){
 }
 
 init();
+
+// ============================================================
+// Training Projects — dynamic section on learning.html
+// ============================================================
+
+const PROJECT_STATUS_LABELS = {
+  draft:      { label: '筹备中', color: 'rgba(156,163,175,.7)' },
+  recruiting: { label: '招募中', color: '#4ade80' },
+  closed:     { label: '报名已截止', color: '#fbbf24' },
+  ended:      { label: '已结束', color: 'rgba(156,163,175,.5)' },
+};
+
+async function loadTrainingProjects(){
+  const gridEl = document.getElementById('trainingProgramsGrid');
+  const hintEl = document.getElementById('trainingProgramsHint');
+  if(!gridEl) return;
+
+  if(!isConfigured()){
+    gridEl.innerHTML = '<div class="note small">服务未配置，项目信息暂不可用。</div>';
+    return;
+  }
+
+  await ensureSupabase();
+  if(!supabase){
+    gridEl.innerHTML = '<div class="note small">初始化失败，请刷新重试。</div>';
+    return;
+  }
+
+  try{
+    // Fetch active projects with their associated products
+    const { data: projects, error } = await supabase
+      .from('learning_projects')
+      .select(`
+        id, project_code, title, intro, cover_url, status, sort_order,
+        registration_fee_cny, refund_policy_text, is_active
+      `)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .limit(20);
+
+    if(error) throw error;
+
+    if(!projects || projects.length === 0){
+      gridEl.innerHTML = `
+        <div class="card soft">
+          <h3 style="margin:0">培训项目即将开放</h3>
+          <p class="small muted" style="margin-top:8px">重症肾内科 · 肾移植内科规范化培训项目正在筹备中，敬请关注。</p>
+          <div style="margin-top:12px">
+            <a class="btn" href="my-learning.html">我的学习</a>
+          </div>
+        </div>`;
+      return;
+    }
+
+    // Fetch related products for buy buttons (full+video editions)
+    const { data: allProducts } = await supabase
+      .from('products')
+      .select('id, product_code, title, subtitle, price_cny, list_price_cny, product_type, project_id')
+      .eq('is_active', true)
+      .in('product_type', ['project_registration','specialty_bundle'])
+      .order('sort_order');
+
+    const productsByProject = {};
+    for(const p of (allProducts || [])){
+      if(p.project_id){
+        if(!productsByProject[p.project_id]) productsByProject[p.project_id] = [];
+        productsByProject[p.project_id].push(p);
+      }
+    }
+
+    // Fetch current user + their entitlements
+    let currentUser = null;
+    let userEnts = new Set(); // project_id values user has access to
+    try{
+      currentUser = await getCurrentUser();
+      if(currentUser){
+        const { data: ents } = await supabase
+          .from('user_entitlements')
+          .select('project_id, status, end_at')
+          .eq('user_id', currentUser.id)
+          .eq('status', 'active')
+          .eq('entitlement_type', 'project_access')
+          .or(`end_at.is.null,end_at.gt.${new Date().toISOString()}`);
+        for(const e of (ents || [])){ if(e.project_id) userEnts.add(e.project_id); }
+      }
+    }catch(_e){}
+
+    gridEl.innerHTML = `<div class="grid cols-2" style="gap:16px">${
+      projects.map(proj => {
+        const sl = PROJECT_STATUS_LABELS[proj.status] || { label: proj.status, color: 'gray' };
+        const hasAccess = userEnts.has(proj.id);
+        const prods = productsByProject[proj.id] || [];
+        const fullProd  = prods.find(p => /full|完整|报名/.test(p.product_code + p.title));
+        const videoProd = prods.find(p => /video|视频|回放/.test(p.product_code + p.title));
+
+        function priceTag(p){
+          if(!p) return '';
+          const early = p.list_price_cny ? `<s class="muted" style="font-weight:400">¥${esc(String(p.list_price_cny))}</s> ` : '';
+          return `${early}<b>¥${esc(String(p.price_cny))}</b>`;
+        }
+
+        let ctaHtml = '';
+        if(hasAccess){
+          ctaHtml = `
+            <div class="note" style="border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.06);padding:10px;border-radius:8px;margin-top:10px">
+              ✅ 已报名。<a href="my-learning.html">进入我的学习</a>查看班期与学习群。
+            </div>`;
+        } else if(proj.status === 'recruiting'){
+          const fullBtn  = fullProd  ? `<a class="btn primary" href="checkout.html?product_id=${encodeURIComponent(fullProd.id)}">${priceTag(fullProd)} 报名版</a>` : '';
+          const videoBtn = videoProd ? `<a class="btn" href="checkout.html?product_id=${encodeURIComponent(videoProd.id)}">${priceTag(videoProd)} 视频版</a>` : '';
+          if(fullBtn || videoBtn){
+            ctaHtml = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${fullBtn}${videoBtn}</div>`;
+          } else {
+            ctaHtml = `<div style="margin-top:10px"><a class="btn" href="my-learning.html">联系招募</a></div>`;
+          }
+          if(!currentUser){
+            ctaHtml = `<div style="margin-top:10px"><a class="btn" href="login.html?next=${encodeURIComponent('learning.html')}">登录后报名</a></div>`;
+          }
+        } else if(proj.status === 'draft'){
+          ctaHtml = `<p class="small muted" style="margin-top:10px">报名即将开放，敬请关注。</p>`;
+        }
+
+        return `
+          <div class="card soft">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
+              <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+                  <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${esc(sl.color)};flex-shrink:0"></span>
+                  <span class="small" style="color:${esc(sl.color)};font-weight:600">${esc(sl.label)}</span>
+                </div>
+                <h3 style="margin:0;font-size:16px">${esc(proj.title)}</h3>
+                ${proj.intro ? `<p class="small muted" style="margin-top:6px;line-height:1.6">${esc(proj.intro.slice(0,100))}${proj.intro.length > 100 ? '…' : ''}</p>` : ''}
+              </div>
+            </div>
+            ${fullProd || videoProd ? `
+              <div class="hr" style="margin:10px 0"></div>
+              <div style="display:flex;gap:16px;flex-wrap:wrap">
+                ${fullProd ? `<div class="small"><span class="muted">报名版：</span>${priceTag(fullProd)}</div>` : ''}
+                ${videoProd ? `<div class="small"><span class="muted">视频版：</span>${priceTag(videoProd)}</div>` : ''}
+              </div>` : ''}
+            ${proj.refund_policy_text ? `<p class="small muted" style="margin-top:6px">退款：${esc(proj.refund_policy_text)}</p>` : ''}
+            ${ctaHtml}
+          </div>`;
+      }).join('')
+    }</div>`;
+
+  }catch(e){
+    const msg = String(e?.message || e || '');
+    // Silently skip if table not yet migrated
+    if(/learning_projects.*does not exist/i.test(msg)) return;
+    gridEl.innerHTML = `<div class="note small muted">项目加载失败：${esc(msg)}</div>`;
+  }
+}
+
+// Run after DOM is ready
+loadTrainingProjects();
