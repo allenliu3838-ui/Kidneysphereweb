@@ -32,12 +32,18 @@ const els = {
   videoMp4: document.getElementById('videoMp4'),
   videoAliyunUrl: document.getElementById('videoAliyunUrl'),
   videoAliyunVid: document.getElementById('videoAliyunVid'),
+  videoSpeaker: document.getElementById('videoSpeaker'),
+  videoSpecialty: document.getElementById('videoSpecialty'),
+  videoIsPaid: document.getElementById('videoIsPaid'),
   // Backward/forward compatible ids (some versions used videoSave/videoAdminHint)
   videoSave: document.getElementById('videoSave') || document.getElementById('videoSubmit'),
   videoAdminHint: document.getElementById('videoAdminHint') || document.getElementById('videoHint'),
   videoAdminList: document.getElementById('videoAdminList'),
   showDeletedVideos: document.getElementById('showDeletedVideos'),
 };
+
+// Specialties cache for dropdown + display
+let _specialtiesMap = new Map(); // id → { id, title, code }
 
 // Cache all admin videos (including soft-deleted) for toggle filtering
 let _allAdminVideos = [];
@@ -243,6 +249,37 @@ function fillVideoCategories(){
   els.videoCategory.innerHTML = options;
 }
 
+async function loadSpecialties(){
+  if(!isConfigured() || !supabase) return;
+  try{
+    const { data, error } = await supabase
+      .from('specialties')
+      .select('id, title, code, is_active')
+      .eq('is_active', true)
+      .order('sort_order');
+    if(error) throw error;
+    _specialtiesMap.clear();
+    for(const s of (data || [])){
+      _specialtiesMap.set(s.id, s);
+    }
+    fillSpecialtyDropdown();
+  }catch(e){
+    // Silently skip if table not yet migrated
+    const msg = String(e?.message || '');
+    if(/specialties.*does not exist/i.test(msg)) return;
+    console.warn('loadSpecialties error:', e);
+  }
+}
+
+function fillSpecialtyDropdown(){
+  if(!els.videoSpecialty) return;
+  let html = '<option value="">无（免费公开视频）</option>';
+  for(const [id, s] of _specialtiesMap){
+    html += `<option value="${esc(id)}">${esc(s.title)}</option>`;
+  }
+  els.videoSpecialty.innerHTML = html;
+}
+
 function checkAliyunUrlExpiry(url){
   if(!url) return { expired: false };
   try{
@@ -287,6 +324,14 @@ function renderVideoAdminList(rows){
     const deletedBadge = isDeleted
       ? `<span class="badge" style="border-color:rgba(160,160,160,.5);background:rgba(160,160,160,.12);color:#aaa">已删除</span>`
       : '';
+    const paidBadge = v.is_paid
+      ? `<span class="badge" style="border-color:rgba(234,179,8,.5);background:rgba(234,179,8,.1);color:#fbbf24">付费</span>`
+      : `<span class="badge" style="border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.08);color:#4ade80">免费</span>`;
+    const specName = v.specialty_id ? (_specialtiesMap.get(v.specialty_id)?.title || '专科') : '';
+    const specBadge = specName
+      ? `<span class="badge" style="border-color:rgba(99,102,241,.4);background:rgba(99,102,241,.08);color:#818cf8">${esc(specName)}</span>`
+      : '';
+    const speakerText = v.speaker ? `主讲：${esc(v.speaker)} · ` : '';
 
     const cardStyle = isDeleted
       ? 'padding:12px;opacity:0.5;border-left:3px solid rgba(160,160,160,.4)'
@@ -299,15 +344,18 @@ function renderVideoAdminList(rows){
     return `
       <div class="card" style="${cardStyle}">
         <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
-          <div style="min-width:0">
-            <b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:520px${isDeleted ? ';text-decoration:line-through' : ''}">${esc(v.title || '（无标题）')}</b>
-            <div class="small muted" style="margin-top:6px">
-              ${esc(tag)} · ${esc(kindLabel)} · ${esc(fmtDate(v.created_at))}
-              ${deletedBadge}${expiredBadge}
+          <div style="min-width:0;flex:1">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <b style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:420px${isDeleted ? ';text-decoration:line-through' : ''}">${esc(v.title || '（无标题）')}</b>
+              ${paidBadge}${specBadge}${deletedBadge}${expiredBadge}
             </div>
-            <div class="small" style="margin-top:6px;word-break:break-all">${openUrl ? `<a class="auto-link" href="${esc(openUrl)}" target="_blank" rel="noopener">${esc(openUrl)}</a>` : ''}</div>
+            <div class="small muted" style="margin-top:6px">
+              ${speakerText}${esc(tag)} · ${esc(kindLabel)} · ${esc(fmtDate(v.created_at))}
+            </div>
+            <div class="small" style="margin-top:6px;word-break:break-all">${openUrl ? `<a class="auto-link" href="${esc(openUrl)}" target="_blank" rel="noopener">${esc(openUrl.length > 80 ? openUrl.slice(0,80) + '…' : openUrl)}</a>` : ''}</div>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex-shrink:0">
+            ${isDeleted ? '' : `<button class="btn tiny" type="button" data-video-edit="${esc(v.id)}">编辑</button>`}
             ${isDeleted ? '' : `<a class="btn tiny" href="watch.html?id=${encodeURIComponent(v.id)}">预览</a>`}
             ${actionBtn}
           </div>
@@ -330,16 +378,16 @@ async function loadAdminVideos(){
   try{
     let { data, error } = await supabase
       .from('learning_videos')
-      .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,created_at,enabled,deleted_at')
+      .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,speaker,is_paid,specialty_id,product_id,created_at,enabled,deleted_at')
       .order('created_at', { ascending: false })
-      .limit(30);
-    // Backward compat: retry without aliyun_vid if column doesn't exist yet
-    if(error && /aliyun_vid/i.test(String(error.message || ''))){
+      .limit(50);
+    // Backward compat: retry without newer columns if they don't exist yet
+    if(error && /is_paid|specialty_id|product_id|aliyun_vid|speaker/i.test(String(error.message || ''))){
       const r2 = await supabase
         .from('learning_videos')
         .select('id,title,category,kind,source_url,mp4_url,bvid,created_at,enabled,deleted_at')
         .order('created_at', { ascending: false })
-        .limit(30);
+        .limit(50);
       data = r2.data;
       error = r2.error;
     }
@@ -457,7 +505,14 @@ async function saveVideo(currentUser){
       }
     }
 
+    const speaker = String(els.videoSpeaker?.value || '').trim() || null;
+    const specialtyId = String(els.videoSpecialty?.value || '').trim() || null;
+    const isPaid = !!els.videoIsPaid?.checked;
+
     const row = { title, category, kind, source_url, mp4_url, bvid, enabled: true, deleted_at: null, created_by: currentUser.id };
+    if(speaker) row.speaker = speaker;
+    if(specialtyId) row.specialty_id = specialtyId;
+    row.is_paid = isPaid;
     if(aliyun_vid) row.aliyun_vid = aliyun_vid;
 
     let { error } = await supabase.from('learning_videos').insert(row);
@@ -477,6 +532,9 @@ async function saveVideo(currentUser){
     if(els.videoMp4) els.videoMp4.value = '';
     if(els.videoAliyunUrl) els.videoAliyunUrl.value = '';
     if(els.videoAliyunVid) els.videoAliyunVid.value = '';
+    if(els.videoSpeaker) els.videoSpeaker.value = '';
+    if(els.videoSpecialty) els.videoSpecialty.value = '';
+    if(els.videoIsPaid) els.videoIsPaid.checked = false;
 
     await loadAdminVideos();
   }catch(e){
@@ -531,6 +589,139 @@ async function restoreVideo(id){
   }
 }
 
+// ── Edit video (inline modal) ──
+let _editingVideoId = null;
+
+function openEditModal(videoId){
+  const v = _allAdminVideos.find(r => r.id === videoId);
+  if(!v) return;
+  _editingVideoId = videoId;
+
+  // Remove existing modal if any
+  document.getElementById('videoEditModal')?.remove();
+
+  const cats = Array.isArray(VIDEO_CATEGORIES) ? VIDEO_CATEGORIES : [];
+  const catOptions = cats.map(c => {
+    const key = String(c?.key || '');
+    const label = `${c.zh || ''} / ${c.en || ''}`;
+    return `<option value="${esc(key)}" ${key === (v.category || '') ? 'selected' : ''}>${esc(label)}</option>`;
+  }).join('');
+
+  let specOptions = '<option value="">无（免费公开视频）</option>';
+  for(const [id, s] of _specialtiesMap){
+    specOptions += `<option value="${esc(id)}" ${id === (v.specialty_id || '') ? 'selected' : ''}>${esc(s.title)}</option>`;
+  }
+
+  const modal = document.createElement('div');
+  modal.id = 'videoEditModal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);padding:16px';
+  modal.innerHTML = `
+    <div class="card" style="max-width:640px;width:100%;max-height:90vh;overflow-y:auto;padding:20px">
+      <h3 style="margin:0 0 12px">编辑视频</h3>
+      <div class="form" style="display:flex;flex-direction:column;gap:12px">
+        <div>
+          <label>视频名称</label>
+          <input class="input" id="editTitle" value="${esc(v.title || '')}" />
+        </div>
+        <div class="form-row">
+          <div style="flex:1;min-width:180px">
+            <label>主讲人</label>
+            <input class="input" id="editSpeaker" value="${esc(v.speaker || '')}" />
+          </div>
+          <div style="min-width:200px">
+            <label>频道</label>
+            <select class="input" id="editCategory">${catOptions}</select>
+          </div>
+        </div>
+        <div>
+          <label>视频链接 / 阿里云 MP4 地址</label>
+          <input class="input" id="editUrl" value="${esc(v.mp4_url || v.source_url || '')}" />
+        </div>
+        <div class="form-row">
+          <div style="min-width:200px">
+            <label>所属专科</label>
+            <select class="input" id="editSpecialty">${specOptions}</select>
+          </div>
+          <div style="min-width:120px;display:flex;align-items:center;gap:8px;padding-top:24px">
+            <input type="checkbox" id="editIsPaid" ${v.is_paid ? 'checked' : ''} />
+            <label for="editIsPaid" style="margin:0;cursor:pointer">付费视频</label>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:4px">
+          <button class="btn primary" type="button" id="editSaveBtn">保存修改</button>
+          <button class="btn" type="button" id="editCancelBtn">取消</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  // Close on backdrop click
+  modal.addEventListener('click', (e) => { if(e.target === modal) closeEditModal(); });
+  document.getElementById('editCancelBtn').addEventListener('click', closeEditModal);
+  document.getElementById('editSaveBtn').addEventListener('click', saveEdit);
+}
+
+function closeEditModal(){
+  _editingVideoId = null;
+  document.getElementById('videoEditModal')?.remove();
+}
+
+async function saveEdit(){
+  if(!_editingVideoId || !supabase) return;
+  const btn = document.getElementById('editSaveBtn');
+  if(btn) btn.disabled = true;
+
+  const title = String(document.getElementById('editTitle')?.value || '').trim();
+  const speaker = String(document.getElementById('editSpeaker')?.value || '').trim() || null;
+  const category = String(document.getElementById('editCategory')?.value || '').trim();
+  const urlVal = String(document.getElementById('editUrl')?.value || '').trim();
+  const specialtyId = String(document.getElementById('editSpecialty')?.value || '').trim() || null;
+  const isPaid = !!document.getElementById('editIsPaid')?.checked;
+
+  if(!title){ toast('请输入名称', '', 'err'); if(btn) btn.disabled = false; return; }
+
+  try{
+    const updates = {
+      title,
+      speaker,
+      category,
+      is_paid: isPaid,
+      specialty_id: specialtyId,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Detect URL type and update accordingly
+    if(urlVal){
+      if(/aliyuncs\.com|alicdn\.com|aliyun\.com/i.test(urlVal)){
+        updates.kind = 'aliyun';
+        updates.mp4_url = urlVal;
+        updates.source_url = urlVal;
+      } else if(extractBvid(urlVal)){
+        updates.kind = 'bilibili';
+        updates.bvid = extractBvid(urlVal);
+        updates.source_url = urlVal;
+      } else {
+        updates.kind = 'external';
+        updates.source_url = urlVal;
+      }
+    }
+
+    const { error } = await supabase
+      .from('learning_videos')
+      .update(updates)
+      .eq('id', _editingVideoId);
+    if(error) throw error;
+
+    toast('已更新', '视频信息已保存。', 'ok');
+    closeEditModal();
+    await loadAdminVideos();
+  }catch(e){
+    toast('更新失败', String(e?.message || e || ''), 'err');
+  }finally{
+    if(btn) btn.disabled = false;
+  }
+}
+
 async function init(){
   // Hot articles are public
   loadHotArticles();
@@ -548,12 +739,17 @@ async function init(){
   const isAdmin = isAdminRole(role);
   if(!isAdmin) return;
 
-  // Admin list
-  loadAdminVideos();
+  // Load specialties + admin videos in parallel
+  await Promise.all([loadSpecialties(), loadAdminVideos()]);
 
   // Toggle show/hide deleted videos
   els.showDeletedVideos?.addEventListener('change', ()=>{
     renderVideoAdminList(_allAdminVideos);
+  });
+
+  // Auto-check "付费" when a specialty is selected
+  els.videoSpecialty?.addEventListener('change', ()=>{
+    if(els.videoSpecialty.value && els.videoIsPaid) els.videoIsPaid.checked = true;
   });
 
   els.videoSave?.addEventListener('click', async (e)=>{
@@ -562,6 +758,13 @@ async function init(){
   });
 
   els.videoAdminList?.addEventListener('click', async (e)=>{
+    const editBtn = e.target?.closest?.('[data-video-edit]');
+    if(editBtn){
+      e.preventDefault();
+      const id = String(editBtn.getAttribute('data-video-edit') || '').trim();
+      if(id) openEditModal(id);
+      return;
+    }
     const delBtn = e.target?.closest?.('[data-video-del]');
     if(delBtn){
       e.preventDefault();
