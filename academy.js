@@ -150,7 +150,7 @@ function renderPricingCards(spec, ps, purchasedIds){
       : '仅含视频回放，不含直播与学习群';
     const btnLabel = bought ? '已购买' : (isRec ? '立即报名' : '购买视频版');
     const btnClass = isRec ? 'btn primary' : 'btn';
-    const btnHref  = bought ? 'my-learning.html' : `checkout.html?product_id=${encodeURIComponent(p.id)}`;
+    const btnHref  = bought ? 'my-learning.html' : `checkout.html?product=${encodeURIComponent(p.product_code)}`;
     return `
       <div class="price-option${isRec ? ' recommended' : ''}">
         ${isRec ? '<div class="rec-tag">★ 推荐</div>' : ''}
@@ -178,7 +178,7 @@ function renderBundle(spec, p, purchasedIds){
   const bought = purchasedIds.has(p.id);
   const cur  = fmtPrice(p.price_cny);
   const orig = p.list_price_cny ? fmtPrice(p.list_price_cny) : null;
-  const btnHref = bought ? 'my-learning.html' : `checkout.html?product_id=${encodeURIComponent(p.id)}`;
+  const btnHref = bought ? 'my-learning.html' : `checkout.html?product=${encodeURIComponent(p.product_code)}`;
   const btnLabel = bought ? '✅ 已购买 → 我的学习' : '购买整套课';
 
   // Update price
