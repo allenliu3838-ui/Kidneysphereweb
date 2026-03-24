@@ -56,15 +56,9 @@
   </div>
 </section>
 
-<script type="module">
+<script type=”module”>
   import { supabase, ensureSupabase, ensureAuthed, isConfigured, getCurrentUser, toast } from './supabaseClient.js?v=20260128_030';
   import { getVideoById, getCategoryMeta } from './assets/videos.js?v=20260118_001';
-
-  // 1) Require login (matches “注册后观看”)
-  await ensureAuthed('login.html');
-
-  const qs = new URLSearchParams(location.search);
-  const id = (qs.get('id') || '').toString();
 
   const titleEl = document.getElementById('title');
   const metaEl = document.getElementById('meta');
@@ -72,8 +66,25 @@
   const openBili = document.getElementById('openBili');
 
   function esc(s){
-    return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    return String(s).replace(/[&<>”]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','”':'&quot;'}[c]));
   }
+
+  function showFatalError(msg){
+    titleEl.textContent = '加载失败';
+    metaEl.textContent = '';
+    wrap.innerHTML = `<div class=”note” style=”border-color:rgba(255,120,120,.4);background:rgba(255,120,120,.06)”>
+      <p>${esc(msg)}</p>
+      <div style=”margin-top:12px”><a class=”btn” href=”videos.html”>返回视频目录</a></div>
+    </div>`;
+  }
+
+  const qs = new URLSearchParams(location.search);
+  const id = (qs.get('id') || '').toString();
+
+  try{
+
+  // 1) Require login (matches “注册后观看”)
+  await ensureAuthed('login.html');
 
   /**
    * Check if an Aliyun OSS pre-signed URL has expired.
@@ -129,10 +140,10 @@
             .eq('id', id)
             .maybeSingle();
           // Backward compat: retry without newer columns if they don't exist yet
-          if(error && /aliyun_vid|is_paid|specialty_id|product_id/i.test(String(error.message || ''))){
+          if(error && /aliyun_vid|is_paid|specialty_id|product_id|speaker/i.test(String(error.message || ''))){
             const r2 = await supabase
               .from('learning_videos')
-              .select('id,title,category,kind,source_url,mp4_url,bvid,speaker,created_at,enabled,deleted_at')
+              .select('id,title,category,kind,source_url,mp4_url,bvid,created_at,enabled,deleted_at')
               .eq('id', id)
               .maybeSingle();
             data = r2.data;
@@ -386,6 +397,11 @@
   // Supabase demo mode hint
   if(!isConfigured()){
     toast('服务暂不可用', '当前服务尚未完成初始化或配置，请联系管理员。', 'err');
+  }
+
+  }catch(fatalErr){
+    console.error('[watch] fatal error:', fatalErr);
+    showFatalError(String(fatalErr?.message || fatalErr || '未知错误，请刷新重试。'));
   }
 </script>
 
