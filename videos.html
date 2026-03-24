@@ -133,6 +133,23 @@
     }catch{ return { expired: false }; }
   }
 
+  // Build watch.html URL with essential playback params so the immediate
+  // renderer can play the video without waiting for module/DB
+  function watchUrl(v){
+    const u = new URL('watch.html', location.href);
+    u.searchParams.set('id', v.id);
+    // Pass bvid so immediate script can render bilibili embed instantly
+    const bvid = v.bvid || '';
+    if(bvid) u.searchParams.set('bvid', bvid);
+    // Pass source_url for aliyun/mp4 videos
+    const src = v.mp4_url || v.source_url || '';
+    if(!bvid && src) u.searchParams.set('src', src);
+    // Pass title and speaker for display
+    if(v.title) u.searchParams.set('t', v.title);
+    if(v.speaker) u.searchParams.set('sp', v.speaker);
+    return u.toString();
+  }
+
   function videoCard(v){
     let kind = v.kind || (v.bvid ? 'bilibili' : 'external');
     if(kind !== 'aliyun' && /aliyuncs\.com|alicdn\.com|aliyun\.com/i.test(v.source_url || v.mp4_url || '')){
@@ -161,7 +178,7 @@
       let actionBtns = '';
       if(hasAccess){
         // User has access
-        actionBtns = `<a class="btn primary" href="watch.html?id=${encodeURIComponent(v.id)}">立即观看</a>`;
+        actionBtns = `<a class="btn primary" href="${esc(watchUrl(v))}">立即观看</a>`;
         if(canOpen) actionBtns += `<a class="btn" href="${esc(openUrl)}" target="_blank" rel="noopener">${openText}</a>`;
       } else {
         // Not purchased
@@ -212,7 +229,7 @@
           ${expiredBadge}
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
-          <a class="btn primary" href="watch.html?id=${encodeURIComponent(v.id)}">观看（需登录）</a>
+          <a class="btn primary" href="${esc(watchUrl(v))}">观看（需登录）</a>
           ${canOpen ? `<a class="btn" href="${esc(openUrl)}" target="_blank" rel="noopener">${openText}</a>` : ''}
         </div>
       </div>`;
