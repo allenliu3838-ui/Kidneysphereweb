@@ -1027,7 +1027,7 @@ async function main(){
         const url = await uploadArticleMedia(file);
         els.cover.value = url;
         els.mediaFile.value = '';
-        setUploadMsg('封面已更新。别忘了点击“保存”。', 'muted');
+        setUploadMsg('封面已更新。别忘了点击"保存"。', 'muted');
       }catch(e){
         setUploadMsg(e?.message || String(e), 'err');
       }
@@ -1065,7 +1065,7 @@ async function main(){
           const url = await uploadArticleMedia(file);
           if(target === 'cover'){
             els.cover.value = url;
-            setUploadMsg('封面已更新。别忘了点击“保存”。', 'muted');
+            setUploadMsg('封面已更新。别忘了点击"保存"。', 'muted');
             return;
           }
           if(rtEditor){

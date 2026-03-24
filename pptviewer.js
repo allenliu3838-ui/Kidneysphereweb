@@ -183,7 +183,7 @@ async function main() {
   const idRaw = getQueryParam('id') || getQueryParam('ppt_id') || '';
   const id = String(idRaw || '').trim();
   if (!id) {
-    setStatus('缺少参数：请从“专家 PPT”列表点击进入。');
+    setStatus('缺少参数：请从"专家 PPT"列表点击进入。');
     return;
   }
 

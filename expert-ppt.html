@@ -42,7 +42,7 @@
     <!-- If an admin account is browsing in "member" view mode, the uploader is hidden.
          Provide a clear one-click switch to avoid confusion. -->
 	    <div id="pptAdminModeHint" class="note" data-superadmin-only hidden style="margin-top: 14px;">
-      <b>管理员提示：</b> 你当前处于“普通会员”浏览模式，上传入口已隐藏。
+      <b>管理员提示：</b> 你当前处于"普通会员"浏览模式，上传入口已隐藏。
       点击 <b>切换到管理模式</b> 后刷新即可上传专家 PPT。
       <div style="margin-top:10px">
         <button id="pptSwitchToAdminBtn" type="button" class="btn tiny primary">切换到管理模式</button>
@@ -55,7 +55,7 @@
 
     <div class="card" id="pptUploaderCard" hidden style="margin-top: 18px;">
       <h2 style="margin-top:0">上传专家 PPT（认证医生 / 管理员）</h2>
-	      <p class="small muted">支持拖拽/选择文件上传（PPT/PPTX/PDF/图片）。Ctrl+V 可粘贴<b>截图/图片</b>作为补充附件；部分系统也支持直接粘贴文件（若无法粘贴，请使用拖拽或“选择文件”上传）。</p>
+	      <p class="small muted">支持拖拽/选择文件上传（PPT/PPTX/PDF/图片）。Ctrl+V 可粘贴<b>截图/图片</b>作为补充附件；部分系统也支持直接粘贴文件（若无法粘贴，请使用拖拽或"选择文件"上传）。</p>
 
       
       <form id="pptForm" autocomplete="off">
@@ -108,7 +108,7 @@
       </form>
 
 	    <div class="note small" style="margin-top:12px" data-superadmin-only hidden>
-	      超级管理员提示：如需重新初始化 Expert PPT，请在 Supabase 依次执行相关 MIGRATION 脚本并 Reload schema；同时确认 Storage 已创建 bucket <code>expert_ppt</code> 且 Policies 已按“认证医生可上传、owner/admin 可更新/删除、已登录可查看列表”配置。
+	      超级管理员提示：如需重新初始化 Expert PPT，请在 Supabase 依次执行相关 MIGRATION 脚本并 Reload schema；同时确认 Storage 已创建 bucket <code>expert_ppt</code> 且 Policies 已按"认证医生可上传、owner/admin 可更新/删除、已登录可查看列表"配置。
 	    </div>
     </div>
 

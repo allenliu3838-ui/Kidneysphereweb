@@ -40,8 +40,8 @@
 
       <div class="note small" style="margin-top:12px">
         如果播放器无法显示/卡住：
-        <ul class=”list” style=”margin:8px 0 0”>
-          <li>请先确认已登录（本页为”注册后观看”）。</li>
+        <ul class="list" style="margin:8px 0 0">
+          <li>请先确认已登录（本页为"注册后观看"）。</li>
           <li>尝试刷新页面；或使用无痕窗口；或清理站点缓存后重试。</li>
           <li>仍不行可点击下方按钮在原始平台（B站/阿里云等）直接观看。</li>
         </ul>
@@ -56,7 +56,7 @@
   </div>
 </section>
 
-<script type=”module”>
+<script type="module">
   import { supabase, ensureSupabase, ensureAuthed, isConfigured, getCurrentUser, toast } from './supabaseClient.js?v=20260128_030';
   import { getVideoById, getCategoryMeta } from './assets/videos.js?v=20260118_001';
 
@@ -66,15 +66,15 @@
   const openBili = document.getElementById('openBili');
 
   function esc(s){
-    return String(s).replace(/[&<>”]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','”':'&quot;'}[c]));
+    return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   }
 
   function showFatalError(msg){
     titleEl.textContent = '加载失败';
     metaEl.textContent = '';
-    wrap.innerHTML = `<div class=”note” style=”border-color:rgba(255,120,120,.4);background:rgba(255,120,120,.06)”>
+    wrap.innerHTML = `<div class="note" style="border-color:rgba(255,120,120,.4);background:rgba(255,120,120,.06)">
       <p>${esc(msg)}</p>
-      <div style=”margin-top:12px”><a class=”btn” href=”videos.html”>返回视频目录</a></div>
+      <div style="margin-top:12px"><a class="btn" href="videos.html">返回视频目录</a></div>
     </div>`;
   }
 
@@ -83,7 +83,7 @@
 
   try{
 
-  // 1) Require login (matches “注册后观看”)
+  // 1) Require login (matches "注册后观看")
   await ensureAuthed('login.html');
 
   /**

@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   applyVersionParamToUrl();
   applyVersionParamToLinks();
 
-  // 生产环境默认隐藏“开发/初始化提示”（仅超级管理员在“管理模式”下可见）
+  // 生产环境默认隐藏"开发/初始化提示"（仅超级管理员在"管理模式"下可见）
   markDevHintsAsSuperAdminOnly();
 });
 
@@ -669,7 +669,7 @@ async function renderAuthArea(){
   if(!window.__ks_user_menu_bound){
     window.__ks_user_menu_bound = true;
     // Close dropdown only when clicking OUTSIDE the menu.
-    // Fix: clicking on <summary> (e.g. “管理功能”) inside the dropdown previously
+    // Fix: clicking on <summary> (e.g. "管理功能") inside the dropdown previously
     // bubbled to document and immediately closed the menu, so users needed a second
     // click to see the expanded items.
     document.addEventListener('click', (e)=>{
@@ -729,7 +729,7 @@ function toggleAdminOnly(isAdmin){
   });
 }
 
-// “开发/初始化提示”：仅超级管理员在”管理模式”下可见
+// "开发/初始化提示"：仅超级管理员在"管理模式"下可见
 function toggleSuperAdminOnly(canSee){
   document.querySelectorAll('[data-superadmin-only]').forEach(el=>{
     if(canSee){
@@ -822,8 +822,8 @@ function markSeenForCurrentPage(){
     //
     // Otherwise:
     // 1) Red-dot badges won't react when a new thread is posted;
-    // 2) 通知中心会一直显示 0（因为 seen 时间被不停刷新为“现在”）；
-    // 3) 无法做到“精准定位到板块”。
+    // 2) 通知中心会一直显示 0（因为 seen 时间被不停刷新为"现在"）；
+    // 3) 无法做到"精准定位到板块"。
     if(key === 'cases') continue;
 
     if(cfg.pages.includes(page)) setSeenNow(cfg.seenKey);
@@ -1158,7 +1158,7 @@ async function initAboutShowcase(){
   if(!root) return;
 
   // Preset: 84 co-building hospitals/units (paste-ready, one per line)
-  // NOTE: This only inserts data when an admin explicitly clicks “批量导入”.
+  // NOTE: This only inserts data when an admin explicitly clicks "批量导入".
   const PRESET_CO_BUILDING_84 = `
 1. 莫志宁 广药东莞清溪医院
 2. 宋书贤-西安医学院第二附属医院
@@ -1298,7 +1298,7 @@ async function initAboutShowcase(){
   // --- Auto-seed (admin only):
   // 1) 共建单位：用户希望无需手动逐条输入，直接显示预置名单。
   // 2) 合作单位：把「华人肾移植内科学会」放到关于页。
-  // 说明：只在数据库“确实为空/缺少条目”时写入，避免重复插入。
+  // 说明：只在数据库"确实为空/缺少条目"时写入，避免重复插入。
   if(isAdmin){
     try{
       await maybeAutoSeedCoBuilding();
@@ -1363,7 +1363,7 @@ async function initAboutShowcase(){
     return String(s ?? '')
       .toLowerCase()
       .replace(/\s+/g, '')
-      .replace(/[·•，,。；;:：（）()【】\[\]<>“”"'‘’—–\-]/g, '');
+      .replace(/[·•，,。；;:：（）()【】\[\]<>"""'‘’—–\-]/g, '');
   }
 
   function stripIndexPrefix(line){
@@ -1384,7 +1384,7 @@ async function initAboutShowcase(){
     t = t.replace(/(医院)(?:\s*(?:肾内科|肾脏内科|肾病科|肾内|肾病|血液净化中心|医共体总院|医共体|总院|东院区|西院区|院区))$/,'$1');
     t = t.replace(/(中心)(?:\s*(?:肾内科|肾脏内科|肾病科|血液净化中心))$/,'$1');
 
-    // 处理“附属第二医院医院”之类的重复
+    // 处理"附属第二医院医院"之类的重复
     t = t.replace(/(附属[一二三四五六七八九十\d]+医院)医院$/,'$1');
     t = t.replace(/(附属医院)医院$/,'$1');
 
@@ -1394,12 +1394,12 @@ async function initAboutShowcase(){
   }
 
   function ensureCoBuildingNeiKe(title){
-    // 共建单位统一展示为“机构/医院名称 + 肾内科”
-    // 兼容历史数据里可能出现的“肾脏内科/肾病科/肾内”等写法，统一规范为“肾内科”。
+    // 共建单位统一展示为"机构/医院名称 + 肾内科"
+    // 兼容历史数据里可能出现的"肾脏内科/肾病科/肾内"等写法，统一规范为"肾内科"。
     const base = cleanOrgTitle(title);
     if(!base) return '';
     const b = String(base).trim().replace(/\s+$/,'');
-    // 避免重复：若 b 本身已以“肾内科”结尾（极少见），不重复追加
+    // 避免重复：若 b 本身已以"肾内科"结尾（极少见），不重复追加
     if(/肾内科\s*$/.test(b)) return b;
     return b + '肾内科';
   }
@@ -1409,7 +1409,7 @@ async function initAboutShowcase(){
     const raw0 = stripIndexPrefix(line);
     if(!raw0) return null;
 
-    // Normalize separators so that “姓名-医院 / 医院-姓名 / 医院 姓名” can all be parsed.
+    // Normalize separators so that "姓名-医院 / 医院-姓名 / 医院 姓名" can all be parsed.
     const raw = raw0
       .replace(/[，,]/g, ' ')
       .replace(/[—–-]/g, ' ')
@@ -1419,7 +1419,7 @@ async function initAboutShowcase(){
     const tokens = raw.split(' ').map(t=>t.trim()).filter(Boolean);
     const orgHint = /(医院|中心|大学|医学院|集团|公司|研究院|研究所|诊断)/;
 
-    // Pick the most “org-like” token.
+    // Pick the most "org-like" token.
     let bestIdx = -1;
     let bestScore = -1;
     for(let i=0;i<tokens.length;i++){
@@ -1452,8 +1452,8 @@ async function initAboutShowcase(){
       }
     }
 
-    // Handle cases like “某某人民医院张三” (no separator between org and person).
-    // If we detect trailing 2–4 Chinese chars after the last “医院”, treat them as a contact.
+    // Handle cases like "某某人民医院张三" (no separator between org and person).
+    // If we detect trailing 2–4 Chinese chars after the last "医院", treat them as a contact.
     const lastHos = title.lastIndexOf('医院');
     if(lastHos >= 0 && lastHos + 2 < title.length){
       const tail = title.slice(lastHos + 2).trim();
@@ -1583,7 +1583,7 @@ async function initAboutShowcase(){
 
     fillBtn?.addEventListener('click', ()=>{
       textarea.value = PRESET_CO_BUILDING_84.trim();
-      setStatus(`已填入预置名单：${countLines(textarea.value)} 行。系统会自动提取并仅保存“单位/医院名称”（不保存联系人）。`);
+      setStatus(`已填入预置名单：${countLines(textarea.value)} 行。系统会自动提取并仅保存"单位/医院名称"（不保存联系人）。`);
       textarea.focus();
     });
 
@@ -1596,7 +1596,7 @@ async function initAboutShowcase(){
     importBtn.addEventListener('click', async ()=>{
       const text = String(textarea.value || '').trim();
       if(!text){
-        toast('请先粘贴名单', '可以点击“填入本次 84 家名单”。', 'err');
+        toast('请先粘贴名单', '可以点击"填入本次 84 家名单"。', 'err');
         return;
       }
 

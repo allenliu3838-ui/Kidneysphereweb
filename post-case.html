@@ -388,7 +388,7 @@
       '',
       '请严格按以下格式输出（便于我自动填回网页）：',
       '标题：...（中文为主，必要时可加英文缩写）',
-      `摘要：...（建议 ${targetLen} 字，突出背景/关键检查/诊断难点/治疗策略/随访结局；缺失处写“待补充”）`,
+      `摘要：...（建议 ${targetLen} 字，突出背景/关键检查/诊断难点/治疗策略/随访结局；缺失处写"待补充"）`,
       '标签：tag1, tag2, tag3（最多 8 个，用逗号分隔）',
       '讨论问题：1) ... 2) ... 3) ...（可选，3-6 条）',
       '',
@@ -404,7 +404,7 @@
   function buildAiPostStructPrompt(){
     return [
       '你是医学病例结构化整理助手。请仅基于我提供的草稿信息整理结构化模板，不要推断、不要补全缺失信息。',
-      '输出为 Markdown（不要附加多余解释）。缺失信息请标注“待补充”。',
+      '输出为 Markdown（不要附加多余解释）。缺失信息请标注"待补充"。',
       '',
       '请按以下结构输出：',
       '## 主诉',
@@ -447,7 +447,7 @@
         <summary style="cursor:pointer"><b>AI 辅助发布（免费）</b> <span class="small muted">（网站不调用AI；复制到任意免费AI生成后粘贴回填）</span></summary>
         <div style="margin-top:10px">
           <div class="small muted" style="margin-bottom:8px">
-            建议先在上方“摘要”框里写要点/粘贴原始材料，再点击复制提示词，让免费AI帮你整理成更适合发布的标题、摘要与标签。
+            建议先在上方"摘要"框里写要点/粘贴原始材料，再点击复制提示词，让免费AI帮你整理成更适合发布的标题、摘要与标签。
           </div>
           <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
             <button class="btn tiny" type="button" id="aiPostCopyBtn">复制提示词+当前草稿（标题/摘要/标签）</button>

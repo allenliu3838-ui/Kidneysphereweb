@@ -369,9 +369,9 @@ async function refresh(){
     const hint = document.getElementById('notifHint');
     if(hint){
       if(firstUse.cases || firstUse.moments || firstUse.videos){
-        hint.innerHTML = `<b>提示：</b>这是你在本设备首次打开通知中心，默认从账号创建时间开始计算；如不想看历史，请点击右上角“全部标记已读”。`;
+        hint.innerHTML = `<b>提示：</b>这是你在本设备首次打开通知中心，默认从账号创建时间开始计算；如不想看历史，请点击右上角"全部标记已读"。`;
       }else{
-        hint.innerHTML = `<b>提示：</b>通知以本设备的“最近标记已读时间”为基准（与红点逻辑一致）。`;
+        hint.innerHTML = `<b>提示：</b>通知以本设备的"最近标记已读时间"为基准（与红点逻辑一致）。`;
       }
     }
   }catch(_e){}

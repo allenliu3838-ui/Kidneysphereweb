@@ -229,7 +229,7 @@ async function load(){
       return;
     }
     if(!isVerified && invite_code.length < 4){
-      toast('请输入邀请码', '没有邀请码请切换到“人工审核认证”。', 'err');
+      toast('请输入邀请码', '没有邀请码请切换到"人工审核认证"。', 'err');
       codeA?.focus();
       return;
     }
@@ -256,13 +256,13 @@ async function load(){
         isNowVerified = isAdminRole(freshRole) || isDoctorRole(freshRole);
       }catch(_e){ /* ignore */ }
 
-      toast('提交成功', isVerified ? '信息已更新。' : '认证成功，已升级为“认证医生”。', 'ok');
+      toast('提交成功', isVerified ? '信息已更新。' : '认证成功，已升级为"认证医生"。', 'ok');
 
       if(!isNowVerified && !isVerified){
         // The RPC returned OK but the persisted role still isn't verified.
         // This typically means the profiles row doesn't exist or migrations didn't run fully.
         // Keep the UI honest and show guidance.
-        if(hintA) hintA.textContent = '提示：认证已提交，但刷新后仍显示未认证。请确认已执行最新 MIGRATION 文件，并在 Supabase 控制台 Settings → API 点击 “Reload schema”，然后刷新页面。';
+        if(hintA) hintA.textContent = '提示：认证已提交，但刷新后仍显示未认证。请确认已执行最新 MIGRATION 文件，并在 Supabase 控制台 Settings → API 点击 "Reload schema"，然后刷新页面。';
       }
 
       if(!isVerified && !isNowVerified){

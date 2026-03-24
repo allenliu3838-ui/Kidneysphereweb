@@ -70,7 +70,7 @@ async function loadMomentFavorites(user){
     favRows = r.data || [];
   }catch(e){
     if(isMissingTableError(e,'moment_favorites')){
-      momentsRoot.innerHTML = renderErr('收藏功能未初始化', '请在 Supabase SQL Editor 运行 MIGRATION_20260110_FAVORITES.sql，然后 Settings → API 点击 “Reload schema”。');
+      momentsRoot.innerHTML = renderErr('收藏功能未初始化', '请在 Supabase SQL Editor 运行 MIGRATION_20260110_FAVORITES.sql，然后 Settings → API 点击 "Reload schema"。');
       return;
     }
     momentsRoot.innerHTML = renderErr('加载失败', e?.message || String(e));
@@ -163,7 +163,7 @@ async function loadArticleFavorites(user){
     favRows = r.data || [];
   }catch(e){
     if(isMissingTableError(e,'article_favorites')){
-      articlesRoot.innerHTML = renderErr('文章收藏未初始化', '请在 Supabase SQL Editor 运行 MIGRATION_20260114_ARTICLE_FAVORITES.sql，然后 Settings → API 点击 “Reload schema”。');
+      articlesRoot.innerHTML = renderErr('文章收藏未初始化', '请在 Supabase SQL Editor 运行 MIGRATION_20260114_ARTICLE_FAVORITES.sql，然后 Settings → API 点击 "Reload schema"。');
       return;
     }
     articlesRoot.innerHTML = renderErr('加载失败', e?.message || String(e));
@@ -267,7 +267,7 @@ async function loadCaseFavorites(user){
     favRows = r.data || [];
   }catch(e){
     if(isMissingTableError(e,'case_favorites')){
-      casesRoot.innerHTML = renderErr('收藏功能未初始化', '请在 Supabase SQL Editor 运行 MIGRATION_20260110_FAVORITES.sql，然后 Settings → API 点击 “Reload schema”。');
+      casesRoot.innerHTML = renderErr('收藏功能未初始化', '请在 Supabase SQL Editor 运行 MIGRATION_20260110_FAVORITES.sql，然后 Settings → API 点击 "Reload schema"。');
       return;
     }
     casesRoot.innerHTML = renderErr('加载失败', e?.message || String(e));
