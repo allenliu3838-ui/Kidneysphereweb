@@ -69,9 +69,18 @@ function renderGrid(rows){
     const badgeText = p.badge ? esc(p.badge) : c.label;
     const desc = p.description ? esc(p.description) : '';
     const link = String(p.link || '').trim();
-    const cta = link
-      ? `<a class="btn" href="${esc(link)}" target="_blank" rel="noopener">了解更多</a>`
-      : `<span class="small muted">详情页筹备中</span>`;
+    const productCode = String(p.product_code || '').trim();
+    const price = p.price_cny ? `¥${p.price_cny}` : '';
+
+    let cta = '';
+    if (productCode) {
+      cta = `<a class="btn primary" href="checkout.html?product=${encodeURIComponent(productCode)}">立即报名${price ? ` ${price}` : ''}</a>`;
+      if (link) cta += ` <a class="btn" href="${esc(link)}" target="_blank" rel="noopener">了解更多</a>`;
+    } else if (link) {
+      cta = `<a class="btn" href="${esc(link)}" target="_blank" rel="noopener">了解更多</a>`;
+    } else {
+      cta = `<span class="small muted">详情页筹备中</span>`;
+    }
 
     return `
       <div class="card soft">
@@ -117,7 +126,7 @@ async function loadPrograms(){
   try{
     const { data, error } = await supabase
       .from('training_programs')
-      .select('id, title, description, status, badge, is_paid, link, sort, created_at, updated_at, deleted_at')
+      .select('id, title, description, status, badge, is_paid, link, sort, product_code, price_cny, created_at, updated_at, deleted_at')
       .is('deleted_at', null)
       .order('sort', { ascending: true })
       .order('created_at', { ascending: true });
