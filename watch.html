@@ -60,24 +60,24 @@
      IMMEDIATE RENDERER: renders videos without ANY module imports,
      Supabase, or CDN dependencies. This ensures videos load even
      when the module script hangs/fails.
-     Handles: 1) Static videos by ID  2) DB videos via sessionStorage
+     Sources: 1) Static lookup  2) URL params (?bvid=...&src=...)
      ============================================================ -->
 <script>
 (function(){
   var STATIC_VIDEOS = {
-    'glom-iga-2025-glassock':    { bvid:'BV1jjmZByEfu', title:'应对IgA肾病治疗的动态格局：2025', speaker:'Dr. Glassock', cat:'glom' },
-    'glom-ln-rovin':             { bvid:'BV1YNqSBXEkz', title:'狼疮肾病诊疗的前沿进展', speaker:'Dr. Brad Rovin', cat:'glom' },
-    'glom-tma-java':             { bvid:'BV1G2moBNE48', title:'TMA的诊疗进展', speaker:'Dr. Anuja Java', cat:'glom' },
-    'glom-fsgs-glassock':        { bvid:'BV19CmoBKELF', title:'FSGS的最新诊疗进展', speaker:'Dr. Glassock', cat:'glom' },
-    'glom-podocytopathy-rennke': { bvid:'BV19Wm2BuEej', title:'足细胞病', speaker:'Dr. Helmut G. Rennke', cat:'glom' },
-    'glom-amyloidosis-li':       { bvid:'BV1Qtm2BiEKS', title:'肾脏淀粉样变的最新进展', speaker:'李汀婷 教授', cat:'glom' },
-    'tx-pregnancy-josephson':    { bvid:'BV1nKmGB9EL1', title:'移植与妊娠：三部曲', speaker:'Dr. Josephson', cat:'tx' },
-    'path-mgrs-bijol':           { bvid:'BV1G4kmBbEsA', title:'MGRS的病理诊断', speaker:'Dr. Vanesa Bijol', cat:'path' },
-    'tx-xenotransplant-cooper':  { bvid:'BV1epmZBzEnu', title:'异种肾移植的前沿进展', speaker:'Dr. David K.C. Cooper', cat:'tx' },
-    'path-basics-1-stillman':    { bvid:'BV1aqm8BxEba', title:'肾脏病理学基本原理 - Part 1', speaker:'Dr. Stillman', cat:'path' },
-    'path-basics-2-stillman':    { bvid:'BV1aqm8BxEAs', title:'肾脏病理学基本原理 - Part 2', speaker:'Dr. Stillman', cat:'path' },
-    'path-basics-3-stillman':    { bvid:'BV1aqm8BxE3b', title:'肾脏病理学基本原理 - Part 3', speaker:'Dr. Stillman', cat:'path' },
-    'other-pkd-dahl':            { bvid:'BV1HAmGBdE1M', title:'多囊肾的最新诊断和治疗', speaker:'Dr. Dahl', cat:'other' },
+    'glom-iga-2025-glassock':    { bvid:'BV1jjmZByEfu', title:'应对IgA肾病治疗的动态格局：2025', speaker:'Dr. Glassock' },
+    'glom-ln-rovin':             { bvid:'BV1YNqSBXEkz', title:'狼疮肾病诊疗的前沿进展', speaker:'Dr. Brad Rovin' },
+    'glom-tma-java':             { bvid:'BV1G2moBNE48', title:'TMA的诊疗进展', speaker:'Dr. Anuja Java' },
+    'glom-fsgs-glassock':        { bvid:'BV19CmoBKELF', title:'FSGS的最新诊疗进展', speaker:'Dr. Glassock' },
+    'glom-podocytopathy-rennke': { bvid:'BV19Wm2BuEej', title:'足细胞病', speaker:'Dr. Helmut G. Rennke' },
+    'glom-amyloidosis-li':       { bvid:'BV1Qtm2BiEKS', title:'肾脏淀粉样变的最新进展', speaker:'李汀婷 教授' },
+    'tx-pregnancy-josephson':    { bvid:'BV1nKmGB9EL1', title:'移植与妊娠：三部曲', speaker:'Dr. Josephson' },
+    'path-mgrs-bijol':           { bvid:'BV1G4kmBbEsA', title:'MGRS的病理诊断', speaker:'Dr. Vanesa Bijol' },
+    'tx-xenotransplant-cooper':  { bvid:'BV1epmZBzEnu', title:'异种肾移植的前沿进展', speaker:'Dr. David K.C. Cooper' },
+    'path-basics-1-stillman':    { bvid:'BV1aqm8BxEba', title:'肾脏病理学基本原理 - Part 1', speaker:'Dr. Stillman' },
+    'path-basics-2-stillman':    { bvid:'BV1aqm8BxEAs', title:'肾脏病理学基本原理 - Part 2', speaker:'Dr. Stillman' },
+    'path-basics-3-stillman':    { bvid:'BV1aqm8BxE3b', title:'肾脏病理学基本原理 - Part 3', speaker:'Dr. Stillman' },
+    'other-pkd-dahl':            { bvid:'BV1HAmGBdE1M', title:'多囊肾的最新诊断和治疗', speaker:'Dr. Dahl' },
   };
 
   function escHtml(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -86,28 +86,31 @@
   var id = (qs.get('id') || '').toString();
   if(!id) return;
 
-  // 1) Try static list first
-  var v = STATIC_VIDEOS[id];
+  // ── Resolve video data from multiple sources ──
 
-  // 2) Try sessionStorage (set by videos.html when user clicks "观看")
-  if(!v){
-    try{
-      var stored = sessionStorage.getItem('ks_watch_video');
-      if(stored){
-        var parsed = JSON.parse(stored);
-        if(parsed && parsed.id === id){
-          v = parsed;
-          // Clean up
-          sessionStorage.removeItem('ks_watch_video');
-        }
-      }
-    }catch(_e){}
+  // 1) Static lookup
+  var sv = STATIC_VIDEOS[id];
+
+  // 2) URL params (set by videos.html links): ?bvid=XX&src=XX&t=XX&sp=XX
+  var urlBvid = qs.get('bvid') || '';
+  var urlSrc  = qs.get('src')  || '';
+  var urlTitle = qs.get('t')   || '';
+  var urlSpeaker = qs.get('sp') || '';
+
+  // Merge: static data takes priority for bvid/title, URL params fill gaps
+  var bvid    = (sv && sv.bvid)    || urlBvid || '';
+  var title   = (sv && sv.title)   || urlTitle || '';
+  var speaker = (sv && sv.speaker) || urlSpeaker || '';
+  var srcUrl  = urlSrc || '';
+
+  // If no bvid and no src, try extracting bvid from src URL
+  if(!bvid && srcUrl){
+    var m = srcUrl.match(/\/video\/(BV[0-9A-Za-z]+)/i);
+    if(m) bvid = m[1];
   }
 
-  if(!v) return; // no data available — let module script handle it
-
-  // Skip paid videos — module script handles access check
-  if(v.is_paid) return;
+  // Nothing to render immediately — let module script handle it
+  if(!bvid && !srcUrl) return;
 
   // Mark that the immediate renderer handled this video
   window.__watchRendered = true;
@@ -117,47 +120,27 @@
   var wrap    = document.getElementById('playerWrap');
   var openBtn = document.getElementById('openBili');
 
-  if(titleEl) titleEl.textContent = v.title || '（无标题）';
-  var sp = (v.speaker || '').trim();
-  if(metaEl) metaEl.textContent = sp ? ('主讲：' + sp) : '';
+  if(titleEl) titleEl.textContent = title || '加载中…';
+  if(metaEl)  metaEl.textContent  = speaker ? ('主讲：' + speaker) : '';
 
-  // Determine video kind
-  var sourceUrl = v.source_url || v.mp4_url || '';
-  var isAliyun = /aliyuncs\.com|alicdn\.com|aliyun\.com/i.test(sourceUrl) || /aliyuncs\.com|alicdn\.com|aliyun\.com/i.test(v.mp4_url || '');
-  var kind = v.kind || (v.bvid ? 'bilibili' : (isAliyun ? 'aliyun' : (v.mp4_url ? 'mp4' : 'external')));
-  if(kind !== 'aliyun' && isAliyun) kind = 'aliyun';
-
-  // Extract bvid from source_url if not set
-  var bvid = v.bvid || '';
-  if(!bvid && sourceUrl){
-    var m = sourceUrl.match(/\/video\/(BV[0-9A-Za-z]+)/i);
-    if(m) bvid = m[1];
-  }
-
-  var openUrl = v.mp4_url || sourceUrl;
-
-  if(kind === 'bilibili' || bvid){
-    // Bilibili embed
-    if(bvid){
-      var src = 'https://player.bilibili.com/player.html?bvid=' + encodeURIComponent(bvid) + '&page=1&high_quality=1&danmaku=0';
-      if(wrap) wrap.innerHTML = '<div class="video-embed"><iframe src="' + src + '" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe></div>';
-    }else{
-      if(wrap) wrap.innerHTML = '<div class="note">该视频缺少 BV 号，无法嵌入播放。<div style="margin-top:12px"><a class="btn primary" href="' + escHtml(openUrl) + '" target="_blank" rel="noopener">打开B站观看</a></div></div>';
-    }
-    var biliUrl = bvid ? ('https://www.bilibili.com/video/' + bvid + '/') : openUrl;
+  if(bvid){
+    // ── Bilibili embed ──
+    var embedSrc = 'https://player.bilibili.com/player.html?bvid=' + encodeURIComponent(bvid) + '&page=1&high_quality=1&danmaku=0';
+    if(wrap) wrap.innerHTML = '<div class="video-embed"><iframe src="' + embedSrc + '" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe></div>';
+    var biliUrl = 'https://www.bilibili.com/video/' + bvid + '/';
     if(openBtn){ openBtn.href = biliUrl; openBtn.textContent = '打开B站'; }
-  }else if(kind === 'aliyun' || kind === 'mp4'){
-    // Aliyun / MP4 — render native <video> immediately; module script may upgrade to Aliplayer
-    var videoUrl = v.mp4_url || sourceUrl;
-    if(wrap) wrap.innerHTML = '<video controls playsinline style="width:100%;max-width:980px;border-radius:16px;background:#000;border:1px solid rgba(255,255,255,.12)"><source src="' + escHtml(videoUrl) + '" type="video/mp4" />你的浏览器不支持播放。</video>';
-    if(openBtn){
-      openBtn.href = videoUrl;
-      openBtn.textContent = kind === 'aliyun' ? '打开视频源' : '打开视频文件';
+  }else if(srcUrl){
+    // ── Aliyun / MP4 / external — render native <video> ──
+    var isAliyun = /aliyuncs\.com|alicdn\.com|aliyun\.com/i.test(srcUrl);
+    if(/\.mp4|\.m3u8|aliyuncs\.com|alicdn\.com/i.test(srcUrl)){
+      if(wrap) wrap.innerHTML = '<video controls playsinline style="width:100%;max-width:980px;border-radius:16px;background:#000;border:1px solid rgba(255,255,255,.12)"><source src="' + escHtml(srcUrl) + '" type="video/mp4" />你的浏览器不支持播放。</video>';
+    }else{
+      if(wrap) wrap.innerHTML = '<div class="note">该视频为外部链接。<div style="margin-top:12px"><a class="btn primary" href="' + escHtml(srcUrl) + '" target="_blank" rel="noopener">打开来源观看</a></div></div>';
     }
-  }else{
-    // External link
-    if(wrap) wrap.innerHTML = '<div class="note">该视频为外部链接，平台可能不允许直接嵌入播放。<div style="margin-top:12px"><a class="btn primary" href="' + escHtml(openUrl) + '" target="_blank" rel="noopener">打开来源观看</a></div></div>';
-    if(openBtn){ openBtn.href = openUrl; openBtn.textContent = '打开来源链接'; }
+    if(openBtn){
+      openBtn.href = srcUrl;
+      openBtn.textContent = isAliyun ? '打开视频源' : '打开来源链接';
+    }
   }
 })();
 </script>
