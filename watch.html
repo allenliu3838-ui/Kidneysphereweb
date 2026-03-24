@@ -57,10 +57,11 @@
 </section>
 
 <!-- ============================================================
-     IMMEDIATE RENDERER: renders videos without ANY module imports,
-     Supabase, or CDN dependencies. This ensures videos load even
-     when the module script hangs/fails.
-     Sources: 1) Static lookup  2) URL params (?bvid=...&src=...)
+     IMMEDIATE RENDERER: renders videos without ANY module imports
+     or Supabase SDK. Works via:
+     1) Static lookup (hardcoded list)
+     2) URL params (?bvid=...&src=...)
+     3) Direct REST API fetch (for DB videos, no SDK needed)
      ============================================================ -->
 <script>
 (function(){
@@ -80,68 +81,96 @@
     'other-pkd-dahl':            { bvid:'BV1HAmGBdE1M', title:'多囊肾的最新诊断和治疗', speaker:'Dr. Dahl' },
   };
 
+  // Supabase REST API config (same as assets/config.js, hardcoded to avoid module import)
+  var SB_URL = 'https://eaatpwakhcjxjonlyfii.supabase.co';
+  var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhYXRwd2FraGNqeGpvbmx5ZmlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5MDUzMzMsImV4cCI6MjA4MjQ4MTMzM30.OZ6mhKVsOKfJeI6opkk7GxRJuv0kY__k5N936h261PI';
+
   function escHtml(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
   var qs = new URLSearchParams(location.search);
   var id = (qs.get('id') || '').toString();
   if(!id) return;
 
-  // ── Resolve video data from multiple sources ──
+  // ── Render function: given bvid/srcUrl/title/speaker, render the player ──
+  function renderPlayer(bvid, srcUrl, title, speaker){
+    window.__watchRendered = true;
+    var titleEl = document.getElementById('title');
+    var metaEl  = document.getElementById('meta');
+    var wrap    = document.getElementById('playerWrap');
+    var openBtn = document.getElementById('openBili');
 
-  // 1) Static lookup
+    if(titleEl) titleEl.textContent = title || '（无标题）';
+    if(metaEl)  metaEl.textContent  = speaker ? ('主讲：' + speaker) : '';
+
+    if(bvid){
+      var embedSrc = 'https://player.bilibili.com/player.html?bvid=' + encodeURIComponent(bvid) + '&page=1&high_quality=1&danmaku=0';
+      if(wrap) wrap.innerHTML = '<div class="video-embed"><iframe src="' + embedSrc + '" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe></div>';
+      var biliUrl = 'https://www.bilibili.com/video/' + bvid + '/';
+      if(openBtn){ openBtn.href = biliUrl; openBtn.textContent = '打开B站'; }
+    }else if(srcUrl){
+      var isAliyun = /aliyuncs\.com|alicdn\.com|aliyun\.com/i.test(srcUrl);
+      if(/\.mp4|\.m3u8|aliyuncs\.com|alicdn\.com/i.test(srcUrl)){
+        if(wrap) wrap.innerHTML = '<video controls playsinline style="width:100%;max-width:980px;border-radius:16px;background:#000;border:1px solid rgba(255,255,255,.12)"><source src="' + escHtml(srcUrl) + '" type="video/mp4" />你的浏览器不支持播放。</video>';
+      }else{
+        if(wrap) wrap.innerHTML = '<div class="note">该视频为外部链接。<div style="margin-top:12px"><a class="btn primary" href="' + escHtml(srcUrl) + '" target="_blank" rel="noopener">打开来源观看</a></div></div>';
+      }
+      if(openBtn){
+        openBtn.href = srcUrl;
+        openBtn.textContent = isAliyun ? '打开视频源' : '打开来源链接';
+      }
+    }
+  }
+
+  // Helper: extract bvid from a bilibili URL
+  function extractBvid(url){
+    if(!url) return '';
+    var m = url.match(/\/video\/(BV[0-9A-Za-z]+)/i);
+    return m ? m[1] : '';
+  }
+
+  // ── Source 1: Static lookup ──
   var sv = STATIC_VIDEOS[id];
+  if(sv){
+    renderPlayer(sv.bvid, '', sv.title, sv.speaker);
+    return;
+  }
 
-  // 2) URL params (set by videos.html links): ?bvid=XX&src=XX&t=XX&sp=XX
+  // ── Source 2: URL params (?bvid=XX&src=XX&t=XX&sp=XX) ──
   var urlBvid = qs.get('bvid') || '';
   var urlSrc  = qs.get('src')  || '';
   var urlTitle = qs.get('t')   || '';
   var urlSpeaker = qs.get('sp') || '';
 
-  // Merge: static data takes priority for bvid/title, URL params fill gaps
-  var bvid    = (sv && sv.bvid)    || urlBvid || '';
-  var title   = (sv && sv.title)   || urlTitle || '';
-  var speaker = (sv && sv.speaker) || urlSpeaker || '';
-  var srcUrl  = urlSrc || '';
+  if(!urlBvid && urlSrc) urlBvid = extractBvid(urlSrc);
 
-  // If no bvid and no src, try extracting bvid from src URL
-  if(!bvid && srcUrl){
-    var m = srcUrl.match(/\/video\/(BV[0-9A-Za-z]+)/i);
-    if(m) bvid = m[1];
+  if(urlBvid || urlSrc){
+    renderPlayer(urlBvid, urlSrc, urlTitle, urlSpeaker);
+    return;
   }
 
-  // Nothing to render immediately — let module script handle it
-  if(!bvid && !srcUrl) return;
+  // ── Source 3: Direct REST API fetch (for DB videos without URL params) ──
+  // This is a lightweight fetch — no Supabase SDK, no module imports needed.
+  // Works even when the module script hangs on CDN loading.
+  var apiUrl = SB_URL + '/rest/v1/learning_videos?id=eq.' + encodeURIComponent(id)
+    + '&select=id,title,bvid,source_url,mp4_url,speaker,is_paid,enabled,deleted_at'
+    + '&enabled=eq.true&deleted_at=is.null&limit=1';
 
-  // Mark that the immediate renderer handled this video
-  window.__watchRendered = true;
+  fetch(apiUrl, {
+    headers: { 'apikey': SB_KEY, 'Accept': 'application/json' }
+  })
+  .then(function(r){ return r.ok ? r.json() : []; })
+  .then(function(rows){
+    if(window.__watchRendered) return; // module script already handled it
+    if(!rows || !rows.length) return; // not found, let module handle
+    var v = rows[0];
+    if(v.is_paid) return; // paid videos need access check — let module handle
 
-  var titleEl = document.getElementById('title');
-  var metaEl  = document.getElementById('meta');
-  var wrap    = document.getElementById('playerWrap');
-  var openBtn = document.getElementById('openBili');
-
-  if(titleEl) titleEl.textContent = title || '加载中…';
-  if(metaEl)  metaEl.textContent  = speaker ? ('主讲：' + speaker) : '';
-
-  if(bvid){
-    // ── Bilibili embed ──
-    var embedSrc = 'https://player.bilibili.com/player.html?bvid=' + encodeURIComponent(bvid) + '&page=1&high_quality=1&danmaku=0';
-    if(wrap) wrap.innerHTML = '<div class="video-embed"><iframe src="' + embedSrc + '" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe></div>';
-    var biliUrl = 'https://www.bilibili.com/video/' + bvid + '/';
-    if(openBtn){ openBtn.href = biliUrl; openBtn.textContent = '打开B站'; }
-  }else if(srcUrl){
-    // ── Aliyun / MP4 / external — render native <video> ──
-    var isAliyun = /aliyuncs\.com|alicdn\.com|aliyun\.com/i.test(srcUrl);
-    if(/\.mp4|\.m3u8|aliyuncs\.com|alicdn\.com/i.test(srcUrl)){
-      if(wrap) wrap.innerHTML = '<video controls playsinline style="width:100%;max-width:980px;border-radius:16px;background:#000;border:1px solid rgba(255,255,255,.12)"><source src="' + escHtml(srcUrl) + '" type="video/mp4" />你的浏览器不支持播放。</video>';
-    }else{
-      if(wrap) wrap.innerHTML = '<div class="note">该视频为外部链接。<div style="margin-top:12px"><a class="btn primary" href="' + escHtml(srcUrl) + '" target="_blank" rel="noopener">打开来源观看</a></div></div>';
-    }
-    if(openBtn){
-      openBtn.href = srcUrl;
-      openBtn.textContent = isAliyun ? '打开视频源' : '打开来源链接';
-    }
-  }
+    var bvid = v.bvid || extractBvid(v.source_url) || extractBvid(v.mp4_url) || '';
+    var srcUrl = v.mp4_url || v.source_url || '';
+    if(!bvid && !srcUrl) return;
+    renderPlayer(bvid, srcUrl, v.title || '', v.speaker || '');
+  })
+  .catch(function(){ /* ignore — module script will handle */ });
 })();
 </script>
 
