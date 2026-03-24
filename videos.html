@@ -23,7 +23,7 @@
       </p>
 
       <div id=”loginHint” class=”note” style=”margin-top:12px”>
-        正在检测登录状态…
+        以下免费视频注册后即可观看。正在检测登录状态…
       </div>
 
       <!-- 升级引导模块（免费注册用户可见，有权益后自动隐藏） -->
@@ -325,29 +325,34 @@
     }
   }
 
+  // ── Immediately render free videos + categories (sync, no DB needed) ──
+  try{ renderCats(); }catch(e){ console.error('[videos] renderCats error:', e); }
+  try{ renderVideos(); }catch(e){ console.error('[videos] renderVideos error:', e); }
+
   async function init(){
-    renderCats();
-    // Always render free videos first (instant, no DB needed)
-    renderVideos();
     try{
-      // Check login and load data in parallel
-      [_currentUser] = await Promise.all([
+      // Check login + load DB videos in parallel, with 12s timeout to prevent hang
+      const timeout = new Promise(resolve => setTimeout(() => resolve([null, undefined]), 12000));
+      const work = Promise.all([
         getCurrentUser().catch(() => null),
         loadDbVideos().catch(e => { console.warn('loadDbVideos failed:', e); }),
       ]);
+      const results = await Promise.race([work, timeout]);
+      _currentUser = results?.[0] ?? null;
+
       const paidVideos = DB_VIDEOS.filter(v => v.is_paid);
       if(paidVideos.length > 0 && _currentUser){
-        await Promise.all([loadUserAccess(paidVideos), loadSpecialtyBundles()]);
-      } else if(paidVideos.length > 0) {
-        await loadSpecialtyBundles();
+        await Promise.all([loadUserAccess(paidVideos), loadSpecialtyBundles()]).catch(() => {});
+      } else if(paidVideos.length > 0){
+        await loadSpecialtyBundles().catch(() => {});
       }
     }catch(err){
       console.warn('videos init error (non-fatal):', err);
     }
     // Re-render with DB videos + access info
-    renderVideos();
-    renderLoginHint();
-    renderUpgradeModule();
+    try{ renderVideos(); }catch(e){ console.error('[videos] renderVideos error:', e); }
+    try{ renderLoginHint(); }catch(e){ console.error('[videos] renderLoginHint error:', e); }
+    try{ renderUpgradeModule(); }catch(e){ console.error('[videos] renderUpgradeModule error:', e); }
   }
 
   function renderUpgradeModule(){
@@ -355,7 +360,6 @@
     if(!mod) return;
     const hasPaid = DB_VIDEOS.some(v => v.is_paid);
     if(!hasPaid){ mod.style.display = 'none'; return; }
-    // Hide if user already has entitlements
     if(_accessSet.size > 0){ mod.style.display = 'none'; return; }
     mod.style.display = 'block';
   }
