@@ -151,6 +151,24 @@
             </div>
           </div>
 
+          <div class="form-row">
+            <div style="min-width:200px">
+              <label>主讲人（可选）</label>
+              <input class="input" id="videoSpeaker" placeholder="如：Dr. Glassock" />
+            </div>
+            <div style="min-width:220px">
+              <label>所属专科</label>
+              <select class="input" id="videoSpecialty">
+                <option value="">无（免费公开视频）</option>
+              </select>
+              <div class="small muted" style="margin-top:6px">选择后该视频归属于该专科课程。</div>
+            </div>
+            <div style="min-width:140px;display:flex;align-items:center;gap:8px;padding-top:24px">
+              <input type="checkbox" id="videoIsPaid" />
+              <label for="videoIsPaid" style="margin:0;cursor:pointer">付费视频</label>
+            </div>
+          </div>
+
           <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center">
             <button class="btn primary" type="submit" id="videoSubmit">保存并上架</button>
             <span class="small muted" id="videoHint"></span>

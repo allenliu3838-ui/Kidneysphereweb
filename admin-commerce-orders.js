@@ -30,6 +30,7 @@ async function loadOrders() {
     .from('orders')
     .select(`
       id, order_no, user_id, total_amount_cny, status, channel,
+      contact_wechat, contact_phone, contact_email,
       remark, created_at, paid_at, approved_at,
       order_items ( id, product_title, quantity, unit_price_cny, amount_cny ),
       payment_proofs ( id, channel, amount_cny, proof_image_url, proof_bucket, proof_path, submitted_at, payer_name, transfer_ref_last4 )
@@ -54,7 +55,7 @@ async function loadOrders() {
   wrap.innerHTML = `
     <table class="data-table">
       <thead><tr>
-        <th>订单号</th><th>金额</th><th>渠道</th><th>状态</th><th>创建时间</th><th>操作</th>
+        <th>订单号</th><th>金额</th><th>渠道</th><th>联系方式</th><th>状态</th><th>创建时间</th><th>操作</th>
       </tr></thead>
       <tbody>
         ${rows.map(r => `
@@ -62,6 +63,7 @@ async function loadOrders() {
             <td><code>${esc(r.order_no)}</code></td>
             <td><b>¥${esc(String(r.total_amount_cny ?? 0))}</b></td>
             <td>${esc(r.channel || '—')}</td>
+            <td class="small">${esc(r.contact_wechat || r.contact_phone || r.contact_email || '—')}</td>
             <td>${statusLabel(r.status)}</td>
             <td class="small">${esc(formatBeijingDateTime(r.created_at))}</td>
             <td>
@@ -114,6 +116,15 @@ async function showOrderDetail(orderId) {
       <div><span class="small muted">用户ID</span><br/><code class="small">${esc(order.user_id)}</code></div>
       <div><span class="small muted">创建时间</span><br/>${esc(formatBeijingDateTime(order.created_at))}</div>
     </div>
+    ${(order.contact_wechat || order.contact_phone || order.contact_email) ? `
+    <div style="padding:10px 12px;background:rgba(59,130,246,.08);border-radius:8px;margin-bottom:12px">
+      <span class="small" style="font-weight:600">📱 联系方式</span>
+      <div class="small" style="margin-top:4px">
+        ${order.contact_wechat ? `微信: <b>${esc(order.contact_wechat)}</b>` : ''}
+        ${order.contact_phone ? `${order.contact_wechat ? ' | ' : ''}手机: <b>${esc(order.contact_phone)}</b>` : ''}
+        ${order.contact_email ? `${(order.contact_wechat || order.contact_phone) ? ' | ' : ''}邮箱: <b>${esc(order.contact_email)}</b>` : ''}
+      </div>
+    </div>` : ''}
     <h4>订单商品 (${items.length})</h4>
     ${items.length ? items.map(i => `<div class="small" style="padding:4px 0">${esc(i.product_title)} × ${i.quantity} = ¥${esc(String(i.amount_cny))}</div>`).join('') : '<div class="muted">无</div>'}
     <div class="hr"></div>

@@ -87,6 +87,9 @@ create table if not exists public.orders (
     'pending_payment','pending_review','approved','rejected','cancelled','refunded'
   )),
   channel text default 'wechat' check (channel in ('wechat','alipay','bank_transfer','online_wechat','online_alipay')),
+  contact_wechat text,
+  contact_phone text,
+  contact_email text,
   remark text,
   created_at timestamptz not null default now(),
   paid_at timestamptz,

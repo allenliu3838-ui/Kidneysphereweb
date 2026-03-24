@@ -281,9 +281,8 @@
     DB_VIDEOS = [];
     ALL_VIDEOS = [...FREE_VIDEOS];
     if(!isConfigured()) return;
-    await ensureSupabase();
+    try{ await ensureSupabase(); }catch(_e){ return; }
     if(!supabase) return;
-
     try{
       let { data, error } = await supabase
         .from('learning_videos')
@@ -328,17 +327,24 @@
 
   async function init(){
     renderCats();
-    // Check login and load data in parallel
-    [_currentUser] = await Promise.all([
-      getCurrentUser().catch(() => null),
-      loadDbVideos(),
-    ]);
-    const paidVideos = DB_VIDEOS.filter(v => v.is_paid);
-    if(paidVideos.length > 0 && _currentUser){
-      await Promise.all([loadUserAccess(paidVideos), loadSpecialtyBundles()]);
-    } else if(paidVideos.length > 0) {
-      await loadSpecialtyBundles();
+    // Always render free videos first (instant, no DB needed)
+    renderVideos();
+    try{
+      // Check login and load data in parallel
+      [_currentUser] = await Promise.all([
+        getCurrentUser().catch(() => null),
+        loadDbVideos().catch(e => { console.warn('loadDbVideos failed:', e); }),
+      ]);
+      const paidVideos = DB_VIDEOS.filter(v => v.is_paid);
+      if(paidVideos.length > 0 && _currentUser){
+        await Promise.all([loadUserAccess(paidVideos), loadSpecialtyBundles()]);
+      } else if(paidVideos.length > 0) {
+        await loadSpecialtyBundles();
+      }
+    }catch(err){
+      console.warn('videos init error (non-fatal):', err);
     }
+    // Re-render with DB videos + access info
     renderVideos();
     renderLoginHint();
     renderUpgradeModule();
