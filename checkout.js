@@ -47,14 +47,18 @@ async function loadProduct() {
     return false;
   }
 
-  let q = supabase.from('products').select('*');
-  if (pid) q = q.eq('id', pid);
-  else q = q.eq('product_code', code);
-  q = q.eq('is_active', true).single();
+  // Use RPC to avoid PostgREST schema-cache uuid cast issues
+  const { data, error } = await supabase.rpc('get_product_for_checkout', {
+    p_code: code || null,
+    p_id: pid || null,
+  });
 
-  const { data, error } = await q;
-  if (error || !data) {
-    gate.innerHTML = `<b>商品未找到。</b>${error ? esc(error.message) : '该商品可能已下架。'}`;
+  if (error) {
+    gate.innerHTML = `<b>商品查询失败。</b>${esc(error.message)}`;
+    return false;
+  }
+  if (!data) {
+    gate.innerHTML = '<b>商品未找到。</b>该商品可能已下架或编码有误。';
     return false;
   }
 
