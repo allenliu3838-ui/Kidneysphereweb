@@ -57,9 +57,10 @@
 </section>
 
 <!-- ============================================================
-     IMMEDIATE RENDERER: renders free Bilibili videos without ANY
-     module imports, Supabase, or CDN dependencies. This ensures
-     the video loads even when the module script hangs/fails.
+     IMMEDIATE RENDERER: renders videos without ANY module imports,
+     Supabase, or CDN dependencies. This ensures videos load even
+     when the module script hangs/fails.
+     Handles: 1) Static videos by ID  2) DB videos via sessionStorage
      ============================================================ -->
 <script>
 (function(){
@@ -79,10 +80,34 @@
     'other-pkd-dahl':            { bvid:'BV1HAmGBdE1M', title:'多囊肾的最新诊断和治疗', speaker:'Dr. Dahl', cat:'other' },
   };
 
+  function escHtml(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
   var qs = new URLSearchParams(location.search);
   var id = (qs.get('id') || '').toString();
+  if(!id) return;
+
+  // 1) Try static list first
   var v = STATIC_VIDEOS[id];
-  if(!v || !v.bvid) return; // not a static video — let module script handle it
+
+  // 2) Try sessionStorage (set by videos.html when user clicks "观看")
+  if(!v){
+    try{
+      var stored = sessionStorage.getItem('ks_watch_video');
+      if(stored){
+        var parsed = JSON.parse(stored);
+        if(parsed && parsed.id === id){
+          v = parsed;
+          // Clean up
+          sessionStorage.removeItem('ks_watch_video');
+        }
+      }
+    }catch(_e){}
+  }
+
+  if(!v) return; // no data available — let module script handle it
+
+  // Skip paid videos — module script handles access check
+  if(v.is_paid) return;
 
   // Mark that the immediate renderer handled this video
   window.__watchRendered = true;
@@ -92,14 +117,73 @@
   var wrap    = document.getElementById('playerWrap');
   var openBtn = document.getElementById('openBili');
 
-  if(titleEl) titleEl.textContent = v.title;
-  if(metaEl)  metaEl.textContent = '主讲：' + v.speaker;
+  if(titleEl) titleEl.textContent = v.title || '（无标题）';
+  var sp = (v.speaker || '').trim();
+  if(metaEl) metaEl.textContent = sp ? ('主讲：' + sp) : '';
 
-  var src = 'https://player.bilibili.com/player.html?bvid=' + encodeURIComponent(v.bvid) + '&page=1&high_quality=1&danmaku=0';
-  if(wrap) wrap.innerHTML = '<div class="video-embed"><iframe src="' + src + '" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe></div>';
+  // Determine video kind
+  var sourceUrl = v.source_url || v.mp4_url || '';
+  var isAliyun = /aliyuncs\.com|alicdn\.com|aliyun\.com/i.test(sourceUrl) || /aliyuncs\.com|alicdn\.com|aliyun\.com/i.test(v.mp4_url || '');
+  var kind = v.kind || (v.bvid ? 'bilibili' : (isAliyun ? 'aliyun' : (v.mp4_url ? 'mp4' : 'external')));
+  if(kind !== 'aliyun' && isAliyun) kind = 'aliyun';
 
-  var biliUrl = 'https://www.bilibili.com/video/' + v.bvid + '/';
-  if(openBtn){ openBtn.href = biliUrl; openBtn.textContent = '打开B站'; }
+  // Extract bvid from source_url if not set
+  var bvid = v.bvid || '';
+  if(!bvid && sourceUrl){
+    var m = sourceUrl.match(/\/video\/(BV[0-9A-Za-z]+)/i);
+    if(m) bvid = m[1];
+  }
+
+  var openUrl = v.mp4_url || sourceUrl;
+
+  if(kind === 'bilibili' || bvid){
+    // Bilibili embed
+    if(bvid){
+      var src = 'https://player.bilibili.com/player.html?bvid=' + encodeURIComponent(bvid) + '&page=1&high_quality=1&danmaku=0';
+      if(wrap) wrap.innerHTML = '<div class="video-embed"><iframe src="' + src + '" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe></div>';
+    }else{
+      if(wrap) wrap.innerHTML = '<div class="note">该视频缺少 BV 号，无法嵌入播放。<div style="margin-top:12px"><a class="btn primary" href="' + escHtml(openUrl) + '" target="_blank" rel="noopener">打开B站观看</a></div></div>';
+    }
+    var biliUrl = bvid ? ('https://www.bilibili.com/video/' + bvid + '/') : openUrl;
+    if(openBtn){ openBtn.href = biliUrl; openBtn.textContent = '打开B站'; }
+  }else if(kind === 'aliyun' || kind === 'mp4'){
+    // Aliyun / MP4 — render native <video> immediately; module script may upgrade to Aliplayer
+    var videoUrl = v.mp4_url || sourceUrl;
+    if(wrap) wrap.innerHTML = '<video controls playsinline style="width:100%;max-width:980px;border-radius:16px;background:#000;border:1px solid rgba(255,255,255,.12)"><source src="' + escHtml(videoUrl) + '" type="video/mp4" />你的浏览器不支持播放。</video>';
+    if(openBtn){
+      openBtn.href = videoUrl;
+      openBtn.textContent = kind === 'aliyun' ? '打开视频源' : '打开视频文件';
+    }
+  }else{
+    // External link
+    if(wrap) wrap.innerHTML = '<div class="note">该视频为外部链接，平台可能不允许直接嵌入播放。<div style="margin-top:12px"><a class="btn primary" href="' + escHtml(openUrl) + '" target="_blank" rel="noopener">打开来源观看</a></div></div>';
+    if(openBtn){ openBtn.href = openUrl; openBtn.textContent = '打开来源链接'; }
+  }
+})();
+</script>
+
+<!-- Timeout fallback: if module script hasn't rendered after 15s, show help -->
+<script>
+(function(){
+  if(window.__watchRendered) return; // already rendered
+  var timer = setTimeout(function(){
+    if(window.__watchRendered) return;
+    var titleEl = document.getElementById('title');
+    var wrap = document.getElementById('playerWrap');
+    if(titleEl && titleEl.textContent === '正在加载…'){
+      titleEl.textContent = '加载超时';
+      if(wrap) wrap.innerHTML = '<div class="note" style="border-color:rgba(255,160,80,.4);background:rgba(255,160,80,.06)">'
+        + '<p>页面加载时间过长，可能是网络连接问题。</p>'
+        + '<ul class="list" style="margin:8px 0 0">'
+        + '<li>请刷新页面重试</li>'
+        + '<li>检查网络连接是否正常</li>'
+        + '<li>尝试使用无痕窗口或清理浏览器缓存</li>'
+        + '<li>返回 <a href="videos.html">视频目录</a>，通过"打开B站"/"阿里云播放"等按钮在原始平台观看</li>'
+        + '</ul></div>';
+    }
+  }, 15000);
+  // Cancel if module renders in time
+  window.__watchCancelTimeout = function(){ clearTimeout(timer); };
 })();
 </script>
 
@@ -128,9 +212,12 @@
   const qs = new URLSearchParams(location.search);
   const id = (qs.get('id') || '').toString();
 
+  // Cancel the timeout fallback — module script is running
+  if(typeof window.__watchCancelTimeout === 'function') window.__watchCancelTimeout();
+
   // If the immediate (non-module) renderer already handled this video, skip.
   if(window.__watchRendered){
-    console.log('[watch] Static video already rendered by immediate script, skipping module.');
+    console.log('[watch] Video already rendered by immediate script, skipping module.');
     // Still do a soft auth check for nav avatar, but don't block
     ensureAuthed('login.html').catch(() => {});
   } else {
