@@ -56,6 +56,53 @@
   </div>
 </section>
 
+<!-- ============================================================
+     IMMEDIATE RENDERER: renders free Bilibili videos without ANY
+     module imports, Supabase, or CDN dependencies. This ensures
+     the video loads even when the module script hangs/fails.
+     ============================================================ -->
+<script>
+(function(){
+  var STATIC_VIDEOS = {
+    'glom-iga-2025-glassock':  { bvid:'BV1jjmZByEfu', title:'应对IgA肾病治疗的动态格局：2025', speaker:'Dr. Glassock', cat:'glom' },
+    'glom-ln-rovin':           { bvid:'BV1YNqSBXEkz', title:'狼疮肾病诊疗的前沿进展', speaker:'Dr. Brad Rovin', cat:'glom' },
+    'glom-tma-java':           { bvid:'BV1G2moBNE48', title:'TMA的诊疗进展', speaker:'Dr. Anuja Java', cat:'glom' },
+    'glom-fsgs-glassock':      { bvid:'BV19CmoBKELF', title:'FSGS的最新诊疗进展', speaker:'Dr. Glassock', cat:'glom' },
+    'glom-pod-rennke':         { bvid:'BV1BsmoBWEJK', title:'足细胞病', speaker:'Dr. Helmut G. Rennke', cat:'glom' },
+    'rare-amyloid-li':         { bvid:'BV17VmoB8Enr', title:'肾脏淀粉样变的最新进展', speaker:'李汀婷 教授', cat:'rare' },
+    'tx-pregnancy-josephson':  { bvid:'BV1o2moBzEJJ', title:'移植与妊娠：三部曲', speaker:'Dr. Josephson', cat:'tx' },
+    'glom-mgrs-bijol':         { bvid:'BV1X2moB5E7Y', title:'MGRS的病理诊断', speaker:'Dr. Vanesa Bijol', cat:'glom' },
+    'tx-xeno-cooper':          { bvid:'BV1oBm5BdEd6', title:'异种肾移植的前沿进展', speaker:'Dr. David K.C. Cooper', cat:'tx' },
+    'path-basic-1-stillman':   { bvid:'BV1uHm5BUEe3', title:'肾脏病理学基本原理 - Part 1', speaker:'Dr. Stillman', cat:'path' },
+    'path-basic-2-stillman':   { bvid:'BV1BBm5BPEJT', title:'肾脏病理学基本原理 - Part 2', speaker:'Dr. Stillman', cat:'path' },
+    'path-basic-3-stillman':   { bvid:'BV1aqm8BxE3b', title:'肾脏病理学基本原理 - Part 3', speaker:'Dr. Stillman', cat:'path' },
+    'other-pkd-dahl':          { bvid:'BV1HAmGBdE1M', title:'多囊肾的最新诊断和治疗', speaker:'Dr. Dahl', cat:'other' },
+  };
+
+  var qs = new URLSearchParams(location.search);
+  var id = (qs.get('id') || '').toString();
+  var v = STATIC_VIDEOS[id];
+  if(!v || !v.bvid) return; // not a static video — let module script handle it
+
+  // Mark that the immediate renderer handled this video
+  window.__watchRendered = true;
+
+  var titleEl = document.getElementById('title');
+  var metaEl  = document.getElementById('meta');
+  var wrap    = document.getElementById('playerWrap');
+  var openBtn = document.getElementById('openBili');
+
+  if(titleEl) titleEl.textContent = v.title;
+  if(metaEl)  metaEl.textContent = '主讲：' + v.speaker;
+
+  var src = 'https://player.bilibili.com/player.html?bvid=' + encodeURIComponent(v.bvid) + '&page=1&high_quality=1&danmaku=0';
+  if(wrap) wrap.innerHTML = '<div class="video-embed"><iframe src="' + src + '" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe></div>';
+
+  var biliUrl = 'https://www.bilibili.com/video/' + v.bvid + '/';
+  if(openBtn){ openBtn.href = biliUrl; openBtn.textContent = '打开B站'; }
+})();
+</script>
+
 <script type="module">
   import { supabase, ensureSupabase, ensureAuthed, isConfigured, getCurrentUser, toast } from './supabaseClient.js?v=20260128_030';
   import { getVideoById, getCategoryMeta } from './assets/videos.js?v=20260118_001';
@@ -81,9 +128,12 @@
   const qs = new URLSearchParams(location.search);
   const id = (qs.get('id') || '').toString();
 
-  // For static videos (from assets/videos.js), we can try to render immediately
-  // even before auth check, since they are free. Auth check is for DB videos.
-  const staticVideo = getVideoById(id);
+  // If the immediate (non-module) renderer already handled this video, skip.
+  if(window.__watchRendered){
+    console.log('[watch] Static video already rendered by immediate script, skipping module.');
+    // Still do a soft auth check for nav avatar, but don't block
+    ensureAuthed('login.html').catch(() => {});
+  } else {
 
   try{
 
@@ -94,7 +144,6 @@
   }catch(authErr){
     if(String(authErr?.message) === 'auth_timeout'){
       console.warn('[watch] ensureAuthed timed out after 10s, proceeding anyway');
-      // Don't block — user may already be authed, just slow init
     } else {
       throw authErr;
     }
@@ -417,6 +466,8 @@
     console.error('[watch] fatal error:', fatalErr);
     showFatalError(String(fatalErr?.message || fatalErr || '未知错误，请刷新重试。'));
   }
+
+  } // end else (module path for non-static videos)
 </script>
 
   </main>
