@@ -136,3 +136,86 @@ where id = '你的-User-UID';
   - `event_links`：已确认会议的入会链接（仅会员可见，且只有 confirmed 才会下发）
 
 ---
+
+## 5) 付费系统部署说明（v2026-03-23）
+
+### 5.1 运行增量 Migration
+
+在运行 `SUPABASE_SETUP.sql` 和所有之前的 migration 之后，继续运行：
+
+```
+migration_20260322_unified_commerce.sql   ← 商品/订单/权益/项目主表 + RLS + RPC
+migration_20260323_paid_system.sql        ← 视频付费字段 + 新增 RPC + 两专科种子数据
+```
+
+运行完毕后：`Supabase Dashboard → API → 点击 Reload schema`
+
+### 5.2 配置收款信息
+
+进入 `admin-commerce.html` → **系统配置** Tab：
+
+| 配置项 | 说明 |
+|---|---|
+| `wechat_pay_qr_url` | 微信收款码图片 URL（上传到 Supabase Storage 后粘贴地址） |
+| `alipay_pay_qr_url` | 支付宝收款码图片 URL |
+| `bank_name` / `bank_account` / `bank_account_name` | 对公转账信息 |
+| `payment_notice` | 支付页提示文案（建议提醒用户备注订单号） |
+
+### 5.3 管理培训项目
+
+进入 `admin-commerce.html` → **项目中心** Tab：
+
+1. 可看到已预置的「重症肾内科」和「肾移植内科」两个草稿项目
+2. 点击「编辑」修改标题/简介/封面，并将状态改为 `recruiting`（招募中）
+3. 点击「班期」新建班期，填入开始日期、名额、微信群二维码
+4. 班期状态设为 `recruiting` 后，学员在 `learning.html` 即可看到报名按钮
+
+### 5.4 管理视频付费标志
+
+新视频默认 `is_paid = false`（免费）。
+如需设置为付费视频：
+
+```sql
+-- 在 Supabase SQL Editor 执行：
+update public.learning_videos
+set is_paid = true,
+    specialty_id = (select id from specialties where code = 'icu'),  -- 或 'tx'
+    product_id = (select id from products where product_code = 'ICU-BUNDLE-2026')  -- 可选，单视频商品
+where id = '视频UUID';
+```
+
+也可以在 `admin-commerce.html` → **商品中心** 创建 `single_video` 类型商品，再通过 SQL 关联。
+
+### 5.5 定价与早鸟价调整
+
+当前默认价格（以「重症肾内科」为例）：
+
+| 商品 | 早鸟价（当前） | 正价 |
+|---|---|---|
+| 报名版（完整版） | ¥1,280 | ¥1,580 |
+| 视频版（回放版） | ¥780 | ¥980 |
+| 专科整套课 Bundle | ¥980 | ¥1,200 |
+
+早鸟期结束后，在 `admin-commerce.html` → **商品中心** 中编辑对应商品：
+- 将 `price_cny` 改为正价
+- 将 `list_price_cny` 清空（不划线）
+
+### 5.6 订单审核流程
+
+1. 用户在 `checkout.html` 完成付款并上传凭证
+2. 管理员在 `admin-commerce.html` → **订单审核** 看到待审核订单
+3. 点击订单行 → 查看付款截图 → 点「通过」→ 系统自动写入 `user_entitlements`
+4. 用户刷新 `my-learning.html` 即可看到新权益
+
+### 5.7 用户端页面
+
+| 页面 | 说明 |
+|---|---|
+| `learning.html` | 展示培训项目（动态从 DB 读取），有报名按钮 |
+| `videos.html` | 展示所有视频，付费视频显示「付费」标签和购买按钮 |
+| `watch.html` | 播放页，付费视频未购显示购买引导而非播放器 |
+| `checkout.html` | 通用结账页，`?product_id=UUID` 或 `?product=CODE` |
+| `my-learning.html` | 我的学习：权益 / 订单 / 报名项目 |
+| `admin-commerce.html` | 后台：订单审核 / 商品 / 项目 / 班期 / 权益 / 配置 |
+
+---

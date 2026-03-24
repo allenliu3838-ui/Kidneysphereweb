@@ -16,25 +16,40 @@
 <section class="hero">
   <div class="container">
     <div class="card">
-      <span class="badge">学习中心 · Videos</span>
-      <h2 style="margin-top:10px">注册登录后观看 · 免费视频库</h2>
-      <p class="small">
-        这里收录你整理的公开学习资源链接，方便成员在一个地方学习、检索与沉淀。
+      <span class=”badge”>视频库</span>
+      <h2 style=”margin-top:10px”>视频库</h2>
+      <p class=”small”>
+        注册后免费观看公开视频；付费专科课程视频购买后永久解锁。
       </p>
 
-      <div id="loginHint" class="note" style="margin-top:12px">
+      <div id=”loginHint” class=”note” style=”margin-top:12px”>
         正在检测登录状态…
       </div>
 
-      <div class="hr"></div>
+      <!-- 升级引导模块（免费注册用户可见，有权益后自动隐藏） -->
+      <div id=”upgradeModule” style=”margin-top:14px;padding:14px 16px;background:rgba(63,131,248,.08);border:1px solid rgba(63,131,248,.25);border-radius:12px;display:none”>
+        <div style=”display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px”>
+          <div>
+            <div style=”font-weight:600;font-size:14px”>想解锁专科课程视频？</div>
+            <div class=”small muted” style=”margin-top:3px”>报名培训项目后可获得班期视频回放；整套课可永久解锁该专科所有视频。</div>
+          </div>
+          <div style=”display:flex;gap:8px;flex-wrap:wrap”>
+            <a class=”btn primary” href=”academy.html#training-projects”>查看培训项目</a>
+            <a class=”btn” href=”academy.html#pricing”>查看价格</a>
+          </div>
+        </div>
+      </div>
 
-      <div class="section-title">
+      <div class=”hr”></div>
+
+      <div class=”section-title”>
         <div>
           <h3>频道筛选</h3>
-          <p>点击频道筛选。进入播放页会强制要求登录（符合“注册后观看”）。</p>
+          <p>点击频道筛选；付费视频标注 🔒，登录后可购买。</p>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <a class="btn" href="learning.html">返回学习中心</a>
+        <div style=”display:flex;gap:10px;flex-wrap:wrap”>
+          <a class=”btn” href=”academy.html”>培训与定价</a>
+          <a class=”btn” href=”my-learning.html”>我的学习</a>
         </div>
       </div>
 
@@ -54,13 +69,18 @@
   </div>
 </section>
 
-<script type="module">
-  import { supabase, ensureSupabase, isConfigured, toast } from './supabaseClient.js?v=20260128_030';
+<script type=”module”>
+  import { supabase, ensureSupabase, isConfigured, getCurrentUser, toast } from './supabaseClient.js?v=20260128_030';
   import { VIDEO_CATEGORIES, FREE_VIDEOS } from './assets/videos.js?v=20260118_001';
 
-  // v7.2: mix static "FREE_VIDEOS" with admin-added "learning_videos" (scheme 2)
+  // mix static FREE_VIDEOS with DB learning_videos
   let DB_VIDEOS = [];
   let ALL_VIDEOS = [...FREE_VIDEOS];
+  // Set of video IDs the current user has access to (paid videos)
+  let _accessSet = new Set();
+  // Map: specialty_id → bundle product_id (for buy buttons)
+  let _specialtyBundles = {};
+  let _currentUser = null;
 
   const qs = new URLSearchParams(location.search);
   let currentCat = (qs.get('cat') || 'all').toString();
@@ -70,7 +90,7 @@
   const loginHint = document.getElementById('loginHint');
 
   function esc(s){
-    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    return String(s).replace(/[&<>”']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','”':'&quot;',”'”:'&#39;'}[c]));
   }
 
   function pill(label, active, onClick){
@@ -101,34 +121,99 @@
     });
   }
 
+  function checkAliyunUrlExpiry(url){
+    if(!url) return { expired: false };
+    try{
+      const u = new URL(url);
+      const exp = u.searchParams.get('Expires');
+      if(!exp) return { expired: false };
+      const expiresAt = new Date(Number(exp) * 1000);
+      if(isNaN(expiresAt.getTime())) return { expired: false };
+      return { expired: expiresAt.getTime() < Date.now(), expiresAt };
+    }catch{ return { expired: false }; }
+  }
+
   function videoCard(v){
     let kind = v.kind || (v.bvid ? 'bilibili' : 'external');
-    // Auto-detect aliyun URLs regardless of stored kind
     if(kind !== 'aliyun' && /aliyuncs\.com|alicdn\.com|aliyun\.com/i.test(v.source_url || v.mp4_url || '')){
       kind = 'aliyun';
     }
-    const badge = v.needs_check ? `<span class="badge" style="border-color:rgba(255,160,160,.5);background:rgba(255,160,160,.08)">待核对</span>` : '';
+    const urlToCheck = v.mp4_url || v.source_url || '';
+    const expiry = checkAliyunUrlExpiry(urlToCheck);
+    const expiredBadge = expiry.expired
+      ? `<span class=”badge” style=”border-color:rgba(255,100,100,.6);background:rgba(255,100,100,.1);color:#f66”>链接已过期</span>`
+      : '';
+    const needsCheckBadge = v.needs_check
+      ? `<span class=”badge” style=”border-color:rgba(255,160,160,.5);background:rgba(255,160,160,.08)”>待核对</span>` : '';
     const speaker = (v.speaker || '').trim();
     const metaLine = speaker ? `主讲：${esc(speaker)}` : `分类：${esc(v.category || '')}`;
-    const openText = kind === 'aliyun' ? '阿里云播放' : (kind === 'mp4' ? '打开视频' : (kind === 'external' ? '打开链接' : '打开B站'));
     const openUrl = v.mp4_url || v.source_url || '';
     const canOpen = !!openUrl;
-    return `
-      <div class="card soft">
-        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap">
-          <div>
-            <h3 style="margin:0">${esc(v.title || '')}</h3>
-            <div class="small muted" style="margin-top:6px">${metaLine}</div>
-          </div>
-          ${badge}
-        </div>
+    const openText = kind === 'aliyun' ? '阿里云播放' : (kind === 'mp4' ? '打开视频' : (kind === 'external' ? '打开链接' : '打开B站'));
 
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
-          <a class="btn primary" href="watch.html?id=${encodeURIComponent(v.id)}">观看（需登录）</a>
-          ${canOpen ? `<a class="btn" href="${esc(openUrl)}" target="_blank" rel="noopener">${openText}</a>` : ''}
+    // ── Paid video logic ──
+    if(v.is_paid){
+      const hasAccess = _accessSet.has(v.id) || (v.specialty_id && _accessSet.has('sp_' + v.specialty_id));
+      const lockBadge = `<span class=”badge” style=”border-color:rgba(234,179,8,.5);background:rgba(234,179,8,.1);color:#fbbf24”>付费</span>`;
+
+      let actionBtns = '';
+      if(hasAccess){
+        // User has access
+        actionBtns = `<a class=”btn primary” href=”watch.html?id=${encodeURIComponent(v.id)}”>立即观看</a>`;
+        if(canOpen) actionBtns += `<a class=”btn” href=”${esc(openUrl)}” target=”_blank” rel=”noopener”>${openText}</a>`;
+      } else {
+        // Not purchased
+        if(!_currentUser){
+          actionBtns = `<a class=”btn” href=”login.html?next=${encodeURIComponent('videos.html')}”>登录后购买</a>`;
+        } else {
+          if(v.product_id){
+            actionBtns += `<a class=”btn primary” href=”checkout.html?product_id=${encodeURIComponent(v.product_id)}”>购买单集</a>`;
+          }
+          const bundleId = v.specialty_id && _specialtyBundles[v.specialty_id];
+          if(bundleId){
+            actionBtns += `<a class=”btn” href=”checkout.html?product_id=${encodeURIComponent(bundleId)}”>购买整套课</a>`;
+          }
+          if(!v.product_id && !bundleId){
+            actionBtns = `<a class=”btn” href=”learning.html”>查看课程详情</a>`;
+          }
+        }
+      }
+
+      return `
+        <div class=”card soft” style=”${hasAccess ? '' : 'opacity:.85'}”>
+          <div style=”display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap”>
+            <div>
+              <h3 style=”margin:0”>${esc(v.title || '')}</h3>
+              <div class=”small muted” style=”margin-top:6px”>${metaLine}</div>
+            </div>
+            <div style=”display:flex;gap:4px;flex-wrap:wrap”>
+              ${lockBadge}
+              ${hasAccess ? `<span class=”badge” style=”border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.1);color:#4ade80”>已购</span>` : ''}
+              ${expiredBadge}${needsCheckBadge}
+            </div>
+          </div>
+          <div style=”display:flex;gap:10px;flex-wrap:wrap;margin-top:12px”>
+            ${actionBtns}
+          </div>
+        </div>`;
+    }
+
+    // ── Free video ──
+    return `
+      <div class=”card soft”>
+        <div style=”display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap”>
+          <div>
+            <h3 style=”margin:0”>${esc(v.title || '')}</h3>
+            <div class=”small muted” style=”margin-top:6px”>${metaLine}</div>
+          </div>
+          ${needsCheckBadge}
+          ${expiredBadge}
         </div>
-      </div>
-    `;
+        <div style=”display:flex;gap:10px;flex-wrap:wrap;margin-top:12px”>
+          <a class=”btn primary” href=”watch.html?id=${encodeURIComponent(v.id)}”>观看（需登录）</a>
+          ${canOpen ? `<a class=”btn” href=”${esc(openUrl)}” target=”_blank” rel=”noopener”>${openText}</a>` : ''}
+        </div>
+      </div>`;
   }
 
   function renderVideos(){
@@ -137,7 +222,7 @@
       : ALL_VIDEOS.filter(v => v.category === currentCat);
 
     if(!list || list.length === 0){
-      grid.innerHTML = `<div class="note">该频道暂无视频内容。</div>`;
+      grid.innerHTML = `<div class=”note”>该频道暂无视频内容。</div>`;
       return;
     }
 
@@ -146,27 +231,55 @@
 
   async function renderLoginHint(){
     if(!isConfigured() || !supabase){
-      loginHint.innerHTML = `<b>提示：</b>当前服务暂不可用（系统初始化中）。如需“登录后观看”，请联系管理员完成配置。`;
+      loginHint.innerHTML = `<b>提示：</b>当前服务暂不可用（系统初始化中）。`;
       return;
     }
-
-    try{
-      const { data: { session } } = await supabase.auth.getSession();
-      if(session?.user){
-        const u = session.user;
-        loginHint.innerHTML = `✅ 已登录：<b>${esc(u.email || u.phone || u.id)}</b>。你可以直接进入播放页观看。`;
-      }else{
-        loginHint.innerHTML = `🔒 你当前未登录。你仍可浏览目录，但点击“观看”会引导你先登录/注册。`;
-      }
-    }catch(e){
-      loginHint.innerHTML = `⚠️ 登录状态读取失败：${esc(e?.message || '未知错误')}。建议用无痕窗口重试，或清理站点存储后再登录。`;
+    if(_currentUser){
+      loginHint.innerHTML = `✅ 已登录：<b>${esc(_currentUser.email || _currentUser.id)}</b>。<a href=”my-learning.html”>查看我的学习</a>`;
+    }else{
+      loginHint.innerHTML = `🔒 你当前未登录。浏览目录后点击”购买”或”观看”将引导你登录/注册。`;
     }
+  }
+
+  /* Batch-load user entitlements for paid video access check */
+  async function loadUserAccess(paidVideos){
+    if(!_currentUser || !supabase || !paidVideos.length) return;
+    try{
+      // Fetch all active entitlements for this user (single_video + specialty_bundle)
+      const { data: ents } = await supabase
+        .from('user_entitlements')
+        .select('entitlement_type, video_id, specialty_id, end_at, status')
+        .eq('user_id', _currentUser.id)
+        .eq('status', 'active')
+        .in('entitlement_type', ['single_video','specialty_bundle','membership'])
+        .or(`end_at.is.null,end_at.gt.${new Date().toISOString()}`);
+
+      for(const e of (ents || [])){
+        if(e.entitlement_type === 'single_video' && e.video_id){
+          _accessSet.add(String(e.video_id));
+        } else if(e.entitlement_type === 'specialty_bundle' && e.specialty_id){
+          _accessSet.add('sp_' + String(e.specialty_id));
+        }
+      }
+    }catch(err){
+      console.warn('loadUserAccess error:', err);
+    }
+  }
+
+  /* Load specialty → bundle product mapping for buy buttons */
+  async function loadSpecialtyBundles(){
+    if(!supabase) return;
+    try{
+      const { data } = await supabase.from('specialties').select('id, bundle_product_id').eq('is_active', true);
+      for(const s of (data || [])){
+        if(s.bundle_product_id) _specialtyBundles[s.id] = s.bundle_product_id;
+      }
+    }catch(_e){}
   }
 
   async function loadDbVideos(){
     DB_VIDEOS = [];
     ALL_VIDEOS = [...FREE_VIDEOS];
-
     if(!isConfigured()) return;
     await ensureSupabase();
     if(!supabase) return;
@@ -174,22 +287,19 @@
     try{
       let { data, error } = await supabase
         .from('learning_videos')
-        .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,speaker,created_at,enabled,deleted_at')
+        .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,speaker,created_at,enabled,deleted_at,is_paid,specialty_id,product_id')
         .eq('enabled', true)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
         .limit(200);
-      // Backward compat: retry without aliyun_vid if column doesn't exist yet
-      if(error && /aliyun_vid/i.test(String(error.message || ''))){
+      // Backward compat
+      if(error && /is_paid|specialty_id|product_id|aliyun_vid/i.test(String(error.message || ''))){
         const r2 = await supabase
           .from('learning_videos')
           .select('id,title,category,kind,source_url,mp4_url,bvid,speaker,created_at,enabled,deleted_at')
-          .eq('enabled', true)
-          .is('deleted_at', null)
-          .order('created_at', { ascending: false })
-          .limit(200);
-        data = r2.data;
-        error = r2.error;
+          .eq('enabled', true).is('deleted_at', null)
+          .order('created_at', { ascending: false }).limit(200);
+        data = r2.data; error = r2.error;
       }
       if(error) throw error;
 
@@ -203,11 +313,13 @@
         aliyun_vid: v.aliyun_vid || null,
         source_url: v.source_url || v.mp4_url || '',
         mp4_url: v.mp4_url || null,
+        is_paid: v.is_paid || false,
+        specialty_id: v.specialty_id || null,
+        product_id: v.product_id || null,
       }));
 
       ALL_VIDEOS = [...FREE_VIDEOS, ...DB_VIDEOS];
     }catch(e){
-      // If table not migrated yet, silently keep static list.
       const msg = String(e?.message || e || '');
       if(/relation .*learning_videos.* does not exist/i.test(msg)) return;
       toast('加载视频失败', msg, 'err');
@@ -216,9 +328,30 @@
 
   async function init(){
     renderCats();
-    await loadDbVideos();
+    // Check login and load data in parallel
+    [_currentUser] = await Promise.all([
+      getCurrentUser().catch(() => null),
+      loadDbVideos(),
+    ]);
+    const paidVideos = DB_VIDEOS.filter(v => v.is_paid);
+    if(paidVideos.length > 0 && _currentUser){
+      await Promise.all([loadUserAccess(paidVideos), loadSpecialtyBundles()]);
+    } else if(paidVideos.length > 0) {
+      await loadSpecialtyBundles();
+    }
     renderVideos();
     renderLoginHint();
+    renderUpgradeModule();
+  }
+
+  function renderUpgradeModule(){
+    const mod = document.getElementById('upgradeModule');
+    if(!mod) return;
+    const hasPaid = DB_VIDEOS.some(v => v.is_paid);
+    if(!hasPaid){ mod.style.display = 'none'; return; }
+    // Hide if user already has entitlements
+    if(_accessSet.size > 0){ mod.style.display = 'none'; return; }
+    mod.style.display = 'block';
   }
 
   init();

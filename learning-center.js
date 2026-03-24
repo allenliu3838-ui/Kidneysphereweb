@@ -36,7 +36,11 @@ const els = {
   videoSave: document.getElementById('videoSave') || document.getElementById('videoSubmit'),
   videoAdminHint: document.getElementById('videoAdminHint') || document.getElementById('videoHint'),
   videoAdminList: document.getElementById('videoAdminList'),
+  showDeletedVideos: document.getElementById('showDeletedVideos'),
 };
+
+// Cache all admin videos (including soft-deleted) for toggle filtering
+let _allAdminVideos = [];
 
 const MAX_MP4_BYTES = 50 * 1024 * 1024; // 50MB
 
@@ -239,32 +243,73 @@ function fillVideoCategories(){
   els.videoCategory.innerHTML = options;
 }
 
+function checkAliyunUrlExpiry(url){
+  if(!url) return { expired: false };
+  try{
+    const u = new URL(url);
+    const exp = u.searchParams.get('Expires');
+    if(!exp) return { expired: false };
+    const expiresAt = new Date(Number(exp) * 1000);
+    if(isNaN(expiresAt.getTime())) return { expired: false };
+    return { expired: expiresAt.getTime() < Date.now(), expiresAt };
+  }catch{ return { expired: false }; }
+}
+
 function renderVideoAdminList(rows){
   if(!els.videoAdminList) return;
-  const list = Array.isArray(rows) ? rows : [];
+  const showDeleted = els.showDeletedVideos?.checked || false;
+  const list = (Array.isArray(rows) ? rows : []).filter(v => {
+    if(v.deleted_at && !showDeleted) return false;
+    return true;
+  });
   if(!list.length){
-    els.videoAdminList.innerHTML = '<div class="muted small">暂无新增视频。</div>';
+    const hasDeleted = (Array.isArray(rows) ? rows : []).some(v => !!v.deleted_at);
+    els.videoAdminList.innerHTML = hasDeleted
+      ? '<div class="muted small">暂无活跃视频。勾选"显示已删除"可查看已删除项。</div>'
+      : '<div class="muted small">暂无新增视频。</div>';
     return;
   }
 
   const catMap = new Map((Array.isArray(VIDEO_CATEGORIES) ? VIDEO_CATEGORIES : []).map(c=>[String(c.key), c]));
 
   els.videoAdminList.innerHTML = list.map(v=>{
+    const isDeleted = !!v.deleted_at;
     const cat = catMap.get(String(v.category || ''));
     const tag = cat ? (String(cat.zh || '').trim() ? `${String(cat.zh).trim()}${cat.en ? ' / ' + String(cat.en).trim() : ''}` : (cat.en || cat.key)) : (v.category || '未分类');
     const kindLabel = v.kind === 'mp4' ? 'MP4' : (v.kind === 'bilibili' ? 'B站' : (v.kind === 'aliyun' ? '阿里云' : '链接'));
     const openUrl = (v.kind === 'mp4' || v.kind === 'aliyun') ? (v.mp4_url || v.source_url || '') : (v.source_url || '');
+
+    // Check URL expiry for aliyun/mp4 URLs
+    const expiry = checkAliyunUrlExpiry(v.mp4_url || v.source_url || '');
+    const expiredBadge = expiry.expired
+      ? `<span class="badge" style="border-color:rgba(255,100,100,.6);background:rgba(255,100,100,.1);color:#f66">链接已过期</span>`
+      : '';
+    const deletedBadge = isDeleted
+      ? `<span class="badge" style="border-color:rgba(160,160,160,.5);background:rgba(160,160,160,.12);color:#aaa">已删除</span>`
+      : '';
+
+    const cardStyle = isDeleted
+      ? 'padding:12px;opacity:0.5;border-left:3px solid rgba(160,160,160,.4)'
+      : 'padding:12px';
+
+    const actionBtn = isDeleted
+      ? `<button class="btn tiny" type="button" data-video-restore="${esc(v.id)}">恢复</button>`
+      : `<button class="btn tiny danger" type="button" data-video-del="${esc(v.id)}">删除</button>`;
+
     return `
-      <div class="card" style="padding:12px">
+      <div class="card" style="${cardStyle}">
         <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
           <div style="min-width:0">
-            <b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:520px">${esc(v.title || '（无标题）')}</b>
-            <div class="small muted" style="margin-top:6px">${esc(tag)} · ${esc(kindLabel)} · ${esc(fmtDate(v.created_at))}</div>
+            <b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:520px${isDeleted ? ';text-decoration:line-through' : ''}">${esc(v.title || '（无标题）')}</b>
+            <div class="small muted" style="margin-top:6px">
+              ${esc(tag)} · ${esc(kindLabel)} · ${esc(fmtDate(v.created_at))}
+              ${deletedBadge}${expiredBadge}
+            </div>
             <div class="small" style="margin-top:6px;word-break:break-all">${openUrl ? `<a class="auto-link" href="${esc(openUrl)}" target="_blank" rel="noopener">${esc(openUrl)}</a>` : ''}</div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <a class="btn tiny" href="watch.html?id=${encodeURIComponent(v.id)}">预览</a>
-            <button class="btn tiny danger" type="button" data-video-del="${esc(v.id)}">删除</button>
+            ${isDeleted ? '' : `<a class="btn tiny" href="watch.html?id=${encodeURIComponent(v.id)}">预览</a>`}
+            ${actionBtn}
           </div>
         </div>
       </div>
@@ -286,22 +331,21 @@ async function loadAdminVideos(){
     let { data, error } = await supabase
       .from('learning_videos')
       .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,created_at,enabled,deleted_at')
-      .is('deleted_at', null)
       .order('created_at', { ascending: false })
-      .limit(12);
+      .limit(30);
     // Backward compat: retry without aliyun_vid if column doesn't exist yet
     if(error && /aliyun_vid/i.test(String(error.message || ''))){
       const r2 = await supabase
         .from('learning_videos')
         .select('id,title,category,kind,source_url,mp4_url,bvid,created_at,enabled,deleted_at')
-        .is('deleted_at', null)
         .order('created_at', { ascending: false })
-        .limit(12);
+        .limit(30);
       data = r2.data;
       error = r2.error;
     }
     if(error) throw error;
-    renderVideoAdminList(data || []);
+    _allAdminVideos = data || [];
+    renderVideoAdminList(_allAdminVideos);
   }catch(e){
     const msg = String(e?.message || e || '');
     if(/relation .*learning_videos.* does not exist/i.test(msg)){
@@ -464,8 +508,26 @@ async function deleteVideo(id){
   }catch(e){
     const rawMsg = String(e?.message || e?.code || e || '');
     console.error('[deleteVideo] raw error:', e);
-    // Show real error to admin (bypass toast sanitization)
     alert('删除失败（管理员可见原始错误）:\n\n' + rawMsg);
+  }
+}
+
+async function restoreVideo(id){
+  if(!id) return;
+  if(!isConfigured() || !supabase) return;
+  if(!confirm('确定恢复这个视频吗？（会重新出现在前台列表）')) return;
+  try{
+    const { error } = await supabase
+      .from('learning_videos')
+      .update({ deleted_at: null })
+      .eq('id', id);
+    if(error) throw error;
+    toast('已恢复', '视频已恢复到前台列表。', 'ok');
+    await loadAdminVideos();
+  }catch(e){
+    const rawMsg = String(e?.message || e?.code || e || '');
+    console.error('[restoreVideo] raw error:', e);
+    alert('恢复失败（管理员可见原始错误）:\n\n' + rawMsg);
   }
 }
 
@@ -489,18 +551,187 @@ async function init(){
   // Admin list
   loadAdminVideos();
 
+  // Toggle show/hide deleted videos
+  els.showDeletedVideos?.addEventListener('change', ()=>{
+    renderVideoAdminList(_allAdminVideos);
+  });
+
   els.videoSave?.addEventListener('click', async (e)=>{
     e.preventDefault();
     await saveVideo(user);
   });
 
   els.videoAdminList?.addEventListener('click', async (e)=>{
-    const btn = e.target?.closest?.('[data-video-del]');
-    if(!btn) return;
-    e.preventDefault();
-    const id = String(btn.getAttribute('data-video-del') || '').trim();
-    if(id) await deleteVideo(id);
+    const delBtn = e.target?.closest?.('[data-video-del]');
+    if(delBtn){
+      e.preventDefault();
+      const id = String(delBtn.getAttribute('data-video-del') || '').trim();
+      if(id) await deleteVideo(id);
+      return;
+    }
+    const restoreBtn = e.target?.closest?.('[data-video-restore]');
+    if(restoreBtn){
+      e.preventDefault();
+      const id = String(restoreBtn.getAttribute('data-video-restore') || '').trim();
+      if(id) await restoreVideo(id);
+    }
   });
 }
 
 init();
+
+// ============================================================
+// Training Projects — dynamic section on learning.html
+// ============================================================
+
+const PROJECT_STATUS_LABELS = {
+  draft:      { label: '筹备中', color: 'rgba(156,163,175,.7)' },
+  recruiting: { label: '招募中', color: '#4ade80' },
+  closed:     { label: '报名已截止', color: '#fbbf24' },
+  ended:      { label: '已结束', color: 'rgba(156,163,175,.5)' },
+};
+
+async function loadTrainingProjects(){
+  const gridEl = document.getElementById('trainingProgramsGrid');
+  const hintEl = document.getElementById('trainingProgramsHint');
+  if(!gridEl) return;
+
+  if(!isConfigured()){
+    gridEl.innerHTML = '<div class="note small">服务未配置，项目信息暂不可用。</div>';
+    return;
+  }
+
+  await ensureSupabase();
+  if(!supabase){
+    gridEl.innerHTML = '<div class="note small">初始化失败，请刷新重试。</div>';
+    return;
+  }
+
+  try{
+    // Fetch active projects with their associated products
+    const { data: projects, error } = await supabase
+      .from('learning_projects')
+      .select(`
+        id, project_code, title, intro, cover_url, status, sort_order,
+        registration_fee_cny, refund_policy_text, is_active
+      `)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .limit(20);
+
+    if(error) throw error;
+
+    if(!projects || projects.length === 0){
+      gridEl.innerHTML = `
+        <div class="card soft">
+          <h3 style="margin:0">培训项目即将开放</h3>
+          <p class="small muted" style="margin-top:8px">重症肾内科 · 肾移植内科规范化培训项目正在筹备中，敬请关注。</p>
+          <div style="margin-top:12px">
+            <a class="btn" href="my-learning.html">我的学习</a>
+          </div>
+        </div>`;
+      return;
+    }
+
+    // Fetch related products for buy buttons (full+video editions)
+    const { data: allProducts } = await supabase
+      .from('products')
+      .select('id, product_code, title, subtitle, price_cny, list_price_cny, product_type, project_id')
+      .eq('is_active', true)
+      .in('product_type', ['project_registration','specialty_bundle'])
+      .order('sort_order');
+
+    const productsByProject = {};
+    for(const p of (allProducts || [])){
+      if(p.project_id){
+        if(!productsByProject[p.project_id]) productsByProject[p.project_id] = [];
+        productsByProject[p.project_id].push(p);
+      }
+    }
+
+    // Fetch current user + their entitlements
+    let currentUser = null;
+    let userEnts = new Set(); // project_id values user has access to
+    try{
+      currentUser = await getCurrentUser();
+      if(currentUser){
+        const { data: ents } = await supabase
+          .from('user_entitlements')
+          .select('project_id, status, end_at')
+          .eq('user_id', currentUser.id)
+          .eq('status', 'active')
+          .eq('entitlement_type', 'project_access')
+          .or(`end_at.is.null,end_at.gt.${new Date().toISOString()}`);
+        for(const e of (ents || [])){ if(e.project_id) userEnts.add(e.project_id); }
+      }
+    }catch(_e){}
+
+    gridEl.innerHTML = `<div class="grid cols-2" style="gap:16px">${
+      projects.map(proj => {
+        const sl = PROJECT_STATUS_LABELS[proj.status] || { label: proj.status, color: 'gray' };
+        const hasAccess = userEnts.has(proj.id);
+        const prods = productsByProject[proj.id] || [];
+        const fullProd  = prods.find(p => /full|完整|报名/.test(p.product_code + p.title));
+        const videoProd = prods.find(p => /video|视频|回放/.test(p.product_code + p.title));
+
+        function priceTag(p){
+          if(!p) return '';
+          const early = p.list_price_cny ? `<s class="muted" style="font-weight:400">¥${esc(String(p.list_price_cny))}</s> ` : '';
+          return `${early}<b>¥${esc(String(p.price_cny))}</b>`;
+        }
+
+        let ctaHtml = '';
+        if(hasAccess){
+          ctaHtml = `
+            <div class="note" style="border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.06);padding:10px;border-radius:8px;margin-top:10px">
+              ✅ 已报名。<a href="my-learning.html">进入我的学习</a>查看班期与学习群。
+            </div>`;
+        } else if(proj.status === 'recruiting'){
+          const fullBtn  = fullProd  ? `<a class="btn primary" href="checkout.html?product_id=${encodeURIComponent(fullProd.id)}">${priceTag(fullProd)} 报名版</a>` : '';
+          const videoBtn = videoProd ? `<a class="btn" href="checkout.html?product_id=${encodeURIComponent(videoProd.id)}">${priceTag(videoProd)} 视频版</a>` : '';
+          if(fullBtn || videoBtn){
+            ctaHtml = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${fullBtn}${videoBtn}</div>`;
+          } else {
+            ctaHtml = `<div style="margin-top:10px"><a class="btn" href="my-learning.html">联系招募</a></div>`;
+          }
+          if(!currentUser){
+            ctaHtml = `<div style="margin-top:10px"><a class="btn" href="login.html?next=${encodeURIComponent('learning.html')}">登录后报名</a></div>`;
+          }
+        } else if(proj.status === 'draft'){
+          ctaHtml = `<p class="small muted" style="margin-top:10px">报名即将开放，敬请关注。</p>`;
+        }
+
+        return `
+          <div class="card soft">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
+              <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+                  <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${esc(sl.color)};flex-shrink:0"></span>
+                  <span class="small" style="color:${esc(sl.color)};font-weight:600">${esc(sl.label)}</span>
+                </div>
+                <h3 style="margin:0;font-size:16px">${esc(proj.title)}</h3>
+                ${proj.intro ? `<p class="small muted" style="margin-top:6px;line-height:1.6">${esc(proj.intro.slice(0,100))}${proj.intro.length > 100 ? '…' : ''}</p>` : ''}
+              </div>
+            </div>
+            ${fullProd || videoProd ? `
+              <div class="hr" style="margin:10px 0"></div>
+              <div style="display:flex;gap:16px;flex-wrap:wrap">
+                ${fullProd ? `<div class="small"><span class="muted">报名版：</span>${priceTag(fullProd)}</div>` : ''}
+                ${videoProd ? `<div class="small"><span class="muted">视频版：</span>${priceTag(videoProd)}</div>` : ''}
+              </div>` : ''}
+            ${proj.refund_policy_text ? `<p class="small muted" style="margin-top:6px">退款：${esc(proj.refund_policy_text)}</p>` : ''}
+            ${ctaHtml}
+          </div>`;
+      }).join('')
+    }</div>`;
+
+  }catch(e){
+    const msg = String(e?.message || e || '');
+    // Silently skip if table not yet migrated
+    if(/learning_projects.*does not exist/i.test(msg)) return;
+    gridEl.innerHTML = `<div class="note small muted">项目加载失败：${esc(msg)}</div>`;
+  }
+}
+
+// Run after DOM is ready
+loadTrainingProjects();

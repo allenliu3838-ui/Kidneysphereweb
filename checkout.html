@@ -118,14 +118,29 @@
 
           <!-- Done -->
           <div class="card" id="stepDone" hidden>
-            <div style="text-align:center;padding:24px 0">
+            <div style="text-align:center;padding:20px 0 8px">
+              <div style="font-size:40px;margin-bottom:8px">✅</div>
               <h3>凭证已提交</h3>
-              <p class="muted">管理员将在24小时内审核，审核通过后权益自动开通。</p>
-              <p class="muted" style="margin-top:8px">订单号: <code id="doneOrderNo">—</code></p>
-              <div style="margin-top:16px;display:flex;gap:8px;justify-content:center">
-                <a class="btn" href="profile.html">我的主页</a>
-                <a class="btn primary" href="learning.html">去学习</a>
+              <p class="muted" style="margin-top:6px">管理员将在 24 小时内审核，审核通过后权益自动开通。</p>
+              <p class="muted small" style="margin-top:6px">订单号：<code id="doneOrderNo">—</code></p>
+            </div>
+
+            <!-- 购买后流程说明 -->
+            <div style="margin:16px 0;padding:14px 16px;background:rgba(255,255,255,.04);border-radius:12px">
+              <div style="font-weight:600;font-size:14px;margin-bottom:10px">接下来该做什么</div>
+              <div style="font-size:13px;line-height:2;opacity:.8">
+                <div>1. 等待管理员审核（24小时内）</div>
+                <div>2. 审核通过后，在「<a href="my-learning.html">我的学习</a>」查看已开通权益</div>
+                <div>3. 报名版学员：在「已报名项目」获取微信群二维码</div>
+                <div>4. 班期确定后，通知中心会推送开课提醒</div>
+                <div>5. 有问题请联系 <a href="mailto:china@kidneysphere.com">china@kidneysphere.com</a></div>
               </div>
+            </div>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding-bottom:8px">
+              <a class="btn primary" href="my-learning.html">进入我的学习</a>
+              <a class="btn" href="academy.html">查看培训项目</a>
+              <a class="btn" href="videos.html">进入视频库</a>
             </div>
           </div>
 
@@ -148,7 +163,7 @@
 
   <footer class="footer"></footer>
 
-  <script type="module" src="app.js?v=20260322_001"></script>
-  <script type="module" src="checkout.js?v=20260322_001"></script>
+  <script type="module" src="app.js?v=20260323_001"></script>
+  <script type="module" src="checkout.js?v=20260323_001"></script>
 </body>
 </html>

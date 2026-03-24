@@ -44,7 +44,7 @@ import { supabase, ensureSupabase, getSession, getUserProfile, ensureAuthed, sig
 // ------------------------------
 // Build stamp used for cache-busting and consistent navigation.
 // Bump this whenever you ship a new zip.
-const BUILD_VERSION = "20260128_030";
+const BUILD_VERSION = "20260323_001";
 
 // Admin UI view mode (frontend-only)
 // Why: super/admin accounts often want to browse as a normal member.
@@ -126,6 +126,7 @@ function injectNav(){
         <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
         <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
         <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="academy.html"><span class="zh">培训与定价</span><span class="en">Academy</span></a>
         <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
         <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
         <a data-nav href="search.html"><span class="zh">搜索</span><span class="en">Search</span></a>
@@ -425,7 +426,7 @@ function roleLabelZh(role){
   if(r === 'admin') return '管理员';
   if(r === 'moderator') return '版主';
   if(r === 'super_admin' || r === 'owner') return '超级管理员';
-  if(r === 'member' || r === 'user') return 'Member';
+  if(r === 'member' || r === 'user') return '免费注册用户';
   return role;
 }
 
@@ -435,7 +436,7 @@ function roleLabelZh(role){
 // - Supabase RLS permissions are still enforced by the real role.
 // ------------------------------
 function uiRoleLabelZh(realRole, isAdminUser, isAdminUi){
-  if(isAdminUser && !isAdminUi) return '普通会员';
+  if(isAdminUser && !isAdminUi) return '免费注册用户';
   return roleLabelZh(realRole);
 }
 
@@ -564,23 +565,25 @@ async function renderAuthArea(){
               <div class="ud-avatar">${avatarUrl ? `<img alt="avatar" src="${escapeAttr(avatarUrl)}">` : `<span class="ud-avatar-initial">${initial}</span>`}</div>
               <b>${escapeHtml(name)}</b>
               <div>${escapeHtml(statusLineWithPoints)}</div>
-              ${isAdmin ? `<div class="small muted" style="margin-top:4px">（可切换：管理员 ↔ 普通会员）</div>` : ``}
+              ${isAdmin ? `<div class="small muted" style="margin-top:4px">（可切换：管理员视图 ↔ 用户视图）</div>` : ``}
             </div>
 
             ${isAdmin ? `
               <button type="button" class="ud-mode" data-toggle-mode role="menuitem" data-mode="${isAdminUi ? 'member' : 'admin'}">
-                ${isAdminUi ? '👤 切换到普通会员模式' : '🔧 切换到管理员模式'}
+                ${isAdminUi ? '👤 切换到用户视图' : '🔧 切换到管理员视图'}
               </button>
               <div class="ud-split"></div>
             ` : ``}
 
             <a role="menuitem" href="notifications.html" data-badge="notifications">通知中心 <span class="badge-dot" aria-hidden="true"></span></a>
+            <a role="menuitem" href="my-learning.html">我的学习</a>
             <a role="menuitem" href="favorites.html">我的收藏</a>
             <a role="menuitem" href="verify-doctor.html?next=${nextParam}">${doctorMenuLabel}</a>
 
             <a role="menuitem" href="moments.html" data-badge="moments">进入动态 <span class="badge-dot" aria-hidden="true"></span></a>
             <a role="menuitem" href="community.html" data-badge="cases">进入社区 <span class="badge-dot" aria-hidden="true"></span></a>
             <a role="menuitem" href="learning.html#hot-articles" data-badge="articles">文献库 <span class="badge-dot" aria-hidden="true"></span></a>
+            <a role="menuitem" href="videos.html" data-badge="videos">视频库 <span class="badge-dot" aria-hidden="true"></span></a>
             <a role="menuitem" href="moments.html#composer">发布动态</a>
 
             ${isAdminUi ? `
@@ -770,6 +773,15 @@ const UNREAD_CFG = {
     orderBy: 'created_at',
     filters: (q)=>q,
     pages: ['community','board','case','post-case']
+  },
+  videos: {
+    badgeSelector: '[data-badge="videos"]',
+    seenKey: 'ks_seen_videos',
+    table: 'learning_videos',
+    tsCols: ['created_at'],
+    orderBy: 'created_at',
+    filters: (q)=> { try{ q = q.eq('enabled', true).is('deleted_at', null); }catch(_e){ q = q.eq('enabled', true); } return q; },
+    pages: ['videos','watch']
   }
 };
 
@@ -1026,7 +1038,7 @@ async function updateUnreadBadges(){
     const targets = cache.targets || {};
     for(const [k,v] of Object.entries(state)) applyUnreadUI(k, v);
     applyAnyUnreadUI(Object.values(state).some(Boolean));
-    applyNotificationsUnreadUI(state.moments || state.cases || state.articles);
+    applyNotificationsUnreadUI(state.moments || state.cases || state.articles || state.videos);
     applyCasesTargetHref(targets.cases || null);
     return;
   }
@@ -1037,7 +1049,7 @@ async function updateUnreadBadges(){
     const targets = res?.targets || {};
     for(const [k,v] of Object.entries(state)) applyUnreadUI(k, v);
     applyAnyUnreadUI(Object.values(state).some(Boolean));
-    applyNotificationsUnreadUI(state.moments || state.cases || state.articles);
+    applyNotificationsUnreadUI(state.moments || state.cases || state.articles || state.videos);
     applyCasesTargetHref(targets.cases || null);
     return;
   }
@@ -1083,7 +1095,7 @@ async function updateUnreadBadges(){
 
   for(const [k,v] of Object.entries(state)) applyUnreadUI(k, v);
   applyAnyUnreadUI(Object.values(state).some(Boolean));
-  applyNotificationsUnreadUI(state.moments || state.cases || state.articles);
+  applyNotificationsUnreadUI(state.moments || state.cases || state.articles || state.videos);
   applyCasesTargetHref(targets.cases || null);
 }
 

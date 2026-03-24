@@ -16,12 +16,20 @@
 <section class="hero">
   <div class="container">
     <div class="card">
-      <span class="badge">学习中心 · Learning</span>
+      <span class="badge">学习中心</span>
       <h2 style="margin-top:10px">学习中心：培训项目 + 免费视频库</h2>
       <p class="small">
-        培训项目与学习资源汇总，便于系统学习与回顾。<br/>
-        培训项目持续更新中，欢迎关注。
+        免费注册后可观看免费视频库；报名培训项目获得直播、学习群与回放权益。
       </p>
+
+      <!-- 顶部引导 banner -->
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:14px;padding:14px 16px;background:rgba(63,131,248,.1);border:1px solid rgba(63,131,248,.3);border-radius:12px">
+        <div>
+          <div style="font-weight:600;font-size:15px">查看当前培训项目与定价</div>
+          <div class="small muted" style="margin-top:3px">重症肾内科 · 肾移植内科 · 专科整套课</div>
+        </div>
+        <a class="btn primary" href="academy.html">查看培训与定价 →</a>
+      </div>
 
       <div class="hr"></div>
 
@@ -31,7 +39,7 @@
           <h3>文献库（UpToDate 风格）</h3>
           <p>像公众号一样沉淀：会议纪要 / 综述解读 / 指南要点 / 临床研究进展。首页会动态推荐最新文章。</p>
         </div>
-        <span class="badge">Articles</span>
+        <span class="badge">文献库</span>
       </div>
 
         <div class="grid cols-2" style="margin-top:12px">
@@ -66,22 +74,21 @@
 
       <div class="hr"></div>
 
-      <div class="section-title">
+      <div class=”section-title”>
         <div>
           <h3>培训项目</h3>
-          <p>培训项目持续更新中。</p>
+          <p>系统规范化培训，含直播互动、专属学习群与视频回放。</p>
         </div>
-        <span class="badge">Programs</span>
+        <div style=”display:flex;gap:8px;flex-wrap:wrap;align-items:center”>
+          <a class=”btn” href=”my-learning.html”>我的学习</a>
+          <a class=”btn primary” href=”academy.html”>查看价格与报名</a>
+        </div>
       </div>
 
-      <div class="grid cols-2" id="trainingProgramsGrid" style="margin-top:12px">
-        <div class="muted small skeleton-text">&nbsp;</div>
+      <div id=”trainingProgramsGrid” style=”margin-top:12px”>
+        <div class=”muted small”>加载中…</div>
       </div>
-      <div class="note" id="trainingProgramsHint" style="margin-top:12px" hidden></div>
-
-	<div class="note small" style="margin-top:12px" data-superadmin-only hidden>
-        <b>管理员提示：</b>培训项目的“课程/章节/单集”与会员/付费授权为后续扩展位（不影响当前学习与管理）。
-      </div>
+      <div class=”note” id=”trainingProgramsHint” style=”margin-top:12px” hidden></div>
 
       <div class="hr"></div>
 
@@ -90,7 +97,7 @@
           <h3>免费视频库（注册后观看）</h3>
           <p>注册登录后可在站内直接观看。</p>
         </div>
-        <span class="badge">Free</span>
+        <span class="badge">注册免费</span>
       </div>
 
       <div class="card soft" id="videoAdminPanel" data-admin-only hidden style="margin-top:12px">
@@ -99,7 +106,7 @@
             <h3 style=”margin:0”>新增视频（B站/阿里云/链接/MP4）</h3>
             <div class=”small muted” style=”margin-top:6px”>新增后会自动出现在”免费视频库”对应频道中。支持阿里云视频点播。</div>
           </div>
-          <span class="badge">Admin</span>
+          <span class="badge" data-admin-only hidden>管理员</span>
         </div>
 
         <div class="hr"></div>
@@ -156,8 +163,12 @@
           <div class="section-title" style="margin:0">
             <div>
               <h3 style="margin:0">最近添加的视频</h3>
-              <p class="small muted">可在此删除（软删除）。</p>
+              <p class="small muted">可在此删除（软删除）或恢复。</p>
             </div>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px">
+              <input type="checkbox" id="showDeletedVideos" />
+              显示已删除
+            </label>
           </div>
           <div id="videoAdminList" style="margin-top:10px">
             <div class="muted small skeleton-text">&nbsp;</div>
@@ -214,8 +225,7 @@
   </main>
 
   <footer class="footer" data-blurb="当前版本 · 以“注册/登录 + 病例讨论 + 学习中心内容入口”为核心，持续迭代完善。"></footer>
-<script type="module" src="app.js?v=20260128_030"></script>
-  <script type="module" src="learning-center.js?v=20260314_001"></script>
-  <script type="module" src="trainingPrograms.js?v=20260121_001"></script>
+<script type="module" src="app.js?v=20260323_001"></script>
+  <script type="module" src="learning-center.js?v=20260323_001"></script>
 </body>
 </html>
