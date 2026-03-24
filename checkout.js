@@ -190,6 +190,18 @@ async function submitProof(e) {
     return;
   }
 
+  // Validate at least one contact method
+  const contactWechat = fd.get('contact_wechat')?.trim() || '';
+  const contactPhone = fd.get('contact_phone')?.trim() || '';
+  const contactEmail = fd.get('contact_email')?.trim() || '';
+  const contactHint = document.getElementById('contactHint');
+  if (!contactWechat && !contactPhone && !contactEmail) {
+    if (contactHint) contactHint.style.display = 'block';
+    hint.textContent = '请至少填写一种联系方式。';
+    return;
+  }
+  if (contactHint) contactHint.style.display = 'none';
+
   hint.textContent = '上传中…';
 
   const bucket = 'payment_proofs';
@@ -218,10 +230,17 @@ async function submitProof(e) {
       });
     if (ppErr) throw ppErr;
 
-    // Update order status to pending_review
+    // Update order status and save contact info
     await supabase
       .from('orders')
-      .update({ status: 'pending_review', paid_at: new Date().toISOString(), channel: _channel })
+      .update({
+        status: 'pending_review',
+        paid_at: new Date().toISOString(),
+        channel: _channel,
+        contact_wechat: contactWechat || null,
+        contact_phone: contactPhone || null,
+        contact_email: contactEmail || null,
+      })
       .eq('id', _order.id);
 
     // Show done
