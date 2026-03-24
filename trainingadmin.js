@@ -178,6 +178,7 @@ function renderRow(r){
         <div class="small muted" style="margin-top:8px">
           状态：<b>${status}</b> · Badge：<b>${badge}</b> · sort：<b>${Number(r.sort ?? 0)}</b> · 付费预留：<b>${paid}</b>
         </div>
+        ${r.product_code ? `<div class="small" style="margin-top:8px">商品编码：<code>${esc(r.product_code)}</code>${r.price_cny ? ` · 价格：<b>¥${esc(String(r.price_cny))}</b>` : ''}</div>` : ''}
         ${link ? `<div class="small" style="margin-top:8px">链接：<a href="${link}" target="_blank" rel="noopener">${link}</a></div>` : ''}
         <div class="small muted" style="margin-top:6px">
           更新：${esc(formatBJ(r.updated_at || r.created_at || new Date().toISOString()))}
@@ -224,6 +225,17 @@ function renderRow(r){
 
       <div class="form-row">
         <div style="flex:1;min-width:240px">
+          <label>商品编码（关联 products 表，填后显示购买按钮）</label>
+          <input class="input" name="product_code" value="${esc(r.product_code || '')}" placeholder="如 GLOM_BUNDLE_2026" />
+        </div>
+        <div style="min-width:220px">
+          <label>展示价格（元，可选）</label>
+          <input class="input" name="price_cny" type="number" step="0.01" value="${r.price_cny ?? ''}" placeholder="如 2980" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div style="flex:1;min-width:240px">
           <label>详情链接（可选）</label>
           <input class="input" name="link" value="${esc(r.link || '')}" placeholder="外链或站内页面" />
         </div>
@@ -264,6 +276,8 @@ async function onAdd(e){
     link: String(fd.get('link') || '').trim() || null,
     sort: Number(fd.get('sort') || 0),
     is_paid: parseBool(fd.get('is_paid')),
+    product_code: String(fd.get('product_code') || '').trim() || null,
+    price_cny: fd.get('price_cny') ? parseFloat(fd.get('price_cny')) : null,
   };
 
   try{
@@ -334,6 +348,8 @@ async function onListSubmit(e){
     link: String(fd.get('link') || '').trim() || null,
     sort: Number(fd.get('sort') || 0),
     is_paid: parseBool(fd.get('is_paid')),
+    product_code: String(fd.get('product_code') || '').trim() || null,
+    price_cny: fd.get('price_cny') ? parseFloat(fd.get('price_cny')) : null,
   };
 
   if(!patch.title){

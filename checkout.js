@@ -159,8 +159,14 @@ function updatePayUI() {
     const src = _channel === 'wechat'
       ? (_sysConfig.wechat_pay_qr_url || '')
       : (_sysConfig.alipay_pay_qr_url || '');
-    qrImg.src = src;
-    if (!src) qrImg.alt = '收款码未配置，请联系管理员。';
+    if (src) {
+      qrImg.src = src;
+      qrImg.hidden = false;
+      qrBox.querySelector('p').textContent = '请扫描二维码完成支付';
+    } else {
+      qrImg.hidden = true;
+      qrBox.querySelector('p').textContent = '收款码未配置，请联系管理员设置。如需支付请选择对公转账。';
+    }
   }
 
   const notice = document.getElementById('paymentNotice');
@@ -237,7 +243,7 @@ async function loadMyOrders() {
 
   const { data, error } = await supabase
     .from('orders')
-    .select('id, order_no, total_amount_cny, status, channel, created_at')
+    .select('id, order_no, total_amount_cny, status, channel, created_at, order_items(product_title)')
     .eq('user_id', _user.id)
     .order('created_at', { ascending: false })
     .limit(20);
@@ -259,18 +265,22 @@ async function loadMyOrders() {
     cancelled: '已取消', refunded: '已退款',
   };
 
-  wrap.innerHTML = rows.map(r => `
-    <div class="card soft" style="padding:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+  wrap.innerHTML = rows.map(r => {
+    const items = Array.isArray(r.order_items) ? r.order_items : [];
+    const productName = items.map(i => i.product_title).filter(Boolean).join('、') || '—';
+    return `
+    <div class="card soft" style="padding:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
       <div>
-        <code class="small">${esc(r.order_no)}</code>
+        <div><b class="small">${esc(productName)}</b></div>
+        <code class="small muted">${esc(r.order_no)}</code>
         <span class="small muted" style="margin-left:8px">${esc(formatBeijingDateTime(r.created_at))}</span>
       </div>
       <div>
         <b>¥${esc(String(r.total_amount_cny))}</b>
         <span class="badge" style="margin-left:8px">${esc(STATUS_ZH[r.status] || r.status)}</span>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 /* ── init ── */
@@ -294,6 +304,8 @@ async function init() {
 
   gate.hidden = true;
   main.hidden = false;
+  const trustInfo = document.getElementById('checkoutTrustInfo');
+  if (trustInfo) trustInfo.hidden = true;
 
   renderSummary();
   setStep(1);
