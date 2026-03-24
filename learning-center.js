@@ -254,13 +254,13 @@ async function loadSpecialties(){
   try{
     const { data, error } = await supabase
       .from('specialties')
-      .select('id, title, code, is_active')
+      .select('id, name, code, is_active')
       .eq('is_active', true)
       .order('sort_order');
     if(error) throw error;
     _specialtiesMap.clear();
     for(const s of (data || [])){
-      _specialtiesMap.set(s.id, s);
+      _specialtiesMap.set(s.id, { ...s, title: s.name });
     }
     fillSpecialtyDropdown();
   }catch(e){
