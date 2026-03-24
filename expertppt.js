@@ -575,7 +575,7 @@ function applyFilterAndRender(allRows) {
     const parts = [];
     parts.push(`共 ${total} 份`);
     if (secName) parts.push(`分区：${secName}`);
-    if (qRaw) parts.push(`搜索：“${qRaw}”`);
+    if (qRaw) parts.push(`搜索："${qRaw}"`);
     parts.push(`当前显示 ${shown} 份`);
     metaEl.textContent = parts.join(' · ');
   }

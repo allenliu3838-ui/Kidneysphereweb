@@ -37,7 +37,7 @@ function parseBool(v){
 function schemaHintFor(err){
   const msg = String(err?.message || err || '');
   if(/training_programs/i.test(msg) && /(does not exist|relation|schema cache|could not find|not find)/i.test(msg)){
-    return '请先在 Supabase SQL Editor 运行 MIGRATION_20260121_TRAINING_MODERATORS.sql，然后 Settings → API 点击 “Reload schema”。';
+    return '请先在 Supabase SQL Editor 运行 MIGRATION_20260121_TRAINING_MODERATORS.sql，然后 Settings → API 点击 "Reload schema"。';
   }
   return null;
 }

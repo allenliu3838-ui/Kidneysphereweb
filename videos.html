@@ -16,40 +16,40 @@
 <section class="hero">
   <div class="container">
     <div class="card">
-      <span class=”badge”>视频库</span>
-      <h2 style=”margin-top:10px”>视频库</h2>
-      <p class=”small”>
+      <span class="badge">视频库</span>
+      <h2 style="margin-top:10px">视频库</h2>
+      <p class="small">
         注册后免费观看公开视频；付费专科课程视频购买后永久解锁。
       </p>
 
-      <div id=”loginHint” class=”note” style=”margin-top:12px”>
+      <div id="loginHint" class="note" style="margin-top:12px">
         以下免费视频注册后即可观看。正在检测登录状态…
       </div>
 
       <!-- 升级引导模块（免费注册用户可见，有权益后自动隐藏） -->
-      <div id=”upgradeModule” style=”margin-top:14px;padding:14px 16px;background:rgba(63,131,248,.08);border:1px solid rgba(63,131,248,.25);border-radius:12px;display:none”>
-        <div style=”display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px”>
+      <div id="upgradeModule" style="margin-top:14px;padding:14px 16px;background:rgba(63,131,248,.08);border:1px solid rgba(63,131,248,.25);border-radius:12px;display:none">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px">
           <div>
-            <div style=”font-weight:600;font-size:14px”>想解锁专科课程视频？</div>
-            <div class=”small muted” style=”margin-top:3px”>报名培训项目后可获得班期视频回放；整套课可永久解锁该专科所有视频。</div>
+            <div style="font-weight:600;font-size:14px">想解锁专科课程视频？</div>
+            <div class="small muted" style="margin-top:3px">报名培训项目后可获得班期视频回放；整套课可永久解锁该专科所有视频。</div>
           </div>
-          <div style=”display:flex;gap:8px;flex-wrap:wrap”>
-            <a class=”btn primary” href=”academy.html#training-projects”>查看培训项目</a>
-            <a class=”btn” href=”academy.html#pricing”>查看价格</a>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <a class="btn primary" href="academy.html#training-projects">查看培训项目</a>
+            <a class="btn" href="academy.html#pricing">查看价格</a>
           </div>
         </div>
       </div>
 
-      <div class=”hr”></div>
+      <div class="hr"></div>
 
-      <div class=”section-title”>
+      <div class="section-title">
         <div>
           <h3>频道筛选</h3>
           <p>点击频道筛选；付费视频标注 🔒，登录后可购买。</p>
         </div>
-        <div style=”display:flex;gap:10px;flex-wrap:wrap”>
-          <a class=”btn” href=”academy.html”>培训与定价</a>
-          <a class=”btn” href=”my-learning.html”>我的学习</a>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a class="btn" href="academy.html">培训与定价</a>
+          <a class="btn" href="my-learning.html">我的学习</a>
         </div>
       </div>
 
@@ -62,14 +62,14 @@
       <div class="hr"></div>
 
       <div class="note small">
-          <b>版权与合规：</b>本站仅做“链接整理与学习索引”，不存储/搬运视频内容。
-          <span data-admin-only hidden><br/>管理员提示：如需更新静态清单，可编辑 <code>assets/videos.js</code>；也可在本页的“管理员：新增视频”中添加到数据库。</span>
+          <b>版权与合规：</b>本站仅做"链接整理与学习索引"，不存储/搬运视频内容。
+          <span data-admin-only hidden><br/>管理员提示：如需更新静态清单，可编辑 <code>assets/videos.js</code>；也可在本页的"管理员：新增视频"中添加到数据库。</span>
         </div>
     </div>
   </div>
 </section>
 
-<script type=”module”>
+<script type="module">
   import { supabase, ensureSupabase, isConfigured, getCurrentUser, toast } from './supabaseClient.js?v=20260128_030';
   import { VIDEO_CATEGORIES, FREE_VIDEOS } from './assets/videos.js?v=20260118_001';
 
@@ -90,7 +90,7 @@
   const loginHint = document.getElementById('loginHint');
 
   function esc(s){
-    return String(s).replace(/[&<>”']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','”':'&quot;',”'”:'&#39;'}[c]));
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
   function pill(label, active, onClick){
@@ -141,10 +141,10 @@
     const urlToCheck = v.mp4_url || v.source_url || '';
     const expiry = checkAliyunUrlExpiry(urlToCheck);
     const expiredBadge = expiry.expired
-      ? `<span class=”badge” style=”border-color:rgba(255,100,100,.6);background:rgba(255,100,100,.1);color:#f66”>链接已过期</span>`
+      ? `<span class="badge" style="border-color:rgba(255,100,100,.6);background:rgba(255,100,100,.1);color:#f66">链接已过期</span>`
       : '';
     const needsCheckBadge = v.needs_check
-      ? `<span class=”badge” style=”border-color:rgba(255,160,160,.5);background:rgba(255,160,160,.08)”>待核对</span>` : '';
+      ? `<span class="badge" style="border-color:rgba(255,160,160,.5);background:rgba(255,160,160,.08)">待核对</span>` : '';
     const speaker = (v.speaker || '').trim();
     const metaLine = speaker ? `主讲：${esc(speaker)}` : `分类：${esc(v.category || '')}`;
     const openUrl = v.mp4_url || v.source_url || '';
@@ -154,45 +154,45 @@
     // ── Paid video logic ──
     if(v.is_paid){
       const hasAccess = _accessSet.has(v.id) || (v.specialty_id && _accessSet.has('sp_' + v.specialty_id));
-      const lockBadge = `<span class=”badge” style=”border-color:rgba(234,179,8,.5);background:rgba(234,179,8,.1);color:#fbbf24”>付费</span>`;
+      const lockBadge = `<span class="badge" style="border-color:rgba(234,179,8,.5);background:rgba(234,179,8,.1);color:#fbbf24">付费</span>`;
 
       let actionBtns = '';
       if(hasAccess){
         // User has access
-        actionBtns = `<a class=”btn primary” href=”watch.html?id=${encodeURIComponent(v.id)}”>立即观看</a>`;
-        if(canOpen) actionBtns += `<a class=”btn” href=”${esc(openUrl)}” target=”_blank” rel=”noopener”>${openText}</a>`;
+        actionBtns = `<a class="btn primary" href="watch.html?id=${encodeURIComponent(v.id)}">立即观看</a>`;
+        if(canOpen) actionBtns += `<a class="btn" href="${esc(openUrl)}" target="_blank" rel="noopener">${openText}</a>`;
       } else {
         // Not purchased
         if(!_currentUser){
-          actionBtns = `<a class=”btn” href=”login.html?next=${encodeURIComponent('videos.html')}”>登录后购买</a>`;
+          actionBtns = `<a class="btn" href="login.html?next=${encodeURIComponent('videos.html')}">登录后购买</a>`;
         } else {
           if(v.product_id){
-            actionBtns += `<a class=”btn primary” href=”checkout.html?product_id=${encodeURIComponent(v.product_id)}”>购买单集</a>`;
+            actionBtns += `<a class="btn primary" href="checkout.html?product_id=${encodeURIComponent(v.product_id)}">购买单集</a>`;
           }
           const bundleId = v.specialty_id && _specialtyBundles[v.specialty_id];
           if(bundleId){
-            actionBtns += `<a class=”btn” href=”checkout.html?product_id=${encodeURIComponent(bundleId)}”>购买整套课</a>`;
+            actionBtns += `<a class="btn" href="checkout.html?product_id=${encodeURIComponent(bundleId)}">购买整套课</a>`;
           }
           if(!v.product_id && !bundleId){
-            actionBtns = `<a class=”btn” href=”learning.html”>查看课程详情</a>`;
+            actionBtns = `<a class="btn" href="learning.html">查看课程详情</a>`;
           }
         }
       }
 
       return `
-        <div class=”card soft” style=”${hasAccess ? '' : 'opacity:.85'}”>
-          <div style=”display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap”>
+        <div class="card soft" style="${hasAccess ? '' : 'opacity:.85'}">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
             <div>
-              <h3 style=”margin:0”>${esc(v.title || '')}</h3>
-              <div class=”small muted” style=”margin-top:6px”>${metaLine}</div>
+              <h3 style="margin:0">${esc(v.title || '')}</h3>
+              <div class="small muted" style="margin-top:6px">${metaLine}</div>
             </div>
-            <div style=”display:flex;gap:4px;flex-wrap:wrap”>
+            <div style="display:flex;gap:4px;flex-wrap:wrap">
               ${lockBadge}
-              ${hasAccess ? `<span class=”badge” style=”border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.1);color:#4ade80”>已购</span>` : ''}
+              ${hasAccess ? `<span class="badge" style="border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.1);color:#4ade80">已购</span>` : ''}
               ${expiredBadge}${needsCheckBadge}
             </div>
           </div>
-          <div style=”display:flex;gap:10px;flex-wrap:wrap;margin-top:12px”>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
             ${actionBtns}
           </div>
         </div>`;
@@ -200,18 +200,18 @@
 
     // ── Free video ──
     return `
-      <div class=”card soft”>
-        <div style=”display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap”>
+      <div class="card soft">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap">
           <div>
-            <h3 style=”margin:0”>${esc(v.title || '')}</h3>
-            <div class=”small muted” style=”margin-top:6px”>${metaLine}</div>
+            <h3 style="margin:0">${esc(v.title || '')}</h3>
+            <div class="small muted" style="margin-top:6px">${metaLine}</div>
           </div>
           ${needsCheckBadge}
           ${expiredBadge}
         </div>
-        <div style=”display:flex;gap:10px;flex-wrap:wrap;margin-top:12px”>
-          <a class=”btn primary” href=”watch.html?id=${encodeURIComponent(v.id)}”>观看（需登录）</a>
-          ${canOpen ? `<a class=”btn” href=”${esc(openUrl)}” target=”_blank” rel=”noopener”>${openText}</a>` : ''}
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+          <a class="btn primary" href="watch.html?id=${encodeURIComponent(v.id)}">观看（需登录）</a>
+          ${canOpen ? `<a class="btn" href="${esc(openUrl)}" target="_blank" rel="noopener">${openText}</a>` : ''}
         </div>
       </div>`;
   }
@@ -222,7 +222,7 @@
       : ALL_VIDEOS.filter(v => v.category === currentCat);
 
     if(!list || list.length === 0){
-      grid.innerHTML = `<div class=”note”>该频道暂无视频内容。</div>`;
+      grid.innerHTML = `<div class="note">该频道暂无视频内容。</div>`;
       return;
     }
 
@@ -235,9 +235,9 @@
       return;
     }
     if(_currentUser){
-      loginHint.innerHTML = `✅ 已登录：<b>${esc(_currentUser.email || _currentUser.id)}</b>。<a href=”my-learning.html”>查看我的学习</a>`;
+      loginHint.innerHTML = `✅ 已登录：<b>${esc(_currentUser.email || _currentUser.id)}</b>。<a href="my-learning.html">查看我的学习</a>`;
     }else{
-      loginHint.innerHTML = `🔒 你当前未登录。浏览目录后点击”购买”或”观看”将引导你登录/注册。`;
+      loginHint.innerHTML = `🔒 你当前未登录。浏览目录后点击"购买"或"观看"将引导你登录/注册。`;
     }
   }
 

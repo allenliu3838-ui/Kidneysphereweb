@@ -76,7 +76,7 @@ function renderChannels(channels){
     let status = (ch.status || '').toString().toLowerCase();
 
     // 需求：文献学习 & 科研讨论开放；国际讨论专区（英语）显示为筹备中。
-    // 即便 channels 表还没更新 status，这里也以页面“已开放/筹备中”为准，避免入口被挡住。
+    // 即便 channels 表还没更新 status，这里也以页面"已开放/筹备中"为准，避免入口被挡住。
     if(id === 'english') status = 'coming_soon';
     if(id === 'research' || id === 'literature') status = 'active';
     const title = ch.title_zh || ch.name_zh || ch.title || ch.id;

@@ -202,7 +202,7 @@ async function refresh(){
 
     const rows = Array.isArray(data) ? data : [];
     if(rows.length === 0){
-      listEl.innerHTML = '<div class="note">尚未设置任何版主。你可以先从“角色管理/权限管理”复制用户ID，然后在此添加。</div>';
+      listEl.innerHTML = '<div class="note">尚未设置任何版主。你可以先从"角色管理/权限管理"复制用户ID，然后在此添加。</div>';
       return;
     }
 

@@ -443,7 +443,7 @@ async function loadFavState(user, articleId){
   }catch(e){
     if(isMissingTableError(e, 'article_favorites')){
       setFavButtonState({ enabled:false, faved:false });
-      toast('文章收藏未初始化', '请在 Supabase SQL Editor 运行 MIGRATION_20260114_ARTICLE_FAVORITES.sql，然后 Settings → API 点击 “Reload schema”。', 'err');
+      toast('文章收藏未初始化', '请在 Supabase SQL Editor 运行 MIGRATION_20260114_ARTICLE_FAVORITES.sql，然后 Settings → API 点击 "Reload schema"。', 'err');
       return;
     }
     // Don't block reading; just show warning.
@@ -501,7 +501,7 @@ async function toggleFav(articleId){
   }catch(e){
     favBtn.disabled = false;
     if(isMissingTableError(e, 'article_favorites')){
-      toast('文章收藏未初始化', '请在 Supabase SQL Editor 运行 MIGRATION_20260114_ARTICLE_FAVORITES.sql，然后 Settings → API 点击 “Reload schema”。', 'err');
+      toast('文章收藏未初始化', '请在 Supabase SQL Editor 运行 MIGRATION_20260114_ARTICLE_FAVORITES.sql，然后 Settings → API 点击 "Reload schema"。', 'err');
       return;
     }
     toast('操作失败', e?.message || String(e), 'err');

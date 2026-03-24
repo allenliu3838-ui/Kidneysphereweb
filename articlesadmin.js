@@ -76,7 +76,7 @@ async function main(){
 
     const items = data || [];
     if(items.length === 0){
-      root.innerHTML = `<div class="muted small">暂无文章。点击上方“写文章”创建。</div>`;
+      root.innerHTML = `<div class="muted small">暂无文章。点击上方"写文章"创建。</div>`;
       return;
     }
     root.innerHTML = items.map(renderRow).join('');

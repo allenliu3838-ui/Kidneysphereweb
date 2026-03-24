@@ -24,7 +24,7 @@
             <b>说明：</b>请在下方设置一个新的密码。
             <span style="opacity:.9">最低要求：至少 8 位且包含字母与数字；</span>
             <span style="opacity:.9">更安全：再包含大写字母与特殊符号。</span>
-            若链接已过期或已使用，请返回“忘记密码”重新发送。
+            若链接已过期或已使用，请返回"忘记密码"重新发送。
           </div>
 
           <div id="status" class="small"></div>
@@ -134,7 +134,7 @@
 	      const hasToken = Boolean(code || token_hash || (token && emailParam) || (access_token && refresh_token));
         const isRecovery = (type === 'recovery') || hasToken;
         if(!isRecovery || !hasToken){
-          setStatus('<div class="muted">此页面仅用于“邮箱重置密码”邮件里的链接。请回到邮箱点击最新的重置链接进入。<br><span class="small">若你是直接打开了 reset.html 或从收藏夹进入，这里不会生效。</span></div>');
+          setStatus('<div class="muted">此页面仅用于"邮箱重置密码"邮件里的链接。请回到邮箱点击最新的重置链接进入。<br><span class="small">若你是直接打开了 reset.html 或从收藏夹进入，这里不会生效。</span></div>');
           return false;
         }
 

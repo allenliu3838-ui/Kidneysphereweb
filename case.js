@@ -19,7 +19,7 @@ const listEl = document.getElementById('commentList');
 const delBtn = document.getElementById('deleteBtn');
 const likeBtn = document.getElementById('likeBtn');
 let likeCountEl = document.getElementById('likeCount');
-// 收藏按钮（此前缺少声明会导致模块脚本报错，进而整页“加载中…”卡死）
+// 收藏按钮（此前缺少声明会导致模块脚本报错，进而整页"加载中…"卡死）
 const favBtn = document.getElementById('favBtn');
 
 const form = document.getElementById('commentForm');
@@ -73,7 +73,7 @@ function esc(str){
 // - preserve newlines
 function renderRichText(str){
   const s = String(str ?? '');
-  const tokenRe = /@\[([^\]]+?)\]\(([0-9a-fA-F-]{36})\)|(^|[\s(（【\[{\u3000>《“‘'"、，。！？;:])@([A-Za-z0-9_\-\u4e00-\u9fa5·]{1,24})|(?:https?:\/\/|www\.)[^\s<]+/gm;
+  const tokenRe = /@\[([^\]]+?)\]\(([0-9a-fA-F-]{36})\)|(^|[\s(（【\[{\u3000>《"‘'"、，。！？;:])@([A-Za-z0-9_\-\u4e00-\u9fa5·]{1,24})|(?:https?:\/\/|www\.)[^\s<]+/gm;
 
   let out = '';
   let last = 0;
@@ -106,7 +106,7 @@ function renderRichText(str){
     let trailing = '';
     while(url.length){
       const ch = url[url.length - 1];
-      if(/[\)\]\}\.,!?;:，。！？；：》」』”’"']/.test(ch)){
+      if(/[\)\]\}\.,!?;:，。！？；：》」』"’"']/.test(ch)){
         trailing = ch + trailing;
         url = url.slice(0, -1);
         continue;
@@ -151,7 +151,7 @@ function renderMarkdownLite(md){
       let trailing = '';
       while(url.length){
         const ch = url[url.length - 1];
-        if(/[\)\]\}\.,!?;:，。！？；：》」』”’"']/.test(ch)){
+        if(/[\)\]\}\.,!?;:，。！？；：》」』"’"']/.test(ch)){
           trailing = ch + trailing;
           url = url.slice(0, -1);
           continue;
@@ -1059,18 +1059,18 @@ const AI_PROMPT_VERSION = 'stage1_free_v1';
 function buildAiSummaryPrompt(){
   const prompt = [
     '你是医学学术讨论整理助手。请仅基于我提供的病例正文与评论内容进行归纳总结，不要编造未出现的信息。',
-    '不要输出任何个体化处方或医疗建议，用“讨论中提到/观点认为/可能性”表述。',
+    '不要输出任何个体化处方或医疗建议，用"讨论中提到/观点认为/可能性"表述。',
     '',
     '请输出 Markdown，严格按以下结构：',
     '1) 一句话摘要（≤60字）',
     '2) 关键信息速览（要点列表）',
     '3) 时间线（如文本里有日期/时间则整理，没有就跳过）',
     '4) 讨论焦点与分歧（列出不同观点及依据）',
-    '5) 阶段性共识/下一步建议（仅“讨论建议”，不得给个体化治疗处方）',
+    '5) 阶段性共识/下一步建议（仅"讨论建议"，不得给个体化治疗处方）',
     '6) 信息缺口清单（缺哪些检查/病理描述/随访信息）',
-    '7) 引用来源：用“病例正文/评论#编号（作者，时间）”标注',
+    '7) 引用来源：用"病例正文/评论#编号（作者，时间）"标注',
     '',
-    '重要：请提醒避免任何可识别个人信息（姓名/电话/住院号等）。若发现疑似信息请标注“疑似隐私信息：xxx（建议删除）”。',
+    '重要：请提醒避免任何可识别个人信息（姓名/电话/住院号等）。若发现疑似信息请标注"疑似隐私信息：xxx（建议删除）"。',
     '',
     '---',
     buildAiContextText({ includeAttachments: true, maxComments: 30 }),
@@ -1234,7 +1234,7 @@ function mountAiToolsUI(){
     }catch(e){
       const msg = String(e?.message || e || '');
       if(/case_ai_artifacts/i.test(msg) && /(does not exist|relation|schema cache|could not find|not find)/i.test(msg)){
-        toast('AI摘要未初始化', '请在 Supabase SQL Editor 运行 MIGRATION_20260118_CASE_AI_ARTIFACTS.sql，然后 Settings → API 点击 “Reload schema”。', 'err');
+        toast('AI摘要未初始化', '请在 Supabase SQL Editor 运行 MIGRATION_20260118_CASE_AI_ARTIFACTS.sql，然后 Settings → API 点击 "Reload schema"。', 'err');
       }else{
         toast('保存失败', msg, 'err');
       }
@@ -1280,7 +1280,7 @@ function mountAiToolsUI(){
     }catch(e){
       const msg = String(e?.message || e || '');
       if(/case_ai_artifacts/i.test(msg) && /(does not exist|relation|schema cache|could not find|not find)/i.test(msg)){
-        toast('AI结构化未初始化', '请在 Supabase SQL Editor 运行 MIGRATION_20260118_CASE_AI_ARTIFACTS.sql，然后 Settings → API 点击 “Reload schema”。', 'err');
+        toast('AI结构化未初始化', '请在 Supabase SQL Editor 运行 MIGRATION_20260118_CASE_AI_ARTIFACTS.sql，然后 Settings → API 点击 "Reload schema"。', 'err');
       }else{
         toast('保存失败', msg, 'err');
       }
@@ -2216,7 +2216,7 @@ if(likeBtn){
 
       const msg = err?.message || String(err);
       if(/case_likes/i.test(msg) && /does not exist|relation/i.test(msg)){
-        toast('点赞功能未初始化', '请在 Supabase SQL Editor 运行最新版 SUPABASE_SETUP.sql，然后 Settings → API 点击 “Reload schema”。', 'err');
+        toast('点赞功能未初始化', '请在 Supabase SQL Editor 运行最新版 SUPABASE_SETUP.sql，然后 Settings → API 点击 "Reload schema"。', 'err');
       }else{
         toast('操作失败', msg, 'err');
       }
@@ -2284,7 +2284,7 @@ if(favBtn){
       const msg = String(err?.message || err || '');
       // Supabase/PostgREST 在刚建表但未 Reload schema 时，常见报错："schema cache" / "could not find"。
       if(/case_favorites/i.test(msg) && /(does not exist|relation|schema cache|could not find|not find)/i.test(msg)){
-        toast('收藏功能未初始化', '请在 Supabase SQL Editor 运行 MIGRATION_20260110_FAVORITES.sql，然后 Settings → API 点击 “Reload schema”。', 'err');
+        toast('收藏功能未初始化', '请在 Supabase SQL Editor 运行 MIGRATION_20260110_FAVORITES.sql，然后 Settings → API 点击 "Reload schema"。', 'err');
       }else{
         toast('操作失败', msg, 'err');
       }

@@ -470,7 +470,7 @@ function _linkifyAndMentionify(root, opts){
   if(!linkify && !mentionify) return;
 
   const urlRe = /\b((?:https?:\/\/|www\.)[^\s<]+)\b/g;
-  const mentionRe = /(^|[\s(（【\[{\u3000>《“‘'"、，。！？;:])@([A-Za-z0-9_\-\u4e00-\u9fa5·]{1,24})/g;
+  const mentionRe = /(^|[\s(（【\[{\u3000>《"‘'"、，。！？;:])@([A-Za-z0-9_\-\u4e00-\u9fa5·]{1,24})/g;
 
   _walkTextNodes(root, (textNode)=>{
     const raw = String(textNode.nodeValue || '');
@@ -494,7 +494,7 @@ function _linkifyAndMentionify(root, opts){
         let trailing = '';
         while(url.length){
           const ch = url[url.length-1];
-          if(/[\)\]\}\.,!?;:，。！？；：》」』”’"']/.test(ch)){
+          if(/[\)\]\}\.,!?;:，。！？；：》」』"’"']/.test(ch)){
             trailing = ch + trailing;
             url = url.slice(0, -1);
             continue;

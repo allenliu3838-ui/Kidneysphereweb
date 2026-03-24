@@ -281,7 +281,7 @@
       }
 
       if(!data || data.length===0){
-        list.innerHTML = `<div class="note">暂无内容。你可以点击右上角“发布病例”发布第一条病例讨论。</div>`;
+        list.innerHTML = `<div class="note">暂无内容。你可以点击右上角"发布病例"发布第一条病例讨论。</div>`;
       }else{
         list.innerHTML = data.map(d => card(d, favedSet.has(d.id))).join('');
       maybeScrollHighlight();
@@ -331,7 +331,7 @@
       }catch(err){
         const msg = err?.message || String(err);
         if(/case_favorites/i.test(msg) && /(does not exist|relation|schema cache|could not find|not find)/i.test(msg)){
-          toast('收藏功能未初始化', '请在 Supabase SQL Editor 运行 MIGRATION_20260110_FAVORITES.sql，然后 Settings → API 点击 “Reload schema”。');
+          toast('收藏功能未初始化', '请在 Supabase SQL Editor 运行 MIGRATION_20260110_FAVORITES.sql，然后 Settings → API 点击 "Reload schema"。');
         }else{
           toast('操作失败', msg);
         }

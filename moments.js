@@ -213,7 +213,7 @@ function nl2br(str){
 
   // Tokenize in one pass: legacy mention / plain mention / URL
   // Plain mention matches common Chinese/English names and avoids emails by requiring a boundary.
-  const tokenRe = /@\[([^\]]+?)\]\(([0-9a-fA-F-]{36})\)|(^|[\s(（【\[{\u3000>《“‘'"、，。！？;:])@([A-Za-z0-9_\-\u4e00-\u9fa5·]{1,24})|(?:https?:\/\/|www\.)[^\s<]+/gm;
+  const tokenRe = /@\[([^\]]+?)\]\(([0-9a-fA-F-]{36})\)|(^|[\s(（【\[{\u3000>《"‘'"、，。！？;:])@([A-Za-z0-9_\-\u4e00-\u9fa5·]{1,24})|(?:https?:\/\/|www\.)[^\s<]+/gm;
 
   function renderInline(s){
     const text = String(s ?? '');
@@ -250,7 +250,7 @@ function nl2br(str){
       let trailing = '';
       while(url.length){
         const ch = url[url.length - 1];
-        if(/[\)\]\}\.,!?;:，。！？；：》」』”’"']/.test(ch)){
+        if(/[\)\]\}\.,!?;:，。！？；：》」』"’"']/.test(ch)){
           trailing = ch + trailing;
           url = url.slice(0, -1);
           continue;
@@ -606,16 +606,16 @@ function momentShareDesc(m){
 
 function applyShareForMoment(m){
   if(!m || !m.id) return null;
-  // 分享标题：优先用内容摘要（更像朋友圈/收藏里常见的“文章标题”），
-  // 没有内容再退回到“社区动态 · 作者”。
+  // 分享标题：优先用内容摘要（更像朋友圈/收藏里常见的"文章标题"），
+  // 没有内容再退回到"社区动态 · 作者"。
   const author = String(m.author_name || '成员');
   const raw = String(m?.content || '').replace(/\s+/g, ' ').trim();
   const titleCore = raw ? (raw.length <= 42 ? raw : (raw.slice(0, 42).trim() + '…')) : '';
   const title = titleCore ? `${titleCore} · ${author}` : `社区动态 · ${author}`;
   const description = momentShareDesc(m);
   // WeChat/朋友圈链接预览对 JS 执行不稳定；
-  // 为避免“有时无图/图不一致”，这里默认固定使用统一的分享封面。
-  // （如未来希望“每条动态用自己的首图做封面”，需要做服务端渲染/分享中转页。）
+  // 为避免"有时无图/图不一致"，这里默认固定使用统一的分享封面。
+  // （如未来希望"每条动态用自己的首图做封面"，需要做服务端渲染/分享中转页。）
   const image = 'assets/wechat_share_logo.png';
   const url = momentShareUrl(m.id);
   applyShareMeta({ title, description, image, url, type: 'website' });
@@ -647,8 +647,8 @@ function ensureMomentShareModal(){
       </div>
       <div class="modal-body">
         <div class="small muted" id="momentShareIntro">
-          你可以复制链接，或在手机上使用系统分享（可选择“发送给朋友 / 分享到朋友圈”等）。
-          如需朋友圈展示图片，建议使用“分享图片/保存图片”。
+          你可以复制链接，或在手机上使用系统分享（可选择"发送给朋友 / 分享到朋友圈"等）。
+          如需朋友圈展示图片，建议使用"分享图片/保存图片"。
         </div>
 
         <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
@@ -659,8 +659,8 @@ function ensureMomentShareModal(){
         </div>
 
         <div class="small muted" style="margin-top:10px; line-height:1.6;">
-          提示：网页无法直接“自动发朋友圈”，但系统分享会弹出分享面板，你可在微信中选择好友/朋友圈。
-          若系统分享不可用，请使用“复制链接”或“保存图片”。
+          提示：网页无法直接"自动发朋友圈"，但系统分享会弹出分享面板，你可在微信中选择好友/朋友圈。
+          若系统分享不可用，请使用"复制链接"或"保存图片"。
         </div>
       </div>
     </div>
@@ -768,7 +768,7 @@ async function openMomentShareDialog(m){
     imgBtn.onclick = async ()=>{
       const ok = await shareImage(imgUrl, `moment_${m?.id || ''}`, title, text, shareUrl);
       if(!ok){
-        toast('系统不支持直接分享图片，已为你打开“保存图片”');
+        toast('系统不支持直接分享图片，已为你打开"保存图片"');
         await downloadImage(imgUrl, `moment_${m?.id || ''}.jpg`);
       }
       hideMomentShareModal();
@@ -944,7 +944,7 @@ function addMomentFiles(files){
     (videoLinkUrl && isLikelyVideoFileUrl(videoLinkUrl))
   );
   if(hasFileVideo){
-    toast('已选择短视频', '短视频（上传/直链）与 PDF/Word 附件暂不支持混发。请先“清空视频”再添加附件。', 'err');
+    toast('已选择短视频', '短视频（上传/直链）与 PDF/Word 附件暂不支持混发。请先"清空视频"再添加附件。', 'err');
     return;
   }
 
@@ -1122,7 +1122,7 @@ function renderVideo(){
   // existing video file (edit mode)
   els.videoPreview.innerHTML = `
     ${renderVideoUrl(existingVideoUrl)}
-    <div class="small muted" style="margin-top:8px">当前视频（编辑中）。如需替换，先点击“清空视频”，再选择新视频。</div>
+    <div class="small muted" style="margin-top:8px">当前视频（编辑中）。如需替换，先点击"清空视频"，再选择新视频。</div>
   `;
   updateVideoClearBtn();
 }
@@ -1180,7 +1180,7 @@ function addFiles(files){
     (videoLinkUrl && isLikelyVideoFileUrl(videoLinkUrl))
   );
   if(hasFileVideo){
-    toast('已选择短视频', '短视频（上传/直链）与图片暂不支持混发。请先“清空视频”再添加图片。', 'err');
+    toast('已选择短视频', '短视频（上传/直链）与图片暂不支持混发。请先"清空视频"再添加图片。', 'err');
     return;
   }
   const arr = Array.from(files || []).filter(f => f && String(f.type || '').startsWith('image/'));
@@ -1190,7 +1190,7 @@ function addFiles(files){
   const cur = (existingImages?.length || 0) + picks.length;
   const remain = Math.max(0, max - cur);
   if(remain <= 0){
-    toast('最多 9 张', '已达到最大图片数量（9 张）。如需替换，请先点击“清空”。', 'err');
+    toast('最多 9 张', '已达到最大图片数量（9 张）。如需替换，请先点击"清空"。', 'err');
     return;
   }
   const take = arr.slice(0, remain);
@@ -1216,12 +1216,12 @@ function addVideoFile(file){
   }
 
   if(_visibleExistingMomentFiles().length > 0 || momentFilePicks.length > 0){
-    toast('已选择附件', '短视频（上传）与 PDF/Word 附件暂不支持混发。请先“清空附件”再选择视频。', 'err');
+    toast('已选择附件', '短视频（上传）与 PDF/Word 附件暂不支持混发。请先"清空附件"再选择视频。', 'err');
     return;
   }
 
   if(picks.length > 0 || (existingImages?.length || 0) > 0){
-    toast('已选择图片', '当前版本短视频与图片暂不支持混发。请先“清空图片”再选择视频。', 'err');
+    toast('已选择图片', '当前版本短视频与图片暂不支持混发。请先"清空图片"再选择视频。', 'err');
     return;
   }
   if((file.size || 0) > MAX_VIDEO_BYTES){
@@ -1646,7 +1646,7 @@ async function syncMomentFiles(momentId){
     }catch(attErr){
       const msg = String(attErr?.message || attErr);
       if(/relation .*attachments.*does not exist|does not exist/i.test(msg)){
-        toast('附件功能未初始化', '请在 Supabase SQL Editor 运行最新版 SUPABASE_SETUP.sql，然后到 Settings → API 执行 “Reload schema”。', 'err');
+        toast('附件功能未初始化', '请在 Supabase SQL Editor 运行最新版 SUPABASE_SETUP.sql，然后到 Settings → API 执行 "Reload schema"。', 'err');
       }else if(/bucket/i.test(msg) && /not found|does not exist/i.test(msg)){
         toast('存储未初始化', '请在 Supabase Storage 确认 moments bucket 已创建（或运行最新版 SUPABASE_SETUP.sql 会自动创建）。', 'err');
       }else{
@@ -1855,13 +1855,13 @@ async function publish(){
     if(/could not find the table/i.test(msg) && msg.includes('moments')){
       toast(
         title,
-        '未找到 public.moments 表（或 PostgREST schema 未刷新）。请到 Supabase → SQL Editor 运行最新版 SUPABASE_SETUP.sql（或 MIGRATION_ONLY_MOMENTS.sql），然后在 Supabase → Settings → API 点击 “Reload schema”（或等待 1–2 分钟再试）。',
+        '未找到 public.moments 表（或 PostgREST schema 未刷新）。请到 Supabase → SQL Editor 运行最新版 SUPABASE_SETUP.sql（或 MIGRATION_ONLY_MOMENTS.sql），然后在 Supabase → Settings → API 点击 "Reload schema"（或等待 1–2 分钟再试）。',
         'err'
       );
     }else if(/column/i.test(msg) && /video_url/i.test(msg) && /does not exist/i.test(msg)){
       toast(
         title + '（需要升级数据库）',
-        '当前数据库 moments 表还没有 video_url 字段。请运行最新版 SUPABASE_SETUP.sql（或 MIGRATION_ONLY_MOMENTS.sql），并在 Supabase → Settings → API 点击 “Reload schema”。',
+        '当前数据库 moments 表还没有 video_url 字段。请运行最新版 SUPABASE_SETUP.sql（或 MIGRATION_ONLY_MOMENTS.sql），并在 Supabase → Settings → API 点击 "Reload schema"。',
         'err'
       );
     }else{
@@ -2204,7 +2204,7 @@ async function loadFeed(opts={}){
   }catch(e){
     const msg = (e && (e.message || e.error_description)) ? String(e.message || e.error_description) : String(e);
     const extra = (/could not find the table/i.test(msg) && msg.includes('moments'))
-      ? `<br/><span class="small">未找到 public.moments 表：请运行最新版 SUPABASE_SETUP.sql（或 MIGRATION_ONLY_MOMENTS.sql），并在 Supabase → Settings → API 点击 “Reload schema”。</span>`
+      ? `<br/><span class="small">未找到 public.moments 表：请运行最新版 SUPABASE_SETUP.sql（或 MIGRATION_ONLY_MOMENTS.sql），并在 Supabase → Settings → API 点击 "Reload schema"。</span>`
       : `<br/><span class="small">请检查 Supabase 配置与 RLS 权限。</span>`;
     els.feed.innerHTML = `<div class="note"><b>读取失败：</b>${esc(msg)}${extra}</div>`;
     _setFeedHint('');
@@ -2280,7 +2280,7 @@ async function loadFeed(opts={}){
   const loadedCount = feedRows.length;
   _setFeedHint(feedReachedEnd
     ? `已加载 ${loadedCount} 条（已到底）`
-    : `已加载最近 ${Math.min(loadedCount, FEED_PAGE_SIZE)} 条，点击下方“加载更多”查看更早内容。`
+    : `已加载最近 ${Math.min(loadedCount, FEED_PAGE_SIZE)} 条，点击下方"加载更多"查看更早内容。`
   );
 
   updateLoadMoreUI();
@@ -2443,7 +2443,7 @@ async function beginEdit(btn){
 
   if(els.text) els.text.value = m.content || '';
 
-  setHint('正在编辑该动态：修改完成后点击“保存修改”。如需替换图片/视频，可先“清空”再重新上传。', 'info');
+  setHint('正在编辑该动态：修改完成后点击"保存修改"。如需替换图片/视频，可先"清空"再重新上传。', 'info');
   setPublishState('');
 
   renderThumbs();
@@ -2755,7 +2755,7 @@ async function postComment(momentId, parentId=null){
       }catch(attErr){
         const msg = String(attErr?.message || attErr);
         if(/relation .*attachments.*does not exist|does not exist/i.test(msg)){
-          toast('附件功能未初始化', '请在 Supabase SQL Editor 运行最新版 SUPABASE_SETUP.sql，然后到 Settings → API 执行 “Reload schema”。', 'err');
+          toast('附件功能未初始化', '请在 Supabase SQL Editor 运行最新版 SUPABASE_SETUP.sql，然后到 Settings → API 执行 "Reload schema"。', 'err');
         }else if(/bucket/i.test(msg) && /not found|does not exist/i.test(msg)){
           toast('附件存储未初始化', '请在 Supabase Storage 创建 attachments bucket（或运行最新版 SUPABASE_SETUP.sql 会自动创建）。', 'err');
         }else{
@@ -3170,7 +3170,7 @@ async function toggleLike(btn){
 
     const msg = e?.message || String(e);
     if(/moment_likes/i.test(msg) && /does not exist|relation/i.test(msg)){
-      toast('点赞功能未初始化', '请在 Supabase SQL Editor 运行最新版 SUPABASE_SETUP.sql（或 MIGRATION_ONLY_MOMENTS.sql），然后 Settings → API 点击 “Reload schema”。', 'err');
+      toast('点赞功能未初始化', '请在 Supabase SQL Editor 运行最新版 SUPABASE_SETUP.sql（或 MIGRATION_ONLY_MOMENTS.sql），然后 Settings → API 点击 "Reload schema"。', 'err');
     }else{
       toast('操作失败', msg, 'err');
     }
@@ -3219,7 +3219,7 @@ async function toggleFavorite(btn){
   }catch(e){
     const msg = e?.message || String(e);
     if(/moment_favorites/i.test(msg) && /does not exist|relation/i.test(msg)){
-      toast('收藏功能未初始化', '请在 Supabase SQL Editor 运行 MIGRATION_20260110_FAVORITES.sql，然后 Settings → API 点击 “Reload schema”。', 'err');
+      toast('收藏功能未初始化', '请在 Supabase SQL Editor 运行 MIGRATION_20260110_FAVORITES.sql，然后 Settings → API 点击 "Reload schema"。', 'err');
     }else{
       toast('操作失败', _humanizeRlsError(e), 'err');
     }

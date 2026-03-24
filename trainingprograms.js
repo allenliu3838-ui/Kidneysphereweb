@@ -1,7 +1,7 @@
 // trainingPrograms.js (v8.14)
 //
-// - 首页：动态渲染“学习中心 · 培训项目”列表（可后台编辑）
-// - 学习中心：动态渲染“培训项目”卡片
+// - 首页：动态渲染"学习中心 · 培训项目"列表（可后台编辑）
+// - 学习中心：动态渲染"培训项目"卡片
 //
 // 数据来源：public.training_programs（见 MIGRATION_20260121_TRAINING_MODERATORS.sql）
 
