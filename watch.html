@@ -81,10 +81,24 @@
   const qs = new URLSearchParams(location.search);
   const id = (qs.get('id') || '').toString();
 
+  // For static videos (from assets/videos.js), we can try to render immediately
+  // even before auth check, since they are free. Auth check is for DB videos.
+  const staticVideo = getVideoById(id);
+
   try{
 
-  // 1) Require login (matches "注册后观看")
-  await ensureAuthed('login.html');
+  // 1) Require login (matches "注册后观看") — with 10s timeout to prevent hang
+  const authTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('auth_timeout')), 10000));
+  try{
+    await Promise.race([ensureAuthed('login.html'), authTimeout]);
+  }catch(authErr){
+    if(String(authErr?.message) === 'auth_timeout'){
+      console.warn('[watch] ensureAuthed timed out after 10s, proceeding anyway');
+      // Don't block — user may already be authed, just slow init
+    } else {
+      throw authErr;
+    }
+  }
 
   /**
    * Check if an Aliyun OSS pre-signed URL has expired.
