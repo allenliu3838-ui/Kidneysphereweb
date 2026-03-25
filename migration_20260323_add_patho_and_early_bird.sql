@@ -172,8 +172,9 @@ begin
 
   -- 重症肾内科 · 2026 年 8 月首期班
   insert into public.cohorts (
-    project_id, title, start_date, enrollment_deadline, status, sort_order
+    cohort_code, project_id, title, start_date, registration_deadline, status, sort_order
   ) values (
+    'ICU-2026-AUG',
     _proj_icu_id,
     '重症肾内科 · 2026 年 8 月首期班',
     '2026-08-01',
@@ -181,12 +182,13 @@ begin
     'recruiting',
     1
   )
-  on conflict do nothing;
+  on conflict (cohort_code) do nothing;
 
   -- 肾移植内科 · 2026 年 8 月首期班
   insert into public.cohorts (
-    project_id, title, start_date, enrollment_deadline, status, sort_order
+    cohort_code, project_id, title, start_date, registration_deadline, status, sort_order
   ) values (
+    'TX-2026-AUG',
     _proj_tx_id,
     '肾移植内科 · 2026 年 8 月首期班',
     '2026-08-01',
@@ -194,12 +196,13 @@ begin
     'recruiting',
     1
   )
-  on conflict do nothing;
+  on conflict (cohort_code) do nothing;
 
   -- 肾脏病理 · 2026 年 8 月首期班
   insert into public.cohorts (
-    project_id, title, start_date, enrollment_deadline, status, sort_order
+    cohort_code, project_id, title, start_date, registration_deadline, status, sort_order
   ) values (
+    'PATHO-2026-AUG',
     _proj_patho_id,
     '肾脏病理 · 2026 年 8 月首期班',
     '2026-08-01',
@@ -207,11 +210,11 @@ begin
     'recruiting',
     1
   )
-  on conflict do nothing;
+  on conflict (cohort_code) do nothing;
 
   -- 同步更新三个项目状态为 live（招募中）
   update public.learning_projects
-  set status = 'live'
+  set status = 'recruiting'
   where project_code in ('PROJ-ICU-2026', 'PROJ-TX-2026', 'PROJ-PATHO-2026');
 
 end $$;
