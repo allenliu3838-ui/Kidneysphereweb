@@ -1,12 +1,5 @@
 /**
- * checkout.js — 统一结账页逻辑（支持即时开通 + 人工审核两种流程）
- *
- * 即时开通 (requires_review = false)：视频课 / 整套课 / 数字内容
- *   → 确认订单 → 扫码支付 → 确认已付款 → 权益自动开通
- *
- * 人工审核 (requires_review = true)：培训报名 / 班期制项目
- *   → 确认订单 → 扫码支付 → 上传凭证 → 管理员审核 → 权益开通
- *
+ * checkout.js — 统一结账页逻辑
  * URL 参数: ?product=PRODUCT_CODE 或 ?product_id=UUID
  */
 import {
@@ -26,7 +19,6 @@ let _product = null;
 let _order = null;
 let _channel = 'wechat';
 let _sysConfig = {};
-let _isInstant = false; // true if product supports instant checkout
 
 /* ── DOM refs ── */
 const gate = document.getElementById('checkoutGate');
@@ -55,6 +47,7 @@ async function loadProduct() {
     return false;
   }
 
+  // Use RPC to avoid PostgREST schema-cache uuid cast issues
   const { data, error } = await supabase.rpc('get_product_for_checkout', {
     p_code: code || null,
     p_id: pid || null,
@@ -70,7 +63,6 @@ async function loadProduct() {
   }
 
   _product = data;
-  _isInstant = _product.requires_review === false;
   return true;
 }
 
@@ -82,54 +74,15 @@ async function loadSysConfig() {
   } catch { _sysConfig = {}; }
 }
 
-/* ── adapt UI for instant vs review flow ── */
-function adaptFlowUI() {
-  const stepIndicator = document.getElementById('stepIndicator');
-  const btnGoUpload = document.getElementById('btnGoUpload');
-  const btnInstantComplete = document.getElementById('btnInstantComplete');
-  const instantHint = document.getElementById('instantHint');
-  const trustInfo = document.getElementById('checkoutTrustInfo');
-
-  if (_isInstant) {
-    // Simplify step indicator: only 2 steps
-    if (stepIndicator) {
-      stepIndicator.innerHTML = `
-        <span class="step active" data-step="1">1. 确认订单</span>
-        <span class="step" data-step="2">2. 扫码支付</span>
-      `;
-    }
-    // Show instant button, hide proof upload button
-    if (btnGoUpload) btnGoUpload.hidden = true;
-    if (btnInstantComplete) btnInstantComplete.hidden = false;
-    if (instantHint) instantHint.hidden = false;
-    if (trustInfo) {
-      trustInfo.innerHTML = `
-        <b>即时开通：</b>本商品为数字内容，扫码付款后点击"确认已付款"即可立即开通权益。<br/>
-        支持微信支付、支付宝。如有问题请联系 <a href="mailto:china@kidneysphere.com">china@kidneysphere.com</a>。
-      `;
-    }
-  } else {
-    // Standard review flow
-    if (btnInstantComplete) btnInstantComplete.hidden = true;
-    if (instantHint) instantHint.hidden = true;
-  }
-}
-
 /* ── render order summary (step 1) ── */
 function renderSummary() {
   const wrap = document.getElementById('orderSummary');
   if (!wrap || !_product) return;
-
-  const instantBadge = _isInstant
-    ? `<div style="margin-top:8px"><span style="display:inline-block;padding:3px 10px;border-radius:8px;font-size:12px;font-weight:600;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35);color:#4ade80">即时开通 · 付款后立即生效</span></div>`
-    : `<div style="margin-top:8px"><span style="display:inline-block;padding:3px 10px;border-radius:8px;font-size:12px;font-weight:600;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.35);color:#fbbf24">需审核 · 上传凭证后 1 个工作日内开通</span></div>`;
-
   wrap.innerHTML = `
     <div class="line"><span>${esc(_product.title)}</span><span>¥${esc(String(_product.price_cny))}</span></div>
     ${_product.subtitle ? `<div class="small muted" style="padding:2px 0">${esc(_product.subtitle)}</div>` : ''}
     ${_product.list_price_cny ? `<div class="line small muted"><span>原价</span><span><s>¥${esc(String(_product.list_price_cny))}</s></span></div>` : ''}
     <div class="line total"><span>合计</span><span>¥${esc(String(_product.price_cny))}</span></div>
-    ${instantBadge}
   `;
 }
 
@@ -140,9 +93,11 @@ async function createOrder() {
   btn.textContent = '创建订单中…';
 
   try {
+    // Generate order number via RPC
     const { data: orderNo, error: noErr } = await supabase.rpc('generate_order_no');
     if (noErr) throw noErr;
 
+    // Insert order
     const { data: order, error: oErr } = await supabase
       .from('orders')
       .insert({
@@ -156,6 +111,7 @@ async function createOrder() {
       .single();
     if (oErr) throw oErr;
 
+    // Insert order item
     const { error: iErr } = await supabase
       .from('order_items')
       .insert({
@@ -221,57 +177,7 @@ function updatePayUI() {
   notice.textContent = _sysConfig.payment_notice || '请在付款备注中填写您的订单号。';
 }
 
-/* ── instant complete (for digital content) ── */
-async function completeInstantOrder() {
-  const btn = document.getElementById('btnInstantComplete');
-  if (!btn || !_order) return;
-  btn.disabled = true;
-  btn.textContent = '正在开通…';
-
-  try {
-    // Update order paid_at
-    await supabase
-      .from('orders')
-      .update({ paid_at: new Date().toISOString(), channel: _channel })
-      .eq('id', _order.id);
-
-    // Call RPC to self-approve and grant entitlements
-    const { data, error } = await supabase.rpc('complete_instant_order', {
-      p_order_id: _order.id,
-    });
-    if (error) throw error;
-
-    // Show success
-    document.getElementById('step2').hidden = true;
-    const done = document.getElementById('stepDone');
-    done.hidden = false;
-    document.getElementById('doneOrderNo').textContent = _order.order_no;
-
-    // Update done message for instant flow
-    const doneMsg = done.querySelector('h3');
-    if (doneMsg) doneMsg.textContent = '权益已开通';
-    const doneDesc = done.querySelector('p.muted');
-    if (doneDesc) doneDesc.textContent = '付款已确认，权益已自动开通。';
-
-    // Update step indicators
-    document.querySelectorAll('.step-indicator .step').forEach(s => s.classList.add('done'));
-
-    toast('已开通', '权益已自动开通，可前往「我的学习」查看。', 'ok');
-    loadMyOrders();
-  } catch (err) {
-    toast('开通失败', err.message, 'err');
-    btn.disabled = false;
-    btn.textContent = '确认已付款，立即开通';
-    // Fallback hint
-    const hint = document.getElementById('instantHint');
-    if (hint) hint.innerHTML = `<span style="color:var(--danger)">自动开通失败：${esc(err.message)}。请上传支付凭证，管理员将人工审核。</span>`;
-    // Show proof upload as fallback
-    const btnGoUpload = document.getElementById('btnGoUpload');
-    if (btnGoUpload) btnGoUpload.hidden = false;
-  }
-}
-
-/* ── upload proof (step 3, for review-required products) ── */
+/* ── upload proof (step 3) ── */
 async function submitProof(e) {
   e.preventDefault();
   const form = document.getElementById('proofForm');
@@ -284,6 +190,7 @@ async function submitProof(e) {
     return;
   }
 
+  // Validate at least one contact method
   const contactWechat = fd.get('contact_wechat')?.trim() || '';
   const contactPhone = fd.get('contact_phone')?.trim() || '';
   const contactEmail = fd.get('contact_email')?.trim() || '';
@@ -323,6 +230,7 @@ async function submitProof(e) {
       });
     if (ppErr) throw ppErr;
 
+    // Update order status and save contact info
     await supabase
       .from('orders')
       .update({
@@ -335,6 +243,7 @@ async function submitProof(e) {
       })
       .eq('id', _order.id);
 
+    // Show done
     document.getElementById('step3').hidden = true;
     document.getElementById('stepDone').hidden = false;
     document.getElementById('doneOrderNo').textContent = _order.order_no;
@@ -412,6 +321,7 @@ async function init() {
     return;
   }
 
+  // Load product and config in parallel
   const [productOk] = await Promise.all([loadProduct(), loadSysConfig()]);
   if (!productOk) return;
 
@@ -420,7 +330,6 @@ async function init() {
   const trustInfo = document.getElementById('checkoutTrustInfo');
   if (trustInfo) trustInfo.hidden = true;
 
-  adaptFlowUI();
   renderSummary();
   setStep(1);
 
@@ -431,8 +340,7 @@ async function init() {
   document.getElementById('payAlipay').addEventListener('click', () => { _channel = 'alipay'; updatePayUI(); });
   document.getElementById('payBank').addEventListener('click', () => { _channel = 'bank_transfer'; updatePayUI(); });
 
-  document.getElementById('btnGoUpload')?.addEventListener('click', () => setStep(3));
-  document.getElementById('btnInstantComplete')?.addEventListener('click', completeInstantOrder);
+  document.getElementById('btnGoUpload').addEventListener('click', () => setStep(3));
 
   document.getElementById('proofForm').addEventListener('submit', submitProof);
 
