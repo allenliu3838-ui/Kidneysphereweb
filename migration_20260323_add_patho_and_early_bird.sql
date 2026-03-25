@@ -147,7 +147,7 @@ begin
     1280, true,
     _patho_bundle_id,
     '开课前7天以上申请全额退款；开课后不支持退款。',
-    true, 'enrollment', 3
+    true, 'recruiting', 3
   )
   on conflict (project_code) do update set
     title                      = excluded.title,
@@ -178,7 +178,7 @@ begin
     '重症肾内科 · 2026 年 8 月首期班',
     '2026-08-01',
     '2026-05-30',
-    'enrollment',
+    'recruiting',
     1
   )
   on conflict do nothing;
@@ -191,7 +191,7 @@ begin
     '肾移植内科 · 2026 年 8 月首期班',
     '2026-08-01',
     '2026-05-30',
-    'enrollment',
+    'recruiting',
     1
   )
   on conflict do nothing;
@@ -204,7 +204,7 @@ begin
     '肾脏病理 · 2026 年 8 月首期班',
     '2026-08-01',
     '2026-05-30',
-    'enrollment',
+    'recruiting',
     1
   )
   on conflict do nothing;
