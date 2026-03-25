@@ -67,9 +67,29 @@ function renderEntitlements(list) {
     return;
   }
 
+  // Deduplicate: for specialty_bundle, keep only the one with latest end_at per specialty_id
+  const seen = new Map();
+  const deduped = [];
+  for (const e of list) {
+    if (e.entitlement_type === 'specialty_bundle' && e.specialty_id) {
+      const key = `sp_${e.specialty_id}`;
+      const prev = seen.get(key);
+      if (prev) {
+        // keep the one with later end_at
+        if ((e.end_at || '') > (prev.end_at || '')) {
+          deduped[deduped.indexOf(prev)] = e;
+          seen.set(key, e);
+        }
+        continue;
+      }
+      seen.set(key, e);
+    }
+    deduped.push(e);
+  }
+
   // Group by type
   const groups = {};
-  list.forEach(e => {
+  deduped.forEach(e => {
     const t = e.entitlement_type;
     if (!groups[t]) groups[t] = [];
     groups[t].push(e);

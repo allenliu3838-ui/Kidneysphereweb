@@ -916,7 +916,7 @@ async function loadTrainingProjects(){
           if(fullBtn || videoBtn){
             ctaHtml = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${fullBtn}${videoBtn}</div>`;
           } else {
-            ctaHtml = `<div style="margin-top:10px"><a class="btn" href="my-learning.html">联系招募</a></div>`;
+            ctaHtml = `<div style="margin-top:10px"><a class="btn" href="mailto:china@kidneysphere.com?subject=${encodeURIComponent('报名咨询：' + (proj.title || ''))}">联系招募</a></div>`;
           }
           if(!currentUser){
             ctaHtml = `<div style="margin-top:10px"><a class="btn" href="login.html?next=${encodeURIComponent('learning.html')}">登录后报名</a></div>`;
