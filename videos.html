@@ -84,6 +84,8 @@
 
   const qs = new URLSearchParams(location.search);
   let currentCat = (qs.get('cat') || 'all').toString();
+  const _specialtyFilter = qs.get('specialty') || null;  // specialty_id filter from my-learning
+  let _specialtyName = null;  // resolved from DB
 
   const catPills = document.getElementById('catPills');
   const grid = document.getElementById('videoGrid');
@@ -250,12 +252,20 @@
   }
 
   function renderVideos(){
-    const list = (currentCat === 'all')
-      ? ALL_VIDEOS
-      : ALL_VIDEOS.filter(v => v.category === currentCat);
+    let list = ALL_VIDEOS;
+
+    // If specialty filter is active, only show videos belonging to that specialty
+    if(_specialtyFilter){
+      list = list.filter(v => v.specialty_id === _specialtyFilter);
+    }
+
+    // Then apply category filter
+    if(currentCat !== 'all'){
+      list = list.filter(v => v.category === currentCat);
+    }
 
     if(!list || list.length === 0){
-      grid.innerHTML = `<div class="note">该频道暂无视频内容。</div>`;
+      grid.innerHTML = `<div class="note">${_specialtyFilter ? '该专科暂无视频内容。' : '该频道暂无视频内容。'}</div>`;
       return;
     }
 
@@ -365,6 +375,26 @@
   try{ renderCats(); }catch(e){ console.error('[videos] renderCats error:', e); }
   try{ renderVideos(); }catch(e){ console.error('[videos] renderVideos error:', e); }
 
+  function renderSpecialtyHeader(){
+    if(!_specialtyFilter) return;
+    const name = _specialtyName || '专科课程';
+    const h2 = document.querySelector('.hero h2');
+    if(h2) h2.textContent = `${name} · 视频库`;
+    document.title = `${name} · 视频库 · 肾域`;
+    // Add "查看全部" link below heading
+    const badge = document.querySelector('.hero .badge');
+    if(badge) badge.textContent = `${name} · 视频库`;
+    // Insert a back-to-all link if not already present
+    if(!document.getElementById('specialtyBackLink')){
+      const link = document.createElement('div');
+      link.id = 'specialtyBackLink';
+      link.style.cssText = 'margin-top:8px;';
+      link.innerHTML = `<a class="btn tiny" href="videos.html">← 查看全部视频</a>  <a class="btn tiny" href="my-learning.html">返回我的学习</a>`;
+      const h2El = document.querySelector('.hero h2');
+      if(h2El) h2El.parentNode.insertBefore(link, h2El.nextSibling);
+    }
+  }
+
   async function init(){
     try{
       // Check login + load DB videos in parallel, with 12s timeout to prevent hang
@@ -384,6 +414,14 @@
       }
     }catch(err){
       console.warn('videos init error (non-fatal):', err);
+    }
+    // If specialty filter is active, resolve specialty name for display
+    if(_specialtyFilter && supabase){
+      try{
+        const { data: sp } = await supabase.from('specialties').select('name').eq('id', _specialtyFilter).single();
+        if(sp?.name) _specialtyName = sp.name;
+      }catch(_e){}
+      renderSpecialtyHeader();
     }
     // Re-render with DB videos + access info
     try{ renderVideos(); }catch(e){ console.error('[videos] renderVideos error:', e); }
