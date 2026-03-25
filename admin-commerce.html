@@ -6,7 +6,7 @@
   <title>商品与订单管理 · 肾域后台</title>
   <meta name="description" content="统一商品、订单、权益、项目、学习群管理后台" />
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=20260325_001" />
+  <link rel="stylesheet" href="styles.css?v=20260325_002" />
   <style>
     .commerce-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
     .commerce-tabs .btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -80,6 +80,7 @@
               <div style="display:flex;gap:8px">
                 <select class="input" id="orderFilterStatus" style="width:auto">
                   <option value="pending_review">待审核</option>
+                  <option value="pending_payment">待付款</option>
                   <option value="all">全部</option>
                   <option value="approved">已通过</option>
                   <option value="rejected">已驳回</option>
@@ -217,7 +218,7 @@
   <!-- Modal container -->
   <div id="modalContainer"></div>
 
-  <script type="module" src="app.js?v=20260325_001"></script>
-  <script type="module" src="admin-commerce.js?v=20260325_001"></script>
+  <script type="module" src="app.js?v=20260325_002"></script>
+  <script type="module" src="admin-commerce.js?v=20260325_002"></script>
 </body>
 </html>

@@ -3,8 +3,8 @@
  */
 import {
   supabase, toast, formatBeijingDateTime,
-} from './supabaseClient.js?v=20260325_001';
-import { esc, statusDot, badge, showModal, closeModal } from './admin-commerce.js?v=20260325_001';
+} from './supabaseClient.js?v=20260325_002';
+import { esc, statusDot, badge, showModal, closeModal } from './admin-commerce.js?v=20260325_002';
 
 const STATUS_MAP = {
   pending_payment: { label: '待付款', dot: 'yellow' },
@@ -85,7 +85,7 @@ async function loadOrders() {
             <td class="small">${esc(formatBeijingDateTime(r.created_at))}</td>
             <td>
               <button class="btn tiny" data-detail="${r.id}" type="button">详情</button>
-              ${r.status === 'pending_review' ? `
+              ${(r.status === 'pending_review' || r.status === 'pending_payment') ? `
                 <button class="btn tiny primary" data-approve="${r.id}" type="button">通过</button>
                 <button class="btn tiny danger" data-reject="${r.id}" type="button">驳回</button>
               ` : ''}
@@ -150,7 +150,7 @@ async function showOrderDetail(orderId) {
     ${order.remark ? `<div class="hr"></div><div class="small muted">备注: ${esc(order.remark)}</div>` : ''}
   `;
 
-  const footer = order.status === 'pending_review' ? `
+  const footer = (order.status === 'pending_review' || order.status === 'pending_payment') ? `
     <button class="btn primary" id="modalApprove" type="button">通过</button>
     <button class="btn danger" id="modalReject" type="button">驳回</button>
   ` : '';
