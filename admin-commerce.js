@@ -129,7 +129,7 @@ async function init() {
 
   // Lazy-load sub-modules
   const mods = await Promise.allSettled([
-    import('./admin-commerce-orders.js?v=20260322_001'),
+    import('./admin-commerce-orders.js?v=20260325_001'),
     import('./admin-commerce-products.js?v=20260322_001'),
     import('./admin-commerce-config.js?v=20260322_001'),
     import('./admin-commerce-entitlements.js?v=20260322_001'),
