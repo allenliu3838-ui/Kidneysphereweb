@@ -14,6 +14,7 @@ export const VIDEO_CATEGORIES = [
   { key: 'meeting', zh: '病例讨论会议',                           en: 'Case Meetings' },
   { key: 'path',    zh: '肾脏病理',                               en: 'Renal Pathology' },
   { key: 'other',   zh: '其他肾脏病',                             en: 'Other' },
+  { key: 'glomcon', zh: 'GlomCon 中国',                           en: 'GlomCon China' },
 ];
 
 // Each item:
