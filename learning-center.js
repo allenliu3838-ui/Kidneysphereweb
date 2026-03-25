@@ -35,6 +35,7 @@ const els = {
   videoSpeaker: document.getElementById('videoSpeaker'),
   videoSpecialty: document.getElementById('videoSpecialty'),
   videoIsPaid: document.getElementById('videoIsPaid'),
+  videoMembershipAccessible: document.getElementById('videoMembershipAccessible'),
   // Backward/forward compatible ids (some versions used videoSave/videoAdminHint)
   videoSave: document.getElementById('videoSave') || document.getElementById('videoSubmit'),
   videoAdminHint: document.getElementById('videoAdminHint') || document.getElementById('videoHint'),
@@ -327,6 +328,9 @@ function renderVideoAdminList(rows){
     const paidBadge = v.is_paid
       ? `<span class="badge" style="border-color:rgba(234,179,8,.5);background:rgba(234,179,8,.1);color:#fbbf24">付费</span>`
       : `<span class="badge" style="border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.08);color:#4ade80">免费</span>`;
+    const memberBadge = v.membership_accessible
+      ? `<span class="badge" style="border-color:rgba(168,85,247,.5);background:rgba(168,85,247,.1);color:#c084fc">会员</span>`
+      : '';
     const specName = v.specialty_id ? (_specialtiesMap.get(v.specialty_id)?.title || '专科') : '';
     const specBadge = specName
       ? `<span class="badge" style="border-color:rgba(99,102,241,.4);background:rgba(99,102,241,.08);color:#818cf8">${esc(specName)}</span>`
@@ -347,7 +351,7 @@ function renderVideoAdminList(rows){
           <div style="min-width:0;flex:1">
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
               <b style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:420px${isDeleted ? ';text-decoration:line-through' : ''}">${esc(v.title || '（无标题）')}</b>
-              ${paidBadge}${specBadge}${deletedBadge}${expiredBadge}
+              ${paidBadge}${memberBadge}${specBadge}${deletedBadge}${expiredBadge}
             </div>
             <div class="small muted" style="margin-top:6px">
               ${speakerText}${esc(tag)} · ${esc(kindLabel)} · ${esc(fmtDate(v.created_at))}
@@ -378,7 +382,7 @@ async function loadAdminVideos(){
   try{
     let { data, error } = await supabase
       .from('learning_videos')
-      .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,speaker,is_paid,specialty_id,product_id,created_at,enabled,deleted_at')
+      .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,speaker,is_paid,membership_accessible,specialty_id,product_id,created_at,enabled,deleted_at')
       .order('created_at', { ascending: false })
       .limit(50);
     // Backward compat: retry without newer columns if they don't exist yet
@@ -508,11 +512,13 @@ async function saveVideo(currentUser){
     const speaker = String(els.videoSpeaker?.value || '').trim() || null;
     const specialtyId = String(els.videoSpecialty?.value || '').trim() || null;
     const isPaid = !!els.videoIsPaid?.checked;
+    const membershipAccessible = !!els.videoMembershipAccessible?.checked;
 
     const row = { title, category, kind, source_url, mp4_url, bvid, enabled: true, deleted_at: null, created_by: currentUser.id };
     if(speaker) row.speaker = speaker;
     if(specialtyId) row.specialty_id = specialtyId;
     row.is_paid = isPaid;
+    row.membership_accessible = membershipAccessible;
     if(aliyun_vid) row.aliyun_vid = aliyun_vid;
 
     let { error } = await supabase.from('learning_videos').insert(row);
@@ -535,6 +541,7 @@ async function saveVideo(currentUser){
     if(els.videoSpeaker) els.videoSpeaker.value = '';
     if(els.videoSpecialty) els.videoSpecialty.value = '';
     if(els.videoIsPaid) els.videoIsPaid.checked = false;
+    if(els.videoMembershipAccessible) els.videoMembershipAccessible.checked = false;
 
     await loadAdminVideos();
   }catch(e){
@@ -646,6 +653,10 @@ function openEditModal(videoId){
             <input type="checkbox" id="editIsPaid" ${v.is_paid ? 'checked' : ''} />
             <label for="editIsPaid" style="margin:0;cursor:pointer">付费视频</label>
           </div>
+          <div style="min-width:120px;display:flex;align-items:center;gap:8px;padding-top:24px">
+            <input type="checkbox" id="editMembershipAccessible" ${v.membership_accessible ? 'checked' : ''} />
+            <label for="editMembershipAccessible" style="margin:0;cursor:pointer">会员可看</label>
+          </div>
         </div>
         <div style="display:flex;gap:10px;margin-top:4px">
           <button class="btn primary" type="button" id="editSaveBtn">保存修改</button>
@@ -677,6 +688,7 @@ async function saveEdit(){
   const urlVal = String(document.getElementById('editUrl')?.value || '').trim();
   const specialtyId = String(document.getElementById('editSpecialty')?.value || '').trim() || null;
   const isPaid = !!document.getElementById('editIsPaid')?.checked;
+  const membershipAccessible = !!document.getElementById('editMembershipAccessible')?.checked;
 
   if(!title){ toast('请输入名称', '', 'err'); if(btn) btn.disabled = false; return; }
 
@@ -686,6 +698,7 @@ async function saveEdit(){
       speaker,
       category,
       is_paid: isPaid,
+      membership_accessible: membershipAccessible,
       specialty_id: specialtyId,
       updated_at: new Date().toISOString(),
     };
@@ -750,6 +763,14 @@ async function init(){
   // Auto-check "付费" when a specialty is selected
   els.videoSpecialty?.addEventListener('change', ()=>{
     if(els.videoSpecialty.value && els.videoIsPaid) els.videoIsPaid.checked = true;
+  });
+
+  // Auto-check "付费" + "会员可看" when GlomCon 中国 channel is selected
+  els.videoCategory?.addEventListener('change', ()=>{
+    if(els.videoCategory.value === 'glomcon'){
+      if(els.videoIsPaid) els.videoIsPaid.checked = true;
+      if(els.videoMembershipAccessible) els.videoMembershipAccessible.checked = true;
+    }
   });
 
   els.videoSave?.addEventListener('click', async (e)=>{

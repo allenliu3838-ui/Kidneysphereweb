@@ -178,8 +178,13 @@
 
     // ── Paid video logic ──
     if(v.is_paid){
-      const hasAccess = _accessSet.has(v.id) || (v.specialty_id && _accessSet.has('sp_' + v.specialty_id));
-      const lockBadge = `<span class="badge" style="border-color:rgba(234,179,8,.5);background:rgba(234,179,8,.1);color:#fbbf24">付费</span>`;
+      const isMemberVideo = v.membership_accessible;
+      const hasAccess = _accessSet.has(v.id)
+        || (v.specialty_id && _accessSet.has('sp_' + v.specialty_id))
+        || (isMemberVideo && _accessSet.has('membership'));
+      const lockBadge = isMemberVideo
+        ? `<span class="badge" style="border-color:rgba(168,85,247,.5);background:rgba(168,85,247,.1);color:#c084fc">会员</span>`
+        : `<span class="badge" style="border-color:rgba(234,179,8,.5);background:rgba(234,179,8,.1);color:#fbbf24">付费</span>`;
 
       let actionBtns = '';
       if(hasAccess){
@@ -190,6 +195,9 @@
         // Not purchased
         if(!_currentUser){
           actionBtns = `<a class="btn" href="login.html?next=${encodeURIComponent('videos.html')}">登录后购买</a>`;
+        } else if(isMemberVideo){
+          // Membership video — guide to membership purchase
+          actionBtns = `<a class="btn primary" href="academy.html#membership">开通会员</a>`;
         } else {
           if(v.product_id){
             actionBtns += `<a class="btn primary" href="checkout.html?product_id=${encodeURIComponent(v.product_id)}">购买单集</a>`;
@@ -284,6 +292,8 @@
           _accessSet.add(String(e.video_id));
         } else if(e.entitlement_type === 'specialty_bundle' && e.specialty_id){
           _accessSet.add('sp_' + String(e.specialty_id));
+        } else if(e.entitlement_type === 'membership'){
+          _accessSet.add('membership');
         }
       }
     }catch(err){
@@ -311,7 +321,7 @@
     try{
       let { data, error } = await supabase
         .from('learning_videos')
-        .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,speaker,created_at,enabled,deleted_at,is_paid,specialty_id,product_id')
+        .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,speaker,created_at,enabled,deleted_at,is_paid,membership_accessible,specialty_id,product_id')
         .eq('enabled', true)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
@@ -338,6 +348,7 @@
         source_url: v.source_url || v.mp4_url || '',
         mp4_url: v.mp4_url || null,
         is_paid: v.is_paid || false,
+        membership_accessible: v.membership_accessible || false,
         specialty_id: v.specialty_id || null,
         product_id: v.product_id || null,
       }));
