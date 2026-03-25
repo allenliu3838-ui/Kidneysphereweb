@@ -172,43 +172,40 @@ begin
 
   -- 重症肾内科 · 2026 年 8 月首期班
   insert into public.cohorts (
-    cohort_code, project_id, title, start_date, registration_deadline, status, sort_order
+    cohort_code, project_id, title, start_date, registration_deadline, status
   ) values (
     'ICU-2026-AUG',
     _proj_icu_id,
     '重症肾内科 · 2026 年 8 月首期班',
     '2026-08-01',
     '2026-05-30',
-    'recruiting',
-    1
+    'recruiting'
   )
   on conflict (cohort_code) do nothing;
 
   -- 肾移植内科 · 2026 年 8 月首期班
   insert into public.cohorts (
-    cohort_code, project_id, title, start_date, registration_deadline, status, sort_order
+    cohort_code, project_id, title, start_date, registration_deadline, status
   ) values (
     'TX-2026-AUG',
     _proj_tx_id,
     '肾移植内科 · 2026 年 8 月首期班',
     '2026-08-01',
     '2026-05-30',
-    'recruiting',
-    1
+    'recruiting'
   )
   on conflict (cohort_code) do nothing;
 
   -- 肾脏病理 · 2026 年 8 月首期班
   insert into public.cohorts (
-    cohort_code, project_id, title, start_date, registration_deadline, status, sort_order
+    cohort_code, project_id, title, start_date, registration_deadline, status
   ) values (
     'PATHO-2026-AUG',
     _proj_patho_id,
     '肾脏病理 · 2026 年 8 月首期班',
     '2026-08-01',
     '2026-05-30',
-    'recruiting',
-    1
+    'recruiting'
   )
   on conflict (cohort_code) do nothing;
 
