@@ -40,7 +40,24 @@ async function loadOrders() {
 
   if (filter !== 'all') q = q.eq('status', filter);
 
-  const { data, error } = await q;
+  let { data, error } = await q;
+  // Backward compat: retry without contact columns if they don't exist yet
+  if (error && /contact_wechat|contact_phone|contact_email/i.test(String(error.message || ''))) {
+    let q2 = supabase
+      .from('orders')
+      .select(`
+        id, order_no, user_id, total_amount_cny, status, channel,
+        remark, created_at, paid_at, approved_at,
+        order_items ( id, product_title, quantity, unit_price_cny, amount_cny ),
+        payment_proofs ( id, channel, amount_cny, proof_image_url, proof_bucket, proof_path, submitted_at, payer_name, transfer_ref_last4 )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (filter !== 'all') q2 = q2.eq('status', filter);
+    const r2 = await q2;
+    data = r2.data;
+    error = r2.error;
+  }
   if (error) {
     wrap.innerHTML = `<div class="note">${esc(error.message)}</div>`;
     return;
