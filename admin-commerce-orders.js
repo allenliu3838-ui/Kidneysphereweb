@@ -3,8 +3,8 @@
  */
 import {
   supabase, toast, formatBeijingDateTime,
-} from './supabaseClient.js?v=20260322_001';
-import { esc, statusDot, badge, showModal, closeModal } from './admin-commerce.js?v=20260322_001';
+} from './supabaseClient.js?v=20260325_001';
+import { esc, statusDot, badge, showModal, closeModal } from './admin-commerce.js?v=20260325_001';
 
 const STATUS_MAP = {
   pending_payment: { label: '待付款', dot: 'yellow' },

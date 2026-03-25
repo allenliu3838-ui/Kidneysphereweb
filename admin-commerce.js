@@ -5,7 +5,7 @@
 import {
   supabase, ensureSupabase, isConfigured,
   getCurrentUser, getUserProfile, isAdminRole, toast,
-} from './supabaseClient.js?v=20260322_001';
+} from './supabaseClient.js?v=20260325_001';
 
 /* ── helpers ── */
 export function esc(s) {
@@ -130,14 +130,14 @@ async function init() {
   // Lazy-load sub-modules
   const mods = await Promise.allSettled([
     import('./admin-commerce-orders.js?v=20260325_001'),
-    import('./admin-commerce-products.js?v=20260322_001'),
-    import('./admin-commerce-config.js?v=20260322_001'),
-    import('./admin-commerce-entitlements.js?v=20260322_001'),
-    import('./admin-commerce-projects.js?v=20260323_001'),
-    import('./admin-commerce-cohorts.js?v=20260323_001'),
-    import('./admin-commerce-groups.js?v=20260323_001'),
-    import('./admin-commerce-templates.js?v=20260323_001'),
-    import('./admin-commerce-audit.js?v=20260323_001'),
+    import('./admin-commerce-products.js?v=20260325_001'),
+    import('./admin-commerce-config.js?v=20260325_001'),
+    import('./admin-commerce-entitlements.js?v=20260325_001'),
+    import('./admin-commerce-projects.js?v=20260325_001'),
+    import('./admin-commerce-cohorts.js?v=20260325_001'),
+    import('./admin-commerce-groups.js?v=20260325_001'),
+    import('./admin-commerce-templates.js?v=20260325_001'),
+    import('./admin-commerce-audit.js?v=20260325_001'),
   ]);
   mods.forEach((m, i) => {
     if (m.status === 'fulfilled' && m.value?.init) m.value.init();

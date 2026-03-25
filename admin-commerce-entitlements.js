@@ -1,8 +1,8 @@
 /**
  * admin-commerce-entitlements.js — 权益管理模块
  */
-import { supabase, toast, formatBeijingDateTime } from './supabaseClient.js?v=20260322_001';
-import { esc, statusDot, showModal, closeModal } from './admin-commerce.js?v=20260322_001';
+import { supabase, toast, formatBeijingDateTime } from './supabaseClient.js?v=20260325_001';
+import { esc, statusDot, showModal, closeModal } from './admin-commerce.js?v=20260325_001';
 
 const ENT_LABELS = {
   membership: '会员',
