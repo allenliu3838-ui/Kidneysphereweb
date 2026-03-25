@@ -74,17 +74,12 @@
             <b>内容沉淀：</b>每次会议将整理为"会议纪要 / 精选病例 / 关键文献"内容卡片，持续沉淀为可检索的知识库。
           </div>
 
-          <div class="admin" id="eventsAdmin" hidden>
+          <div id="eventsAdmin" data-admin-only hidden style="display:none">
             <div class="hr"></div>
-            <div class="note">
-              <b>会议管理</b><br/>
-              更新会议时间、状态（确认/改期/取消）、以及"已确认会议"的入会链接与口令。
-            </div>
-
             <form class="form" id="addEventForm" style="margin-top:12px">
               <div class="form-row">
                 <div>
-                  <label>Key（唯一标识） <input class="input" name="key" placeholder="e.g. sun_zoom" required></label>
+                  <label>Key <input class="input" name="key" placeholder="e.g. sun_zoom" required></label>
                 </div>
                 <div>
                   <label>平台 <input class="input" name="platform" placeholder="Zoom / 腾讯会议 / 线下" /></label>
@@ -113,16 +108,7 @@
                 <button class="btn primary" type="submit">添加会议</button>
               </div>
             </form>
-
             <div class="hr"></div>
-            <div class="section-title" style="margin-top:0">
-              <div>
-                <h3>现有会议（可编辑）</h3>
-                <p>修改后会立即反映到公开页面；入会链接仅对登录用户显示（且会议状态=已确认）。</p>
-              </div>
-              <span class="badge">Admin</span>
-            </div>
-
             <div id="adminEventsList" class="stack" style="margin-top:12px"></div>
           </div>
         </div>

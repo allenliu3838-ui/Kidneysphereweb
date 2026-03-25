@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>会员中心 · 肾域</title>
-  <meta name="description" content="会员中心：微信/支付宝付款后上传截图，人工审核开通会员标识。" />
+  <title>订阅管理 · 肾域</title>
+  <meta name="description" content="肾域订阅管理：查看订阅状态、订单记录与权益开通情况。" />
   <link rel="stylesheet" href="styles.css?v=20260219_001" />
   <link rel="icon" href="assets/logo.png" />
 </head>
@@ -16,10 +16,10 @@
     <section class="hero">
       <div class="container">
         <div class="card soft">
-          <div class="badge">Membership</div>
-          <h1>会员中心</h1>
+          <div class="badge">订阅管理</div>
+          <h1>订阅管理</h1>
           <p class="muted" style="max-width:900px">
-            通过<b>微信/支付宝扫码付款</b>，上传付款截图，审核通过后即可开通会员标识。
+            查看你的订阅状态与订单记录。通过<b>微信/支付宝扫码付款</b>并上传凭证，审核通过后即可开通相应权益。
           </p>
 
           <div class="note" style="margin-top:12px;background:rgba(47,111,235,.1);border-color:rgba(47,111,235,.3)">
@@ -39,7 +39,7 @@
           <div class="card soft">
             <div class="section-title">
               <h3>当前状态</h3>
-              <p class="muted small">显示你的医生认证与会员标识状态。</p>
+              <p class="muted small">显示你的账户角色与认证状态。</p>
             </div>
 
             <div id="memberStatus">
@@ -47,13 +47,13 @@
             </div>
 
             <div class="small muted" style="margin-top:10px;line-height:1.7">
-              提示：开通会员不会影响医生认证逻辑（两者独立）。如需先完成医生认证，可前往 <a href="verify-doctor.html">医生认证</a>。
+              提示：订阅开通与医生认证是独立流程。如需完成医生认证，可前往 <a href="verify-doctor.html">医生认证</a>。
             </div>
           </div>
 
           <div class="card soft">
             <div class="section-title">
-              <h3>会员开通</h3>
+              <h3>开通订阅</h3>
               <p class="muted small">选择支付方式，付款后上传截图提交审核。</p>
             </div>
 
@@ -65,7 +65,7 @@
                   <button class="btn" id="channelAlipay" type="button">支付宝</button>
                 </div>
 
-                <div class="small muted" style="margin-top:14px">会员价格</div>
+                <div class="small muted" style="margin-top:14px">订阅价格</div>
                 <div style="margin-top:6px;font-size:20px"><b id="membershipPrice">—</b></div>
 
                 <div class="small muted" style="margin-top:14px">
@@ -119,7 +119,7 @@
         <div class="card soft" style="margin-top:18px">
           <div class="section-title">
             <h3>我的订单</h3>
-            <p class="muted small">查看你提交的会员开通订单状态。</p>
+            <p class="muted small">查看你提交的订阅开通订单状态。</p>
           </div>
           <div id="myOrders"><div class="muted">加载中…</div></div>
         </div>
