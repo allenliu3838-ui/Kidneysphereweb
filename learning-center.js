@@ -36,6 +36,19 @@ const els = {
   videoSpecialty: document.getElementById('videoSpecialty'),
   videoIsPaid: document.getElementById('videoIsPaid'),
   videoMembershipAccessible: document.getElementById('videoMembershipAccessible'),
+  // New fields for paid video MVP
+  videoSourceType: document.getElementById('videoSourceType'),
+  videoAccessType: document.getElementById('videoAccessType'),
+  videoPrice: document.getElementById('videoPrice'),
+  videoDescription: document.getElementById('videoDescription'),
+  videoCoverImage: document.getElementById('videoCoverImage'),
+  videoSortOrder: document.getElementById('videoSortOrder'),
+  videoSaveDraft: document.getElementById('videoSaveDraft'),
+  videoPriceRow: document.getElementById('videoPriceRow'),
+  videoAliyunVidWrap: document.getElementById('videoAliyunVidWrap'),
+  videoUrlWrap: document.getElementById('videoUrlWrap'),
+  videoMp4Wrap: document.getElementById('videoMp4Wrap'),
+  videoAliyunUrlWrap: document.getElementById('videoAliyunUrlWrap'),
   // Backward/forward compatible ids (some versions used videoSave/videoAdminHint)
   videoSave: document.getElementById('videoSave') || document.getElementById('videoSubmit'),
   videoAdminHint: document.getElementById('videoAdminHint') || document.getElementById('videoHint'),
@@ -408,7 +421,7 @@ async function loadAdminVideos(){
   }
 }
 
-async function saveVideo(currentUser){
+async function saveVideo(currentUser, publish = true){
   if(!els.videoSave) return;
   if(!els.videoTitle || !els.videoCategory) return;
   if(!isConfigured()){
@@ -418,55 +431,56 @@ async function saveVideo(currentUser){
 
   const title = String(els.videoTitle.value || '').trim();
   const category = String(els.videoCategory.value || '').trim();
+  const sourceType = String(els.videoSourceType?.value || 'aliyun_vod').trim();
   let url = String(els.videoUrl?.value || '').trim();
   const file = els.videoMp4?.files?.[0] || null;
   let aliyunUrl = String(els.videoAliyunUrl?.value || '').trim();
   let aliyunVid = String(els.videoAliyunVid?.value || '').trim();
+  const accessType = String(els.videoAccessType?.value || 'registered_free').trim();
+  const price = parseFloat(els.videoPrice?.value || '0') || 0;
+  const description = String(els.videoDescription?.value || '').trim() || null;
+  const coverImage = String(els.videoCoverImage?.value || '').trim() || null;
+  const sortOrder = parseInt(els.videoSortOrder?.value || '0', 10) || 0;
 
   if(!title){ toast('请输入名称', '请填写视频名称。', 'err'); return; }
   if(!category){ toast('请选择分类', '请先选择一个视频分类。', 'err'); return; }
 
-  // Detect if user pasted Alibaba Cloud HTML embed code in any field
+  // Validate based on source type
+  if(sourceType === 'aliyun_vod' && !aliyunVid){
+    toast('请填写阿里云视频ID', '视频来源为阿里云点播时，必须填写视频ID。', 'err');
+    return;
+  }
+  if((sourceType === 'external_url' || sourceType === 'bilibili') && !url){
+    toast('请填写视频链接', '', 'err');
+    return;
+  }
+  if(sourceType === 'upload_mp4' && !file){
+    toast('请选择 MP4 文件', '', 'err');
+    return;
+  }
+
+  // Detect HTML embed code pasted by mistake
   const allInput = url || aliyunUrl || '';
   if(looksLikeHtml(allInput)){
     const extractedVid = extractAliyunVid(allInput);
     if(extractedVid){
       toast('请粘贴播放地址',
-        '检测到你粘贴了阿里云的 HTML 嵌入代码（已自动提取视频 ID：' + extractedVid + '）。\n\n' +
-        '请改为粘贴视频的播放地址：\n' +
-        '阿里云控制台 → 点击视频 → 「视频地址」标签页 → 复制 MP4 播放地址（以 https:// 开头）。',
+        '检测到你粘贴了阿里云的 HTML 嵌入代码（已自动提取视频 ID：' + extractedVid + '）。',
         'err');
-      // Auto-fill the vid field for convenience
       if(els.videoAliyunVid) els.videoAliyunVid.value = extractedVid;
-      // Clear the bad input
       if(looksLikeHtml(url) && els.videoUrl) els.videoUrl.value = '';
       if(looksLikeHtml(aliyunUrl) && els.videoAliyunUrl) els.videoAliyunUrl.value = '';
     }else{
-      toast('格式错误', '检测到粘贴了 HTML 代码。请粘贴视频的播放地址（以 https:// 开头），而不是嵌入代码。', 'err');
+      toast('格式错误', '检测到粘贴了 HTML 代码。请粘贴视频的播放地址。', 'err');
     }
     return;
   }
-
-  // Also detect vid pasted into URL field (not a URL)
-  if(url && !file && !aliyunUrl && !/^https?:\/\//i.test(url) && !extractBvid(url)){
-    const vid = extractAliyunVid(url);
-    if(vid){
-      toast('请粘贴播放地址',
-        '检测到你粘贴的是阿里云视频 ID（' + vid + '），请改为粘贴播放地址。\n\n' +
-        '获取方式：阿里云控制台 → 点击视频 → 「视频地址」标签页 → 复制 MP4 地址。',
-        'err');
-      if(els.videoAliyunVid) els.videoAliyunVid.value = vid;
-      if(els.videoUrl) els.videoUrl.value = '';
-      return;
-    }
-  }
-
-  if(!url && !file && !aliyunUrl){ toast('缺少内容', '请填写链接、选择 MP4 文件或填写阿里云视频地址。', 'err'); return; }
 
   await ensureSupabase();
   if(!supabase){ toast('初始化失败', 'Supabase 未就绪。', 'err'); return; }
 
   els.videoSave.disabled = true;
+  if(els.videoSaveDraft) els.videoSaveDraft.disabled = true;
   if(els.videoAdminHint) els.videoAdminHint.textContent = '保存中…';
 
   try{
@@ -474,15 +488,13 @@ async function saveVideo(currentUser){
     let source_url = url || null;
     let bvid = null;
     let mp4_url = null;
-    let aliyun_vid = null;
+    let aliyun_vid = aliyunVid || null;
 
-    if(aliyunUrl){
-      // Try 'aliyun' kind first; fallback to 'mp4' if migration not run
+    if(sourceType === 'aliyun_vod'){
       kind = 'aliyun';
-      source_url = aliyunUrl;
-      mp4_url = aliyunUrl;
-      aliyun_vid = aliyunVid || null;
-    }else if(file){
+      source_url = aliyunUrl || null;
+      mp4_url = aliyunUrl || null;
+    }else if(sourceType === 'upload_mp4' && file){
       if((file.size || 0) > MAX_MP4_BYTES){
         const mb = Math.round((file.size || 0) / 1024 / 1024);
         toast('文件过大', `当前 ${mb}MB，超过上限 50MB。`, 'err');
@@ -499,7 +511,7 @@ async function saveVideo(currentUser){
       const { data: pu } = supabase.storage.from('learning_videos').getPublicUrl(key);
       mp4_url = pu?.publicUrl || null;
       source_url = mp4_url;
-    }else{
+    }else if(sourceType === 'bilibili'){
       const bv = extractBvid(url);
       if(bv){
         kind = 'bilibili';
@@ -507,23 +519,45 @@ async function saveVideo(currentUser){
       }else{
         kind = 'external';
       }
+    }else{
+      kind = 'external';
     }
 
     const speaker = String(els.videoSpeaker?.value || '').trim() || null;
     const specialtyId = String(els.videoSpecialty?.value || '').trim() || null;
-    const isPaid = !!els.videoIsPaid?.checked;
-    const membershipAccessible = !!els.videoMembershipAccessible?.checked;
+    const isPaid = accessType !== 'registered_free';
+    const membershipAccessible = accessType === 'paid_membership';
 
-    const row = { title, category, kind, source_url, mp4_url, bvid, enabled: true, deleted_at: null, created_by: currentUser.id };
+    const row = {
+      title, category, kind, source_url, mp4_url, bvid,
+      enabled: publish, deleted_at: null, created_by: currentUser.id,
+      access_type: accessType,
+      is_paid: isPaid,
+      membership_accessible: membershipAccessible,
+      is_published: publish,
+      sort_order: sortOrder,
+    };
     if(speaker) row.speaker = speaker;
     if(specialtyId) row.specialty_id = specialtyId;
-    row.is_paid = isPaid;
-    row.membership_accessible = membershipAccessible;
     if(aliyun_vid) row.aliyun_vid = aliyun_vid;
+    if(price > 0) row.price = price;
+    if(description) row.description = description;
+    if(coverImage) row.cover_image = coverImage;
 
     let { error } = await supabase.from('learning_videos').insert(row);
 
-    // Fallback: if 'aliyun' kind or aliyun_vid column not supported yet, retry as 'mp4'
+    // Fallback: if new columns not yet migrated, retry without them
+    if(error && /access_type|price|cover_image|description|is_published|sort_order/i.test(String(error.message || ''))){
+      delete row.access_type;
+      delete row.price;
+      delete row.cover_image;
+      delete row.description;
+      delete row.is_published;
+      delete row.sort_order;
+      const r2 = await supabase.from('learning_videos').insert(row);
+      error = r2.error;
+    }
+    // Fallback: if 'aliyun' kind not supported yet
     if(error && kind === 'aliyun'){
       delete row.aliyun_vid;
       row.kind = 'mp4';
@@ -532,7 +566,8 @@ async function saveVideo(currentUser){
     }
     if(error) throw error;
 
-    toast('已保存', '视频已添加到视频库。', 'ok');
+    toast('已保存', publish ? '视频已添加并上架。' : '视频已保存为草稿。', 'ok');
+    // Reset form
     if(els.videoTitle) els.videoTitle.value = '';
     if(els.videoUrl) els.videoUrl.value = '';
     if(els.videoMp4) els.videoMp4.value = '';
@@ -540,8 +575,11 @@ async function saveVideo(currentUser){
     if(els.videoAliyunVid) els.videoAliyunVid.value = '';
     if(els.videoSpeaker) els.videoSpeaker.value = '';
     if(els.videoSpecialty) els.videoSpecialty.value = '';
-    if(els.videoIsPaid) els.videoIsPaid.checked = false;
-    if(els.videoMembershipAccessible) els.videoMembershipAccessible.checked = false;
+    if(els.videoDescription) els.videoDescription.value = '';
+    if(els.videoCoverImage) els.videoCoverImage.value = '';
+    if(els.videoSortOrder) els.videoSortOrder.value = '0';
+    if(els.videoPrice) els.videoPrice.value = '';
+    if(els.videoAccessType) els.videoAccessType.value = 'registered_free';
 
     await loadAdminVideos();
   }catch(e){
@@ -553,6 +591,7 @@ async function saveVideo(currentUser){
     toast('保存失败', msg, 'err');
   }finally{
     els.videoSave.disabled = false;
+    if(els.videoSaveDraft) els.videoSaveDraft.disabled = false;
     if(els.videoAdminHint) els.videoAdminHint.textContent = '';
   }
 }
@@ -760,22 +799,56 @@ async function init(){
     renderVideoAdminList(_allAdminVideos);
   });
 
-  // Auto-check "付费" when a specialty is selected
+  // ── Source type toggle: show/hide relevant fields ──
+  function updateSourceTypeUI(){
+    const st = els.videoSourceType?.value || 'aliyun_vod';
+    if(els.videoAliyunVidWrap) els.videoAliyunVidWrap.hidden = (st !== 'aliyun_vod');
+    if(els.videoUrlWrap) els.videoUrlWrap.hidden = (st !== 'external_url' && st !== 'bilibili');
+    if(els.videoMp4Wrap) els.videoMp4Wrap.hidden = (st !== 'upload_mp4');
+    if(els.videoAliyunUrlWrap) els.videoAliyunUrlWrap.style.display = (st === 'aliyun_vod') ? 'flex' : 'none';
+  }
+  els.videoSourceType?.addEventListener('change', updateSourceTypeUI);
+  updateSourceTypeUI();
+
+  // ── Access type toggle: show price row for paid_single ──
+  function updateAccessTypeUI(){
+    const at = els.videoAccessType?.value || 'registered_free';
+    if(els.videoPriceRow) els.videoPriceRow.hidden = (at !== 'paid_single');
+    // Sync legacy fields for backward compatibility
+    const isPaid = at !== 'registered_free';
+    const isMembership = at === 'paid_membership';
+    if(els.videoIsPaid) els.videoIsPaid.value = isPaid ? '1' : '';
+    if(els.videoMembershipAccessible) els.videoMembershipAccessible.value = isMembership ? '1' : '';
+  }
+  els.videoAccessType?.addEventListener('change', updateAccessTypeUI);
+  updateAccessTypeUI();
+
+  // Auto-set access type when specialty is selected
   els.videoSpecialty?.addEventListener('change', ()=>{
-    if(els.videoSpecialty.value && els.videoIsPaid) els.videoIsPaid.checked = true;
+    if(els.videoSpecialty.value && els.videoAccessType){
+      if(els.videoAccessType.value === 'registered_free'){
+        els.videoAccessType.value = 'paid_specialty';
+        updateAccessTypeUI();
+      }
+    }
   });
 
-  // Auto-check "付费" + "会员可看" when GlomCon 中国 channel is selected
+  // Auto-set access type when GlomCon channel is selected
   els.videoCategory?.addEventListener('change', ()=>{
-    if(els.videoCategory.value === 'glomcon'){
-      if(els.videoIsPaid) els.videoIsPaid.checked = true;
-      if(els.videoMembershipAccessible) els.videoMembershipAccessible.checked = true;
+    if(els.videoCategory.value === 'glomcon' && els.videoAccessType){
+      els.videoAccessType.value = 'paid_membership';
+      updateAccessTypeUI();
     }
+  });
+
+  // Save draft button
+  els.videoSaveDraft?.addEventListener('click', async ()=>{
+    await saveVideo(user, false); // false = draft (not published)
   });
 
   els.videoSave?.addEventListener('click', async (e)=>{
     e.preventDefault();
-    await saveVideo(user);
+    await saveVideo(user, true); // true = publish
   });
 
   els.videoAdminList?.addEventListener('click', async (e)=>{

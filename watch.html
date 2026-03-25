@@ -6,8 +6,8 @@
   <title>播放 · 肾域</title>
   <meta name="description" content="肾域 — 面向肾脏专科的学术社区、临床科研与医生工具平台">
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=20260213_001" />
-  <!-- Aliplayer SDK for Alibaba Cloud VOD (loaded async to avoid blocking) -->
+  <link rel="stylesheet" href="styles.css?v=20260325_001" />
+  <!-- Aliplayer SDK for Alibaba Cloud VOD -->
   <link rel="stylesheet" href="https://g.alicdn.com/apsara-media-box/imp-web-player/2.35.4/skins/default/aliplayer-min.css" />
   <script async src="https://g.alicdn.com/apsara-media-box/imp-web-player/2.35.4/aliplayer-min.js"></script>
 </head>
@@ -22,6 +22,7 @@
       <span class="badge">学习中心 · 播放</span>
       <h2 id="title" style="margin-top:10px">正在加载…</h2>
       <p class="small muted" id="meta"></p>
+      <p class="small muted" id="desc" style="margin-top:6px" hidden></p>
 
       <div class="hr"></div>
 
@@ -34,22 +35,34 @@
         </div>
       </div>
 
-      <div id="playerWrap" class="video-wrap">
-        <!-- iframe injected here -->
+      <!-- Login gate -->
+      <div id="loginGate" hidden style="margin-bottom:12px">
+        <div class="note" style="border-color:rgba(63,131,248,.4);background:rgba(63,131,248,.06)">
+          <h3 style="margin:0 0 8px">🔑 请先登录</h3>
+          <p class="small">注册/登录后即可观看此视频。</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+            <a class="btn primary" id="loginBtn" href="login.html">登录</a>
+            <a class="btn" href="register.html">注册</a>
+          </div>
+        </div>
       </div>
 
-      <div class="note small" style="margin-top:12px">
+      <div id="playerWrap" class="video-wrap">
+        <!-- Player injected here after authorization -->
+      </div>
+
+      <div id="playerHint" class="note small" style="margin-top:12px">
         如果播放器无法显示/卡住：
         <ul class="list" style="margin:8px 0 0">
-          <li>请先确认已登录（本页为"注册后观看"）。</li>
+          <li>请先确认已登录。</li>
           <li>尝试刷新页面；或使用无痕窗口；或清理站点缓存后重试。</li>
-          <li>仍不行可点击下方按钮在原始平台（B站/阿里云等）直接观看。</li>
+          <li>仍不行请联系管理员。</li>
         </ul>
       </div>
 
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
         <a class="btn" href="videos.html">返回视频目录</a>
-        <a class="btn" id="openBili" href="javascript:void(0)" target="_blank" rel="noopener">打开B站</a>
+        <a class="btn" id="openExternal" href="javascript:void(0)" target="_blank" rel="noopener" hidden>打开外部链接</a>
       </div>
 
     </div>
@@ -57,11 +70,8 @@
 </section>
 
 <!-- ============================================================
-     IMMEDIATE RENDERER: renders videos without ANY module imports
-     or Supabase SDK. Works via:
-     1) Static lookup (hardcoded list)
-     2) URL params (?bvid=...&src=...)
-     3) Direct REST API fetch (for DB videos, no SDK needed)
+     IMMEDIATE RENDERER: for Bilibili (free) videos only.
+     Paid/Aliyun videos are NEVER rendered by the immediate script.
      ============================================================ -->
 <script>
 (function(){
@@ -81,103 +91,36 @@
     'other-pkd-dahl':            { bvid:'BV1HAmGBdE1M', title:'多囊肾的最新诊断和治疗', speaker:'Dr. Dahl' },
   };
 
-  // Supabase REST API config (same as assets/config.js, hardcoded to avoid module import)
-  var SB_URL = 'https://eaatpwakhcjxjonlyfii.supabase.co';
-  var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhYXRwd2FraGNqeGpvbmx5ZmlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5MDUzMzMsImV4cCI6MjA4MjQ4MTMzM30.OZ6mhKVsOKfJeI6opkk7GxRJuv0kY__k5N936h261PI';
-
   function escHtml(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
   var qs = new URLSearchParams(location.search);
   var id = (qs.get('id') || '').toString();
   if(!id) return;
 
-  // ── Render function: given bvid/srcUrl/title/speaker, render the player ──
-  function renderPlayer(bvid, srcUrl, title, speaker){
+  // Only render static Bilibili videos immediately (these are always free)
+  var sv = STATIC_VIDEOS[id];
+  if(sv && sv.bvid){
     window.__watchRendered = true;
     var titleEl = document.getElementById('title');
     var metaEl  = document.getElementById('meta');
     var wrap    = document.getElementById('playerWrap');
-    var openBtn = document.getElementById('openBili');
+    var openBtn = document.getElementById('openExternal');
 
-    if(titleEl) titleEl.textContent = title || '（无标题）';
-    if(metaEl)  metaEl.textContent  = speaker ? ('主讲：' + speaker) : '';
+    if(titleEl) titleEl.textContent = sv.title || '（无标题）';
+    if(metaEl)  metaEl.textContent  = sv.speaker ? ('主讲：' + sv.speaker) : '';
 
-    if(bvid){
-      var embedSrc = 'https://player.bilibili.com/player.html?bvid=' + encodeURIComponent(bvid) + '&page=1&high_quality=1&danmaku=0';
-      if(wrap) wrap.innerHTML = '<div class="video-embed"><iframe src="' + embedSrc + '" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe></div>';
-      var biliUrl = 'https://www.bilibili.com/video/' + bvid + '/';
-      if(openBtn){ openBtn.href = biliUrl; openBtn.textContent = '打开B站'; }
-    }else if(srcUrl){
-      var isAliyun = /aliyuncs\.com|alicdn\.com|aliyun\.com/i.test(srcUrl);
-      if(/\.mp4|\.m3u8|aliyuncs\.com|alicdn\.com/i.test(srcUrl)){
-        if(wrap) wrap.innerHTML = '<video controls playsinline style="width:100%;max-width:980px;border-radius:16px;background:#000;border:1px solid rgba(255,255,255,.12)"><source src="' + escHtml(srcUrl) + '" type="video/mp4" />你的浏览器不支持播放。</video>';
-      }else{
-        if(wrap) wrap.innerHTML = '<div class="note">该视频为外部链接。<div style="margin-top:12px"><a class="btn primary" href="' + escHtml(srcUrl) + '" target="_blank" rel="noopener">打开来源观看</a></div></div>';
-      }
-      if(openBtn){
-        openBtn.href = srcUrl;
-        openBtn.textContent = isAliyun ? '打开视频源' : '打开来源链接';
-      }
-    }
+    var embedSrc = 'https://player.bilibili.com/player.html?bvid=' + encodeURIComponent(sv.bvid) + '&page=1&high_quality=1&danmaku=0';
+    if(wrap) wrap.innerHTML = '<div class="video-embed"><iframe src="' + embedSrc + '" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe></div>';
+    if(openBtn){ openBtn.href = 'https://www.bilibili.com/video/' + sv.bvid + '/'; openBtn.textContent = '打开B站'; openBtn.hidden = false; }
   }
-
-  // Helper: extract bvid from a bilibili URL
-  function extractBvid(url){
-    if(!url) return '';
-    var m = url.match(/\/video\/(BV[0-9A-Za-z]+)/i);
-    return m ? m[1] : '';
-  }
-
-  // ── Source 1: Static lookup ──
-  var sv = STATIC_VIDEOS[id];
-  if(sv){
-    renderPlayer(sv.bvid, '', sv.title, sv.speaker);
-    return;
-  }
-
-  // ── Source 2: URL params (?bvid=XX&src=XX&t=XX&sp=XX) ──
-  var urlBvid = qs.get('bvid') || '';
-  var urlSrc  = qs.get('src')  || '';
-  var urlTitle = qs.get('t')   || '';
-  var urlSpeaker = qs.get('sp') || '';
-
-  if(!urlBvid && urlSrc) urlBvid = extractBvid(urlSrc);
-
-  if(urlBvid || urlSrc){
-    renderPlayer(urlBvid, urlSrc, urlTitle, urlSpeaker);
-    return;
-  }
-
-  // ── Source 3: Direct REST API fetch (for DB videos without URL params) ──
-  // This is a lightweight fetch — no Supabase SDK, no module imports needed.
-  // Works even when the module script hangs on CDN loading.
-  var apiUrl = SB_URL + '/rest/v1/learning_videos?id=eq.' + encodeURIComponent(id)
-    + '&select=id,title,bvid,source_url,mp4_url,speaker,is_paid,enabled,deleted_at'
-    + '&enabled=eq.true&deleted_at=is.null&limit=1';
-
-  fetch(apiUrl, {
-    headers: { 'apikey': SB_KEY, 'Accept': 'application/json' }
-  })
-  .then(function(r){ return r.ok ? r.json() : []; })
-  .then(function(rows){
-    if(window.__watchRendered) return; // module script already handled it
-    if(!rows || !rows.length) return; // not found, let module handle
-    var v = rows[0];
-    if(v.is_paid) return; // paid videos need access check — let module handle
-
-    var bvid = v.bvid || extractBvid(v.source_url) || extractBvid(v.mp4_url) || '';
-    var srcUrl = v.mp4_url || v.source_url || '';
-    if(!bvid && !srcUrl) return;
-    renderPlayer(bvid, srcUrl, v.title || '', v.speaker || '');
-  })
-  .catch(function(){ /* ignore — module script will handle */ });
+  // For DB/paid videos: do NOT render immediately. Wait for module script to check access.
 })();
 </script>
 
-<!-- Timeout fallback: if module script hasn't rendered after 15s, show help -->
+<!-- Timeout fallback -->
 <script>
 (function(){
-  if(window.__watchRendered) return; // already rendered
+  if(window.__watchRendered) return;
   var timer = setTimeout(function(){
     if(window.__watchRendered) return;
     var titleEl = document.getElementById('title');
@@ -190,11 +133,10 @@
         + '<li>请刷新页面重试</li>'
         + '<li>检查网络连接是否正常</li>'
         + '<li>尝试使用无痕窗口或清理浏览器缓存</li>'
-        + '<li>返回 <a href="videos.html">视频目录</a>，通过"打开B站"/"阿里云播放"等按钮在原始平台观看</li>'
+        + '<li>返回 <a href="videos.html">视频目录</a></li>'
         + '</ul></div>';
     }
   }, 15000);
-  // Cancel if module renders in time
   window.__watchCancelTimeout = function(){ clearTimeout(timer); };
 })();
 </script>
@@ -205,8 +147,13 @@
 
   const titleEl = document.getElementById('title');
   const metaEl = document.getElementById('meta');
+  const descEl = document.getElementById('desc');
   const wrap = document.getElementById('playerWrap');
-  const openBili = document.getElementById('openBili');
+  const openBtn = document.getElementById('openExternal');
+  const paidGate = document.getElementById('paidGate');
+  const loginGate = document.getElementById('loginGate');
+  const loginBtn = document.getElementById('loginBtn');
+  const playerHint = document.getElementById('playerHint');
 
   function esc(s){
     return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -224,348 +171,308 @@
   const qs = new URLSearchParams(location.search);
   const id = (qs.get('id') || '').toString();
 
-  // Cancel the timeout fallback — module script is running
+  // Cancel the timeout fallback
   if(typeof window.__watchCancelTimeout === 'function') window.__watchCancelTimeout();
 
-  // If the immediate (non-module) renderer already handled this video, skip.
+  // If the immediate renderer already handled this video (static Bilibili), skip.
   if(window.__watchRendered){
     console.log('[watch] Video already rendered by immediate script, skipping module.');
-    // Still do a soft auth check for nav avatar, but don't block
     ensureAuthed('login.html').catch(() => {});
   } else {
 
   try{
-
-  // 1) Require login (matches "注册后观看") — with 10s timeout to prevent hang
-  const authTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('auth_timeout')), 10000));
-  try{
-    await Promise.race([ensureAuthed('login.html'), authTimeout]);
-  }catch(authErr){
-    if(String(authErr?.message) === 'auth_timeout'){
-      console.warn('[watch] ensureAuthed timed out after 10s, proceeding anyway');
-    } else {
-      throw authErr;
-    }
-  }
-
-  /**
-   * Check if an Aliyun OSS pre-signed URL has expired.
-   * Pre-signed URLs contain an `Expires` query parameter (Unix epoch seconds).
-   * Returns { expired: true, expiresAt: Date } or { expired: false }.
-   */
-  function checkAliyunUrlExpiry(url){
-    if(!url) return { expired: false };
-    try{
-      const u = new URL(url);
-      const exp = u.searchParams.get('Expires');
-      if(!exp) return { expired: false }; // No expiry = permanent or CDN URL
-      const expiresAt = new Date(Number(exp) * 1000);
-      if(isNaN(expiresAt.getTime())) return { expired: false };
-      return { expired: expiresAt.getTime() < Date.now(), expiresAt };
-    }catch{ return { expired: false }; }
-  }
-
-  function renderExpiredMessage(expiresAt){
-    const ts = expiresAt ? expiresAt.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) : '未知';
-    return `
-      <div class="note" style="border-color:rgba(255,120,120,.4);background:rgba(255,120,120,.06)">
-        <h3 style="margin:0 0 8px">视频链接已过期</h3>
-        <p>该视频使用的阿里云临时播放地址已于 <b>${esc(ts)}</b> 过期。</p>
-        <p class="small muted" style="margin-top:8px">
-          <b>管理员请注意：</b>阿里云 OSS 签名 URL 会在指定时间后过期。建议：<br/>
-          ① 在阿里云控制台重新获取播放地址，并在管理后台更新该视频的链接；<br/>
-          ② 如需长期有效链接，建议使用 CDN 加速域名 或 开启 Bucket 公共读取。
-        </p>
-        <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
-          <a class="btn" href="videos.html">返回视频目录</a>
-        </div>
-      </div>
-    `;
-  }
 
   if(!id){
     titleEl.textContent = '视频参数缺失';
     metaEl.textContent = '请从视频目录进入。';
     wrap.innerHTML = `<div class="note">缺少参数：<code>id</code></div>`;
   }else{
-    // 1) Static list
-    let v = getVideoById(id);
 
-    // 2) DB list (admin added videos) - scheme 2
-    if(!v && isConfigured()){
-      try{
-        await ensureSupabase();
-        if(supabase){
-          let { data, error } = await supabase
-            .from('learning_videos')
-            .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,speaker,created_at,enabled,deleted_at,is_paid,membership_accessible,specialty_id,product_id')
-            .eq('id', id)
-            .maybeSingle();
-          // Backward compat: retry without newer columns if they don't exist yet
-          if(error && /aliyun_vid|is_paid|specialty_id|product_id|speaker/i.test(String(error.message || ''))){
-            const r2 = await supabase
-              .from('learning_videos')
-              .select('id,title,category,kind,source_url,mp4_url,bvid,created_at,enabled,deleted_at')
-              .eq('id', id)
-              .maybeSingle();
-            data = r2.data;
-            error = r2.error;
+    // ── Get current user (don't force redirect yet) ──
+    let currentUser = null;
+    try{
+      const authTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('auth_timeout')), 10000));
+      currentUser = await Promise.race([getCurrentUser(), authTimeout]);
+    }catch(e){
+      if(e?.message !== 'auth_timeout') console.warn('[watch] auth check error:', e);
+    }
+
+    // ── Check access via backend API ──
+    const token = currentUser ? (await supabase?.auth?.getSession())?.data?.session?.access_token : null;
+    const headers = { Accept: 'application/json' };
+    if(token) headers.Authorization = `Bearer ${token}`;
+
+    const accessRes = await fetch(`/api/videos/${encodeURIComponent(id)}/access`, { headers });
+    const accessData = accessRes.ok ? await accessRes.json() : null;
+
+    if(!accessData || accessData.error === 'video_not_found'){
+      // Fallback: try static video list
+      const sv = getVideoById(id);
+      if(sv){
+        renderBilibiliPlayer(sv);
+      }else{
+        titleEl.textContent = '未找到该视频';
+        metaEl.textContent = '可能链接已更新或目录尚未同步。';
+        wrap.innerHTML = `<div class="note">找不到视频：<code>${esc(id)}</code></div>`;
+      }
+    }else if(accessData.error){
+      showFatalError(accessData.error === 'video_not_published' ? '该视频尚未上架。' : accessData.message || accessData.error);
+    }else{
+      const video = accessData.video || {};
+      const cat = getCategoryMeta(video.category);
+
+      // Set page info
+      titleEl.textContent = video.title || '（无标题）';
+      const sp = (video.speaker || '').trim();
+      metaEl.textContent = `频道：${cat ? (cat.zh + ' / ' + cat.en) : (video.category || '')}${sp ? (' · 主讲：' + sp) : ''}`;
+      if(video.description){
+        descEl.textContent = video.description;
+        descEl.hidden = false;
+      }
+
+      // Set login button return URL
+      if(loginBtn) loginBtn.href = `login.html?next=${encodeURIComponent(location.href)}`;
+
+      if(accessData.needLogin){
+        // ── Not logged in ──
+        wrap.hidden = true;
+        playerHint.hidden = true;
+        loginGate.hidden = false;
+        if(accessData.needPurchase){
+          loginGate.querySelector('p').textContent = '登录后可购买并观看此视频。';
+        }
+      }else if(accessData.needPurchase){
+        // ── Logged in but needs purchase ──
+        wrap.hidden = true;
+        playerHint.hidden = true;
+        paidGate.hidden = false;
+
+        const noteEl = document.getElementById('paidGateNote');
+        const titleGate = document.getElementById('paidGateTitle');
+        const msgEl = document.getElementById('paidGateMsg');
+        const btnsEl = document.getElementById('paidGateBtns');
+
+        if(video.membershipAccessible){
+          noteEl.style.borderColor = 'rgba(168,85,247,.4)';
+          noteEl.style.background = 'rgba(168,85,247,.06)';
+          titleGate.textContent = '🔒 此视频为会员专属内容';
+        }
+
+        // Check pending orders
+        let pendingHint = '';
+        if(supabase && currentUser){
+          try{
+            const { data: pendingOrds } = await supabase
+              .from('orders')
+              .select('id,order_no,status')
+              .eq('user_id', currentUser.id)
+              .in('status', ['pending_payment','pending_review'])
+              .limit(1);
+            if(pendingOrds?.length > 0){
+              pendingHint = `<p class="small muted" style="margin-top:8px">你有一笔待审核订单（${esc(pendingOrds[0].order_no)}），管理员审核通过后即可观看。</p>`;
+            }
+          }catch(_e){}
+        }
+
+        // Build buy buttons
+        let btnsHtml = '';
+        if(video.membershipAccessible){
+          msgEl.innerHTML = `该视频为会员专属内容，开通会员后即可观看。${pendingHint}`;
+          btnsHtml += `<a class="btn primary" href="academy.html#membership">开通会员</a>`;
+        }else{
+          const priceText = video.price > 0 ? `（¥${video.price}）` : '';
+          msgEl.innerHTML = `该视频为付费内容${priceText}，购买后永久解锁。${pendingHint}`;
+          if(video.productId){
+            btnsHtml += `<a class="btn primary" href="checkout.html?product_id=${encodeURIComponent(video.productId)}">购买单集</a>`;
           }
-          if(!error && data && !data.deleted_at && data.enabled !== false){
-            v = {
-              id: String(data.id),
-              title: data.title || '',
-              category: data.category || 'other',
-              kind: data.kind || (data.bvid ? 'bilibili' : (data.mp4_url ? 'mp4' : 'external')),
-              bvid: data.bvid || null,
-              aliyun_vid: data.aliyun_vid || null,
-              speaker: data.speaker || '',
-              source_url: data.source_url || data.mp4_url || '',
-              mp4_url: data.mp4_url || null,
-              is_paid: data.is_paid || false,
-              membership_accessible: data.membership_accessible || false,
-              specialty_id: data.specialty_id || null,
-              product_id: data.product_id || null,
-            };
+          if(video.specialtyId && supabase){
+            try{
+              const { data: spec } = await supabase
+                .from('specialties')
+                .select('name, bundle_product_id')
+                .eq('id', video.specialtyId)
+                .maybeSingle();
+              if(spec?.bundle_product_id){
+                btnsHtml += `<a class="btn" href="checkout.html?product_id=${encodeURIComponent(spec.bundle_product_id)}">购买「${esc(spec.name || '专科整套课')}」整套课</a>`;
+              }
+            }catch(_e){}
           }
         }
-      }catch(_e){
-        // ignore
+        btnsHtml += `<a class="btn" href="my-learning.html">我的学习</a>`;
+        btnsHtml += `<a class="btn" href="videos.html">返回视频库</a>`;
+        btnsEl.innerHTML = btnsHtml;
+
+      }else if(accessData.canPlay){
+        // ── Can play! Request play authorization ──
+        await requestAndPlay(id, token, video);
+      }
+    }
+  }
+
+  // ── Request play authorization and initialize player ──
+  async function requestAndPlay(videoId, userToken, videoInfo){
+    wrap.innerHTML = '<div class="note" style="text-align:center;padding:24px">正在获取播放授权…</div>';
+
+    try{
+      const res = await fetch(`/api/videos/${encodeURIComponent(videoId)}/play-auth`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${userToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if(!res.ok){
+        const err = await res.json().catch(() => ({}));
+        if(res.status === 403){
+          wrap.innerHTML = `<div class="note" style="border-color:rgba(255,120,120,.4)">权限验证失败：${esc(err.message || '无权播放')}。</div>`;
+        }else if(res.status === 401){
+          wrap.innerHTML = `<div class="note">登录已过期，请<a href="login.html?next=${encodeURIComponent(location.href)}">重新登录</a>。</div>`;
+        }else{
+          wrap.innerHTML = `<div class="note" style="border-color:rgba(255,120,120,.4)">获取播放授权失败：${esc(err.message || err.error || '未知错误')}。</div>`;
+        }
+        return;
+      }
+
+      const auth = await res.json();
+
+      if(auth.playerType === 'aliyun_playauth'){
+        // ── Aliyun PlayAuth mode: most secure ──
+        initAliyunPlayAuthPlayer(auth.videoId, auth.playAuth, auth.coverUrl);
+      }else if(auth.playerType === 'signed_url' || auth.playerType === 'direct_url'){
+        // ── Signed URL / direct URL fallback ──
+        initUrlPlayer(auth.playURL, auth.format || 'mp4');
+      }else{
+        wrap.innerHTML = `<div class="note" style="border-color:rgba(255,120,120,.4)">未知的播放方式：${esc(auth.playerType || 'unknown')}</div>`;
+      }
+
+    }catch(e){
+      console.error('[watch] play-auth error:', e);
+      wrap.innerHTML = `<div class="note" style="border-color:rgba(255,120,120,.4)">获取播放授权失败，请刷新重试。</div>`;
+    }
+  }
+
+  // ── Initialize Aliplayer with PlayAuth (no URL exposed) ──
+  function initAliyunPlayAuthPlayer(vid, playAuth, coverUrl){
+    wrap.innerHTML = '<div id="aliyun-player" style="width:100%;max-width:980px;border-radius:16px;overflow:hidden;background:#000;border:1px solid rgba(255,255,255,.12)"></div>';
+
+    function doInit(){
+      new Aliplayer({
+        id: 'aliyun-player',
+        vid: vid,
+        playauth: playAuth,
+        width: '100%',
+        height: '560px',
+        autoplay: false,
+        isLive: false,
+        cover: coverUrl || '',
+        controlBarVisibility: 'hover',
+        skinLayout: [
+          { name: 'bigPlayButton', align: 'cc' },
+          { name: 'H5Loading', align: 'cc' },
+          { name: 'controlBar', align: 'blabs', x: 0, y: 0, children: [
+            { name: 'progress', align: 'blabs', x: 0, y: 44 },
+            { name: 'playButton', align: 'tl', x: 15, y: 12 },
+            { name: 'timeDisplay', align: 'tl', x: 10, y: 7 },
+            { name: 'fullScreenButton', align: 'tr', x: 10, y: 12 },
+            { name: 'volume', align: 'tr', x: 5, y: 10 },
+          ]}
+        ]
+      });
+    }
+
+    if(typeof Aliplayer !== 'undefined'){
+      doInit();
+    }else{
+      let waited = 0;
+      const timer = setInterval(() => {
+        waited += 200;
+        if(typeof Aliplayer !== 'undefined'){
+          clearInterval(timer);
+          doInit();
+        }else if(waited >= 10000){
+          clearInterval(timer);
+          wrap.innerHTML = '<div class="note" style="border-color:rgba(255,160,80,.4)">播放器加载超时，请刷新页面重试。</div>';
+        }
+      }, 200);
+    }
+  }
+
+  // ── Initialize player with temporary URL ──
+  function initUrlPlayer(url, format){
+    if(!url){
+      wrap.innerHTML = '<div class="note" style="border-color:rgba(255,120,120,.4)">没有可用的播放地址。</div>';
+      return;
+    }
+
+    // Try Aliplayer first, then fallback to native video
+    wrap.innerHTML = '<div id="aliyun-player" style="width:100%;max-width:980px;border-radius:16px;overflow:hidden;background:#000;border:1px solid rgba(255,255,255,.12)"></div>';
+
+    function doInit(){
+      if(typeof Aliplayer !== 'undefined'){
+        new Aliplayer({
+          id: 'aliyun-player',
+          source: url,
+          width: '100%',
+          height: '560px',
+          autoplay: false,
+          isLive: false,
+          controlBarVisibility: 'hover',
+          skinLayout: [
+            { name: 'bigPlayButton', align: 'cc' },
+            { name: 'H5Loading', align: 'cc' },
+            { name: 'controlBar', align: 'blabs', x: 0, y: 0, children: [
+              { name: 'progress', align: 'blabs', x: 0, y: 44 },
+              { name: 'playButton', align: 'tl', x: 15, y: 12 },
+              { name: 'timeDisplay', align: 'tl', x: 10, y: 7 },
+              { name: 'fullScreenButton', align: 'tr', x: 10, y: 12 },
+              { name: 'volume', align: 'tr', x: 5, y: 10 },
+            ]}
+          ]
+        });
+      }else{
+        // Native HTML5 video fallback
+        const el = document.getElementById('aliyun-player');
+        if(el) el.innerHTML = `<video controls playsinline style="width:100%;height:560px;background:#000"><source src="${esc(url)}" type="video/${format}" />你的浏览器不支持播放。</video>`;
       }
     }
 
-    if(!v){
-      titleEl.textContent = '未找到该视频';
-      metaEl.textContent = '可能链接已更新或目录尚未同步。';
-      wrap.innerHTML = `<div class="note">找不到视频：<code>${esc(id)}</code></div>`;
+    if(typeof Aliplayer !== 'undefined'){
+      doInit();
     }else{
-
-      // ── Paid video access check ──────────────────────────────
-      // Static videos (from assets/videos.js) are always free.
-      // DB videos with is_paid=true require an entitlement check.
-      if(v.is_paid && isConfigured() && supabase){
-        try{
-          const user = await getCurrentUser();
-          if(user){
-            const { data: hasAccess, error: accErr } = await supabase.rpc('check_video_access', {
-              p_user_id: user.id,
-              p_video_id: v.id,
-              p_specialty_id: v.specialty_id || null,
-            });
-            if(!accErr && hasAccess === false){
-              // No access — show purchase gate and block player
-              const gateEl    = document.getElementById('paidGate');
-              const noteEl    = document.getElementById('paidGateNote');
-              const titleGate = document.getElementById('paidGateTitle');
-              const msgEl     = document.getElementById('paidGateMsg');
-              const btnsEl    = document.getElementById('paidGateBtns');
-              gateEl.hidden   = false;
-              wrap.hidden     = true;
-              if(v.membership_accessible){
-                noteEl.style.borderColor = 'rgba(168,85,247,.4)';
-                noteEl.style.background = 'rgba(168,85,247,.06)';
-                titleGate.textContent = '🔒 此视频为会员专属内容';
-              }
-
-              // Check if user has a pending order for this video/specialty
-              let pendingHint = '';
-              const { data: pendingOrds } = await supabase
-                .from('orders')
-                .select('id,order_no,status')
-                .eq('user_id', user.id)
-                .in('status', ['pending_payment','pending_review'])
-                .limit(1);
-              if(pendingOrds && pendingOrds.length > 0){
-                pendingHint = `<p class="small muted" style="margin-top:8px">你有一笔待审核订单（${esc(pendingOrds[0].order_no)}），管理员审核通过后即可观看。</p>`;
-              }
-              // Build buy buttons
-              let btnsHtml = '';
-              if(v.membership_accessible){
-                // Membership video — guide to membership purchase
-                msgEl.innerHTML = `该视频为会员专属内容，开通会员后即可观看。${pendingHint}`;
-                btnsHtml += `<a class="btn primary" href="academy.html#membership">开通会员</a>`;
-              } else {
-                msgEl.innerHTML = `该视频为付费内容，购买后永久解锁。${pendingHint}`;
-                if(v.product_id){
-                  btnsHtml += `<a class="btn primary" href="checkout.html?product_id=${encodeURIComponent(v.product_id)}">购买单集</a>`;
-                }
-                if(v.specialty_id){
-                  // Fetch the bundle product for this specialty
-                  const { data: spec } = await supabase
-                    .from('specialties')
-                    .select('name, bundle_product_id')
-                    .eq('id', v.specialty_id)
-                    .maybeSingle();
-                  if(spec?.bundle_product_id){
-                    btnsHtml += `<a class="btn" href="checkout.html?product_id=${encodeURIComponent(spec.bundle_product_id)}">购买「${esc(spec.name || '专科整套课')}」整套课</a>`;
-                  }
-                }
-              }
-              btnsHtml += `<a class="btn" href="my-learning.html">我的学习</a>`;
-              btnsHtml += `<a class="btn" href="videos.html">返回视频库</a>`;
-              btnsEl.innerHTML = btnsHtml;
-              // Skip rendering the player
-              if(!isConfigured()) toast('服务暂不可用', '', 'err');
-              return; // <-- stop here, do not render player
-            }
-          }
-        }catch(e){
-          // On check failure, allow playback (fail-open for better UX,
-          // real protection is via DB RLS + storage policies)
-          console.warn('check_video_access error:', e);
-        }
-      }
-      // ── End paid check ───────────────────────────────────────
-
-      // Auto-detect aliyun URLs regardless of stored kind
-      function isAliyunUrl(url){
-        if(!url) return false;
-        return /aliyuncs\.com|alicdn\.com|aliyun\.com/i.test(url);
-      }
-      let kind = v.kind || (v.bvid ? 'bilibili' : (v.mp4_url ? 'mp4' : 'external'));
-      if(kind !== 'aliyun' && (isAliyunUrl(v.source_url) || isAliyunUrl(v.mp4_url))){
-        kind = 'aliyun';
-      }
-      const cat = getCategoryMeta(v.category);
-      titleEl.textContent = v.title || '（无标题）';
-      const sp = String(v.speaker || '').trim();
-      metaEl.textContent = `频道：${cat ? (cat.zh + ' / ' + cat.en) : (v.category || '')}${sp ? (' · 主讲：' + sp) : ''}`;
-
-      // Open button — only set href if it looks like a real URL
-      const openUrl = v.mp4_url || v.source_url || '';
-      const isValidUrl = /^https?:\/\//i.test(openUrl);
-      if(isValidUrl){
-        openBili.href = openUrl;
-      }else{
-        openBili.href = 'javascript:void(0)';
-        openBili.title = '无可用链接';
-      }
-      openBili.textContent = (kind === 'aliyun') ? '打开视频源' : (kind === 'mp4') ? '打开视频文件' : (kind === 'external' ? '打开来源链接' : '打开B站');
-
-      // Check for expired Aliyun pre-signed URLs before attempting playback
-      const playUrl = v.mp4_url || v.source_url || openUrl;
-      const expiry = checkAliyunUrlExpiry(playUrl);
-      if(expiry.expired){
-        wrap.innerHTML = renderExpiredMessage(expiry.expiresAt);
-        // hide the open button too since the URL is expired
-        openBili.style.display = 'none';
-      }else if(kind === 'aliyun'){
-        // Alibaba Cloud VOD — use Aliplayer SDK with source URL
-        const aliSource = v.mp4_url || v.source_url || openUrl;
-        wrap.innerHTML = '<div id="aliyun-player" style="width:100%;max-width:980px;border-radius:16px;overflow:hidden;background:#000;border:1px solid rgba(255,255,255,.12)"></div>';
-
-        function showPlayerError(){
-          var el = document.getElementById('aliyun-player');
-          if(el) el.innerHTML = renderExpiredMessage(checkAliyunUrlExpiry(aliSource).expiresAt || new Date());
-        }
-
-        function initAliplayer(){
-          var player = new Aliplayer({
-            id: 'aliyun-player',
-            source: aliSource,
-            width: '100%',
-            height: '560px',
-            autoplay: false,
-            isLive: false,
-            controlBarVisibility: 'hover',
-            skinLayout: [
-              { name: 'bigPlayButton', align: 'cc' },
-              { name: 'H5Loading', align: 'cc' },
-              { name: 'controlBar', align: 'blabs', x: 0, y: 0, children: [
-                { name: 'progress', align: 'blabs', x: 0, y: 44 },
-                { name: 'playButton', align: 'tl', x: 15, y: 12 },
-                { name: 'timeDisplay', align: 'tl', x: 10, y: 7 },
-                { name: 'fullScreenButton', align: 'tr', x: 10, y: 12 },
-                { name: 'volume', align: 'tr', x: 5, y: 10 },
-              ]}
-            ]
-          });
-          if(player && typeof player.on === 'function'){
-            player.on('error', function(){ showPlayerError(); });
-          }
-        }
-
-        function fallbackPlayer(){
-          var el = document.getElementById('aliyun-player');
-          if(!el) return;
-          el.innerHTML = '<video controls playsinline style="width:100%;height:560px;background:#000"><source src="' + esc(aliSource) + '" type="video/mp4" />你的浏览器不支持播放。</video>';
-          var vid = el.querySelector('video');
-          if(vid) vid.addEventListener('error', function(){ showPlayerError(); });
-        }
-
+      let waited = 0;
+      const timer = setInterval(() => {
+        waited += 200;
         if(typeof Aliplayer !== 'undefined'){
-          initAliplayer();
-        }else{
-          // SDK still loading (async) — wait up to 8s then fallback
-          var waited = 0;
-          var timer = setInterval(function(){
-            waited += 200;
-            if(typeof Aliplayer !== 'undefined'){
-              clearInterval(timer);
-              initAliplayer();
-            }else if(waited >= 8000){
-              clearInterval(timer);
-              fallbackPlayer();
-            }
-          }, 200);
+          clearInterval(timer);
+          doInit();
+        }else if(waited >= 5000){
+          clearInterval(timer);
+          doInit(); // Will use native video fallback
         }
-      }else if(kind === 'mp4'){
-        wrap.innerHTML = `
-          <video controls playsinline style="width:100%;max-width:980px;border-radius:16px;background:#000;border:1px solid rgba(255,255,255,.12)">
-            <source src="${esc(openUrl)}" type="video/mp4" />
-            你的浏览器不支持 MP4 播放。
-          </video>
-        `;
-        {
-          const vid = wrap.querySelector('video');
-          if(vid) vid.addEventListener('error', function(){
-            const ex = checkAliyunUrlExpiry(openUrl);
-            if(ex.expired) wrap.innerHTML = renderExpiredMessage(ex.expiresAt);
-            else wrap.innerHTML = '<div class="note" style="border-color:rgba(255,120,120,.4)">视频加载失败，请刷新页面重试或联系管理员。</div>';
-          });
-        }
-      }else if(kind === 'external'){
-        wrap.innerHTML = `
-          <div class="note">
-            该视频为外部链接，平台可能不允许直接嵌入播放。
-            <div style="margin-top:12px">
-              <a class="btn primary" href="${esc(openUrl)}" target="_blank" rel="noopener">打开来源观看</a>
-            </div>
-          </div>
-        `;
-      }else{
-        // Official Bilibili embed
-        let bvid = v.bvid || '';
-        if(!bvid && openUrl){
-          const m = String(openUrl).match(/\/video\/(BV[0-9A-Za-z]+)/i);
-          if(m) bvid = m[1];
-        }
+      }, 200);
+    }
+  }
 
-        if(!bvid){
-          wrap.innerHTML = `
-            <div class="note">
-              该视频缺少 BV 号，无法嵌入播放。
-              <div style="margin-top:12px">
-                <a class="btn primary" href="${esc(openUrl)}" target="_blank" rel="noopener">打开B站观看</a>
-              </div>
-            </div>
-          `;
-        }else{
-          const src = `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(bvid)}&page=1&high_quality=1&danmaku=0`;
-          wrap.innerHTML = `
-            <div class="video-embed">
-              <iframe
-                src="${src}"
-                scrolling="no"
-                border="0"
-                frameborder="no"
-                framespacing="0"
-                allowfullscreen="true"
-              ></iframe>
-            </div>
-          `;
-        }
-      }
+  // ── Render Bilibili player (for static free videos) ──
+  function renderBilibiliPlayer(v){
+    titleEl.textContent = v.title || '（无标题）';
+    metaEl.textContent = v.speaker ? ('主讲：' + v.speaker) : '';
+
+    let bvid = v.bvid || '';
+    if(!bvid && v.source_url){
+      const m = String(v.source_url).match(/\/video\/(BV[0-9A-Za-z]+)/i);
+      if(m) bvid = m[1];
+    }
+
+    if(bvid){
+      const src = `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(bvid)}&page=1&high_quality=1&danmaku=0`;
+      wrap.innerHTML = `<div class="video-embed"><iframe src="${src}" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe></div>`;
+      openBtn.href = `https://www.bilibili.com/video/${bvid}/`;
+      openBtn.textContent = '打开B站';
+      openBtn.hidden = false;
+    }else{
+      wrap.innerHTML = `<div class="note">该视频缺少播放信息。<div style="margin-top:12px"><a class="btn" href="videos.html">返回视频目录</a></div></div>`;
     }
   }
 
@@ -584,7 +491,7 @@
 
   </main>
 
-  <footer class="footer" data-blurb="当前版本 · 学习中心视频库（注册后观看）"></footer>
+  <footer class="footer" data-blurb="当前版本 · 学习中心视频库"></footer>
 <script type="module" src="app.js?v=20260128_030"></script>
 </body>
 </html>
