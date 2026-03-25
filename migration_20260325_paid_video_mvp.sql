@@ -90,15 +90,18 @@ create table if not exists public.play_logs (
 alter table public.play_logs enable row level security;
 
 -- Users can only see their own logs
-create policy if not exists play_logs_user_read on public.play_logs
+drop policy if exists play_logs_user_read on public.play_logs;
+create policy play_logs_user_read on public.play_logs
   for select using (user_id = auth.uid());
 
 -- Insert allowed for authenticated users (their own logs)
-create policy if not exists play_logs_user_insert on public.play_logs
+drop policy if exists play_logs_user_insert on public.play_logs;
+create policy play_logs_user_insert on public.play_logs
   for insert with check (user_id = auth.uid());
 
 -- Admin can read all
-create policy if not exists play_logs_admin_read on public.play_logs
+drop policy if exists play_logs_admin_read on public.play_logs;
+create policy play_logs_admin_read on public.play_logs
   for select using (public.is_admin());
 
 -- Service role can do anything (for Netlify functions)
