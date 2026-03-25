@@ -57,7 +57,7 @@
             <h3>展示区</h3>
             <p class="small muted">旗舰中心 · 共建与合作单位 · 核心专家 · 核心团队</p>
           </div>
-          <span class="badge" data-admin-only hidden>Admin-editable</span>
+          <!-- admin badge removed from public view -->
         </div>
 
         <div class="about-subnav">
@@ -80,26 +80,7 @@
             </div>
             <div class="hr"></div>
             <div class="stack" data-showcase-list="flagship"></div>
-            <details class="admin admin-details" data-admin-panel="flagship" data-admin-only hidden>
-              <summary>添加/删除条目</summary>
-              <div class="admin-body">
-                <form class="form" data-showcase-form="flagship">
-                  <label>名称 <input name="title" placeholder="例如：暨南大学第一附属医院" required></label>
-                  <label>简介 <textarea name="description" rows="3" placeholder="一句话介绍（可选）"></textarea></label>
-                  <label>图片/Logo/照片 URL <input name="image_url" placeholder="https://.../image.png（可选）"></label>
-                  <div class="upload-drop" data-image-dropzone tabindex="0" role="button" aria-label="拖拽或粘贴上传图片">
-                    <div class="small"><b>拖拽/粘贴图片到这里</b></div>
-                    <div class="small muted">也可以点击这里选择文件（支持截图粘贴）</div>
-                  </div>
-                  <label>上传图片/Logo（可选）
-                    <input name="image_file" type="file" accept="image/*">
-                  </label>
-                  <div class="small muted" style="margin-top:6px">支持：拖拽/粘贴到上面的区域或 URL 输入框（自动上传并回填 URL）。</div>
-                  <label>链接 <input name="link" placeholder="https://...（可选）"></label>
-                  <button class="btn primary" type="submit">添加</button>
-                </form>
-              </div>
-            </details>
+            <div class="admin-details" data-admin-panel="flagship" data-admin-only hidden style="display:none"></div>
           </div>
 
           <!-- Co-building -->
@@ -113,43 +94,7 @@
             </div>
             <div class="hr"></div>
             <div class="stack" data-showcase-list="co_building"></div>
-            <details class="admin admin-details" data-admin-panel="co_building" data-admin-only hidden>
-              <summary>添加/删除条目</summary>
-              <div class="admin-body">
-
-                <details class="admin-batch" style="margin:4px 0 12px">
-                  <summary style="cursor:pointer"><b>批量导入共建单位（支持粘贴列表）</b> <span class="muted small">一行一个，自动解析姓名/单位</span></summary>
-                  <div class="form" style="margin-top:10px">
-                    <label>粘贴列表（可选）
-                      <textarea data-cobuild-batch rows="9" placeholder="示例：\n1. 张三 某某医院\n2. 某某医院-李四\n...（一行一个）"></textarea>
-                    </label>
-                    <div class="row" style="gap:10px;flex-wrap:wrap;margin-top:10px">
-                      <button class="btn tiny" type="button" data-cobuild-fill>填入本次 84 家名单</button>
-                      <button class="btn tiny" type="button" data-cobuild-clear>清空</button>
-                      <button class="btn tiny primary" type="button" data-cobuild-import>批量导入到数据库</button>
-                    </div>
-                    <div class="small muted" data-cobuild-status style="margin-top:10px"></div>
-                    <div class="small muted" style="margin-top:8px">说明：导入会自动跳过"已存在的单位"（按名称去重），你仍可在下面单条添加/删除。</div>
-                  </div>
-                </details>
-
-                <form class="form" data-showcase-form="co_building">
-                  <label>名称 <input name="title" placeholder="例如：某某医院" required></label>
-                  <label>简介 <textarea name="description" rows="3" placeholder="共建方向/项目简介（可选）"></textarea></label>
-                  <label>图片/Logo/照片 URL <input name="image_url" placeholder="https://.../logo.png（可选）"></label>
-                  <div class="upload-drop" data-image-dropzone tabindex="0" role="button" aria-label="拖拽或粘贴上传图片">
-                    <div class="small"><b>拖拽/粘贴图片到这里</b></div>
-                    <div class="small muted">也可以点击这里选择文件（支持截图粘贴）</div>
-                  </div>
-                  <label>上传图片/Logo（可选）
-                    <input name="image_file" type="file" accept="image/*">
-                  </label>
-                  <div class="small muted" style="margin-top:6px">支持：拖拽/粘贴到上面的区域或 URL 输入框（自动上传并回填 URL）。</div>
-                  <label>链接 <input name="link" placeholder="https://...（可选）"></label>
-                  <button class="btn primary" type="submit">添加</button>
-                </form>
-              </div>
-            </details>
+            <div class="admin-details" data-admin-panel="co_building" data-admin-only hidden style="display:none"></div>
           </div>
 
           <!-- Partners -->
@@ -163,26 +108,7 @@
             </div>
             <div class="hr"></div>
             <div class="stack" data-showcase-list="partners"></div>
-            <details class="admin admin-details" data-admin-panel="partners" data-admin-only hidden>
-              <summary>添加/删除条目</summary>
-              <div class="admin-body">
-                <form class="form" data-showcase-form="partners">
-                  <label>名称 <input name="title" placeholder="例如：某某医院" required></label>
-                  <label>简介 <textarea name="description" rows="3" placeholder="合作类型/项目简介（可选）"></textarea></label>
-                  <label>图片/Logo/照片 URL <input name="image_url" placeholder="https://.../logo.png（可选）"></label>
-                  <div class="upload-drop" data-image-dropzone tabindex="0" role="button" aria-label="拖拽或粘贴上传图片">
-                    <div class="small"><b>拖拽/粘贴图片到这里</b></div>
-                    <div class="small muted">也可以点击这里选择文件（支持截图粘贴）</div>
-                  </div>
-                  <label>上传图片/Logo（可选）
-                    <input name="image_file" type="file" accept="image/*">
-                  </label>
-                  <div class="small muted" style="margin-top:6px">支持：拖拽/粘贴到上面的区域或 URL 输入框（自动上传并回填 URL）。</div>
-                  <label>链接 <input name="link" placeholder="https://...（可选）"></label>
-                  <button class="btn primary" type="submit">添加</button>
-                </form>
-              </div>
-            </details>
+            <div class="admin-details" data-admin-panel="partners" data-admin-only hidden style="display:none"></div>
           </div>
 
           <!-- Experts CN -->
@@ -196,26 +122,7 @@
             </div>
             <div class="hr"></div>
             <div class="stack" data-showcase-list="experts_cn"></div>
-            <details class="admin admin-details" data-admin-panel="experts_cn" data-admin-only hidden>
-              <summary>添加/删除条目</summary>
-              <div class="admin-body">
-                <form class="form" data-showcase-form="experts_cn">
-                  <label>姓名/机构 <input name="title" placeholder="例如：张三（某某医院）" required></label>
-                  <label>简介 <textarea name="description" rows="3" placeholder="方向/头衔/单位（可选）"></textarea></label>
-                  <label>图片/头像 URL <input name="image_url" placeholder="https://.../avatar.jpg（可选）"></label>
-                  <div class="upload-drop" data-image-dropzone tabindex="0" role="button" aria-label="拖拽或粘贴上传专家头像">
-                    <div class="small"><b>拖拽/粘贴专家头像到这里</b></div>
-                    <div class="small muted">也可以点击这里选择文件（支持截图粘贴）</div>
-                  </div>
-                  <label>上传头像（可选）
-                    <input name="image_file" type="file" accept="image/*">
-                  </label>
-                  <div class="small muted" style="margin-top:6px">支持：拖拽/粘贴到上面的区域或 URL 输入框（自动上传并回填 URL）。</div>
-                  <label>链接 <input name="link" placeholder="主页/简历链接（可选）"></label>
-                  <button class="btn primary" type="submit">添加</button>
-                </form>
-              </div>
-            </details>
+            <div class="admin-details" data-admin-panel="experts_cn" data-admin-only hidden style="display:none"></div>
           </div>
 
           <!-- Experts INTL -->
@@ -229,26 +136,7 @@
             </div>
             <div class="hr"></div>
             <div class="stack" data-showcase-list="experts_intl"></div>
-            <details class="admin admin-details" data-admin-panel="experts_intl" data-admin-only hidden>
-              <summary>添加/删除条目</summary>
-              <div class="admin-body">
-                <form class="form" data-showcase-form="experts_intl">
-                  <label>姓名/机构 <input name="title" placeholder="例如：Dr. Richard J. Glassock" required></label>
-                  <label>简介 <textarea name="description" rows="3" placeholder="方向/头衔/单位（可选）"></textarea></label>
-                  <label>图片/头像 URL <input name="image_url" placeholder="https://.../avatar.jpg（可选）"></label>
-                  <div class="upload-drop" data-image-dropzone tabindex="0" role="button" aria-label="拖拽或粘贴上传专家头像">
-                    <div class="small"><b>拖拽/粘贴专家头像到这里</b></div>
-                    <div class="small muted">也可以点击这里选择文件（支持截图粘贴）</div>
-                  </div>
-                  <label>上传头像（可选）
-                    <input name="image_file" type="file" accept="image/*">
-                  </label>
-                  <div class="small muted" style="margin-top:6px">支持：拖拽/粘贴到上面的区域或 URL 输入框（自动上传并回填 URL）。</div>
-                  <label>链接 <input name="link" placeholder="主页/简历链接（可选）"></label>
-                  <button class="btn primary" type="submit">添加</button>
-                </form>
-              </div>
-            </details>
+            <div class="admin-details" data-admin-panel="experts_intl" data-admin-only hidden style="display:none"></div>
           </div>
 
           <!-- Core Team -->
@@ -262,26 +150,7 @@
             </div>
             <div class="hr"></div>
             <div class="stack" data-showcase-list="core_team"></div>
-            <details class="admin admin-details" data-admin-panel="core_team" data-admin-only hidden>
-              <summary>添加/删除条目</summary>
-              <div class="admin-body">
-                <form class="form" data-showcase-form="core_team">
-                  <label>姓名/角色 <input name="title" placeholder="例如：李四｜运营负责人" required></label>
-                  <label>简介 <textarea name="description" rows="3" placeholder="职责/背景/一句话介绍（可选）"></textarea></label>
-                  <label>图片/头像 URL <input name="image_url" placeholder="https://.../avatar.jpg（可选）"></label>
-                  <div class="upload-drop" data-image-dropzone tabindex="0" role="button" aria-label="拖拽或粘贴上传团队成员头像">
-                    <div class="small"><b>拖拽/粘贴团队成员头像到这里</b></div>
-                    <div class="small muted">也可以点击这里选择文件（支持截图粘贴）</div>
-                  </div>
-                  <label>上传头像（可选）
-                    <input name="image_file" type="file" accept="image/*">
-                  </label>
-                  <div class="small muted" style="margin-top:6px">支持：拖拽/粘贴到上面的区域或 URL 输入框（自动上传并回填 URL）。</div>
-                  <label>链接 <input name="link" placeholder="主页/简介链接（可选）"></label>
-                  <button class="btn primary" type="submit">添加</button>
-                </form>
-              </div>
-            </details>
+            <div class="admin-details" data-admin-panel="core_team" data-admin-only hidden style="display:none"></div>
           </div>
 
         </div>

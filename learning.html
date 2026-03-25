@@ -100,100 +100,75 @@
         <span class="badge">注册免费</span>
       </div>
 
-      <div class="card soft" id="videoAdminPanel" data-admin-only hidden style="margin-top:12px">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
-          <div>
-            <h3 style="margin:0">新增视频（B站/阿里云/链接/MP4）</h3>
-            <div class="small muted" style="margin-top:6px">新增后会自动出现在"免费视频库"对应频道中。支持阿里云视频点播。</div>
-          </div>
-          <span class="badge" data-admin-only hidden>管理员</span>
-        </div>
-
-        <div class="hr"></div>
-
-        <form id="videoAddForm" class="form" style="max-width:860px">
-          <div class="form-row">
-            <div style="flex:1;min-width:240px">
-              <label>视频名称</label>
-              <input class="input" id="videoTitle" required placeholder="例如：IgA 肾病病例讨论（第1期）" />
-            </div>
-            <div style="min-width:220px">
-              <label>频道</label>
-              <select class="input" id="videoCategory" required></select>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div style="flex:1;min-width:240px">
-              <label>视频链接（B站/腾讯/其他）</label>
-              <input class="input" id="videoUrl" placeholder="粘贴 B站 或 腾讯会议/腾讯视频 链接（可选）" />
-              <div class="small muted" style="margin-top:6px">三选一：填链接 / 上传 mp4 / 填阿里云视频。</div>
-            </div>
-            <div style="min-width:240px">
-              <label>或上传 mp4（≤50MB）</label>
-              <input class="input" id="videoMp4" type="file" accept="video/mp4" />
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div style="flex:1;min-width:240px">
-              <label>阿里云视频播放地址（MP4 链接）</label>
-              <input class="input" id="videoAliyunUrl" placeholder="https://xxx.aliyuncs.com/xxx.mp4" />
-              <div class="small muted" style="margin-top:6px">
-                获取方式：阿里云控制台 → 点击视频 → <b>「视频地址」</b>标签页 → 复制 MP4 地址。<br/>
-                <span style="color:var(--c-warn,#ffa050)">⚠ 请粘贴以 https:// 开头的播放地址，不要粘贴"Web播放器代码"里的 HTML 代码。</span>
+      <div id="videoAdminPanel" data-admin-only hidden style="display:none">
+        <div class="card soft" style="margin-top:12px">
+          <h3 style="margin:0">新增视频</h3>
+          <div class="hr"></div>
+          <form id="videoAddForm" class="form" style="max-width:860px">
+            <div class="form-row">
+              <div style="flex:1;min-width:240px">
+                <label>视频名称</label>
+                <input class="input" id="videoTitle" required />
+              </div>
+              <div style="min-width:220px">
+                <label>频道</label>
+                <select class="input" id="videoCategory" required></select>
               </div>
             </div>
-            <div style="min-width:220px">
-              <label>阿里云视频ID（可选）</label>
-              <input class="input" id="videoAliyunVid" placeholder="如 504c841c1fb5..." />
-              <div class="small muted" style="margin-top:6px">仅作记录，方便后续管理。</div>
+            <div class="form-row">
+              <div style="flex:1;min-width:240px">
+                <label>视频链接</label>
+                <input class="input" id="videoUrl" />
+              </div>
+              <div style="min-width:240px">
+                <label>或上传 mp4</label>
+                <input class="input" id="videoMp4" type="file" accept="video/mp4" />
+              </div>
             </div>
-          </div>
-
-          <div class="form-row">
-            <div style="min-width:200px">
-              <label>主讲人（可选）</label>
-              <input class="input" id="videoSpeaker" placeholder="如：Dr. Glassock" />
+            <div class="form-row">
+              <div style="flex:1;min-width:240px">
+                <label>阿里云视频播放地址</label>
+                <input class="input" id="videoAliyunUrl" />
+              </div>
+              <div style="min-width:220px">
+                <label>阿里云视频ID</label>
+                <input class="input" id="videoAliyunVid" />
+              </div>
             </div>
-            <div style="min-width:220px">
-              <label>所属专科</label>
-              <select class="input" id="videoSpecialty">
-                <option value="">无（免费公开视频）</option>
-              </select>
-              <div class="small muted" style="margin-top:6px">选择后该视频归属于该专科课程。</div>
+            <div class="form-row">
+              <div style="min-width:200px">
+                <label>主讲人</label>
+                <input class="input" id="videoSpeaker" />
+              </div>
+              <div style="min-width:220px">
+                <label>所属专科</label>
+                <select class="input" id="videoSpecialty">
+                  <option value="">无（免费公开视频）</option>
+                </select>
+              </div>
+              <div style="min-width:140px;display:flex;align-items:center;gap:8px;padding-top:24px">
+                <input type="checkbox" id="videoIsPaid" />
+                <label for="videoIsPaid" style="margin:0;cursor:pointer">付费视频</label>
+              </div>
+              <div style="min-width:140px;display:flex;align-items:center;gap:8px;padding-top:24px">
+                <input type="checkbox" id="videoMembershipAccessible" />
+                <label for="videoMembershipAccessible" style="margin:0;cursor:pointer">会员可看</label>
+              </div>
             </div>
-            <div style="min-width:140px;display:flex;align-items:center;gap:8px;padding-top:24px">
-              <input type="checkbox" id="videoIsPaid" />
-              <label for="videoIsPaid" style="margin:0;cursor:pointer">付费视频</label>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center">
+              <button class="btn primary" type="submit" id="videoSubmit">保存并上架</button>
+              <span class="small muted" id="videoHint"></span>
             </div>
-            <div style="min-width:140px;display:flex;align-items:center;gap:8px;padding-top:24px">
-              <input type="checkbox" id="videoMembershipAccessible" />
-              <label for="videoMembershipAccessible" style="margin:0;cursor:pointer">会员可看</label>
+          </form>
+          <div class="hr"></div>
+          <div>
+            <div class="section-title" style="margin:0">
+              <div><h3 style="margin:0">最近添加的视频</h3></div>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px">
+                <input type="checkbox" id="showDeletedVideos" /> 显示已删除
+              </label>
             </div>
-          </div>
-
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center">
-            <button class="btn primary" type="submit" id="videoSubmit">保存并上架</button>
-            <span class="small muted" id="videoHint"></span>
-          </div>
-        </form>
-
-        <div class="hr"></div>
-
-        <div>
-          <div class="section-title" style="margin:0">
-            <div>
-              <h3 style="margin:0">最近添加的视频</h3>
-              <p class="small muted">可在此删除（软删除）或恢复。</p>
-            </div>
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px">
-              <input type="checkbox" id="showDeletedVideos" />
-              显示已删除
-            </label>
-          </div>
-          <div id="videoAdminList" style="margin-top:10px">
-            <div class="muted small skeleton-text">&nbsp;</div>
+            <div id="videoAdminList" style="margin-top:10px"></div>
           </div>
         </div>
       </div>

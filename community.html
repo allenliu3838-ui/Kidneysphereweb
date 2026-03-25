@@ -55,26 +55,17 @@
 
       <div class="grid cols-2" id="sectionGrid"></div>
 
-      <div class="admin" id="sectionAdmin" data-admin-only hidden>
+      <div id="sectionAdmin" data-admin-only hidden style="display:none">
         <div class="hr"></div>
-        <div class="note">
-          <b>新增/删除核心社区分区</b><br/>
-          建议 key 使用英文小写（如 glom, tx, icu, peds, rare, path 等）。
-        </div>
-
         <form class="form" id="addSectionForm" style="margin-top:12px">
           <div class="form-row">
-            <div>
-              <label>Key（英文小写） <input name="key" placeholder="e.g. glom" required></label>
-            </div>
-            <div>
-              <label>中文标题 <input name="title_zh" placeholder="例如：透析与通路" required></label>
-            </div>
+            <div><label>Key <input name="key" required></label></div>
+            <div><label>中文标题 <input name="title_zh" required></label></div>
           </div>
-          <label>一句话简介（可选） <textarea name="description" rows="3" placeholder="例如：HD/HDF、通路、抗凝、并发症…"></textarea></label>
+          <label>简介 <textarea name="description" rows="3"></textarea></label>
           <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
             <button class="btn primary" type="submit">添加分区</button>
-            <button class="btn" type="button" id="seedDefaultBtn">一键写入默认 5 分区</button>
+            <button class="btn" type="button" id="seedDefaultBtn">写入默认分区</button>
           </div>
         </form>
       </div>
