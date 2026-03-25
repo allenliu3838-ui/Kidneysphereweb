@@ -715,8 +715,12 @@
       const days = Math.floor(diff / 864e5);
       const hrs  = Math.floor((diff % 864e5) / 36e5);
       if(daysEl) daysEl.textContent = days > 0 ? `${days}` : `< 1`;
-      if(cntEl && days <= 7){
-        cntEl.textContent = `截止 2026年5月30日 · 还剩 ${days}天 ${hrs}小时`;
+      if(cntEl){
+        if(days <= 7){
+          cntEl.textContent = `截止 2026年5月30日 · 还剩 ${days}天 ${hrs}小时`;
+        } else {
+          cntEl.textContent = `截止 2026年5月30日 · ${days} 天后结束`;
+        }
       }
     }
     update();
