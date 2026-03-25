@@ -97,7 +97,15 @@
               <p class="small muted">请在付款备注中填写上方订单号。</p>
             </div>
 
+            <!-- Review flow: upload proof -->
             <button class="btn primary" id="btnGoUpload" type="button" style="margin-top:12px">我已付款，去上传凭证</button>
+
+            <!-- Instant flow: confirm and auto-grant -->
+            <div id="instantHint" hidden style="margin-top:12px;padding:12px 14px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:10px">
+              <p class="small" style="margin:0 0 8px;font-weight:600;color:#4ade80">即时开通商品</p>
+              <p class="small muted" style="margin:0">扫码完成付款后，点击下方按钮即可立即开通权益。无需上传凭证、无需等待审核。</p>
+            </div>
+            <button class="btn primary btn-lg" id="btnInstantComplete" type="button" hidden style="margin-top:12px;width:100%">确认已付款，立即开通</button>
           </div>
 
           <!-- Step 3: Upload proof -->
