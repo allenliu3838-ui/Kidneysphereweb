@@ -139,7 +139,13 @@
     const u = new URL('watch.html', location.href);
     u.searchParams.set('id', v.id);
     // Pass bvid so immediate script can render bilibili embed instantly
-    const bvid = v.bvid || '';
+    let bvid = v.bvid || '';
+    // Extract bvid from source_url if not explicitly set
+    if(!bvid){
+      const src = v.source_url || v.mp4_url || '';
+      const m = src.match(/\/video\/(BV[0-9A-Za-z]+)/i);
+      if(m) bvid = m[1];
+    }
     if(bvid) u.searchParams.set('bvid', bvid);
     // Pass source_url for aliyun/mp4 videos
     const src = v.mp4_url || v.source_url || '';
