@@ -107,34 +107,46 @@
           <form id="videoAddForm" class="form" style="max-width:860px">
             <div class="form-row">
               <div style="flex:1;min-width:240px">
-                <label>视频名称</label>
+                <label>视频名称 *</label>
                 <input class="input" id="videoTitle" required />
               </div>
               <div style="min-width:220px">
-                <label>频道</label>
+                <label>频道 *</label>
                 <select class="input" id="videoCategory" required></select>
               </div>
             </div>
+
             <div class="form-row">
-              <div style="flex:1;min-width:240px">
-                <label>视频链接</label>
-                <input class="input" id="videoUrl" />
+              <div style="min-width:220px">
+                <label>视频来源 *</label>
+                <select class="input" id="videoSourceType">
+                  <option value="aliyun_vod">阿里云点播 (推荐)</option>
+                  <option value="bilibili">B站视频</option>
+                  <option value="external_url">外部视频链接</option>
+                  <option value="upload_mp4">上传 MP4</option>
+                </select>
               </div>
-              <div style="min-width:240px">
-                <label>或上传 mp4</label>
+              <div style="flex:1;min-width:240px" id="videoAliyunVidWrap">
+                <label>阿里云视频ID *</label>
+                <input class="input" id="videoAliyunVid" placeholder="如：93d2f12b0c6e71ed..." />
+              </div>
+              <div style="flex:1;min-width:240px" id="videoUrlWrap" hidden>
+                <label>外部视频链接</label>
+                <input class="input" id="videoUrl" placeholder="https://..." />
+              </div>
+              <div style="min-width:240px" id="videoMp4Wrap" hidden>
+                <label>上传 MP4 (≤50MB)</label>
                 <input class="input" id="videoMp4" type="file" accept="video/mp4" />
               </div>
             </div>
-            <div class="form-row">
+
+            <div class="form-row" id="videoAliyunUrlWrap" style="display:none">
               <div style="flex:1;min-width:240px">
-                <label>阿里云视频播放地址</label>
-                <input class="input" id="videoAliyunUrl" />
-              </div>
-              <div style="min-width:220px">
-                <label>阿里云视频ID</label>
-                <input class="input" id="videoAliyunVid" />
+                <label>阿里云播放地址（调试用，不作为正式播放）</label>
+                <input class="input" id="videoAliyunUrl" placeholder="仅调试用途" style="opacity:.6" />
               </div>
             </div>
+
             <div class="form-row">
               <div style="min-width:200px">
                 <label>主讲人</label>
@@ -143,19 +155,51 @@
               <div style="min-width:220px">
                 <label>所属专科</label>
                 <select class="input" id="videoSpecialty">
-                  <option value="">无（免费公开视频）</option>
+                  <option value="">无</option>
                 </select>
               </div>
-              <div style="min-width:140px;display:flex;align-items:center;gap:8px;padding-top:24px">
-                <input type="checkbox" id="videoIsPaid" />
-                <label for="videoIsPaid" style="margin:0;cursor:pointer">付费视频</label>
-              </div>
-              <div style="min-width:140px;display:flex;align-items:center;gap:8px;padding-top:24px">
-                <input type="checkbox" id="videoMembershipAccessible" />
-                <label for="videoMembershipAccessible" style="margin:0;cursor:pointer">会员可看</label>
+              <div style="min-width:220px">
+                <label>访问权限 *</label>
+                <select class="input" id="videoAccessType">
+                  <option value="registered_free">注册后可看（免费）</option>
+                  <option value="paid_single">单视频付费</option>
+                  <option value="paid_specialty">跟随专科课程</option>
+                  <option value="paid_membership">付费会员可看</option>
+                </select>
               </div>
             </div>
+
+            <div class="form-row" id="videoPriceRow" hidden>
+              <div style="min-width:160px">
+                <label>价格（元）</label>
+                <input class="input" id="videoPrice" type="number" min="0" step="0.01" placeholder="0.00" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div style="flex:1;min-width:240px">
+                <label>视频简介</label>
+                <textarea class="input" id="videoDescription" rows="2" style="resize:vertical"></textarea>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div style="min-width:200px">
+                <label>封面图 URL</label>
+                <input class="input" id="videoCoverImage" placeholder="https://..." />
+              </div>
+              <div style="min-width:120px">
+                <label>排序</label>
+                <input class="input" id="videoSortOrder" type="number" value="0" />
+              </div>
+            </div>
+
+            <!-- Hidden legacy fields for backward compat -->
+            <input type="hidden" id="videoIsPaid" />
+            <input type="hidden" id="videoMembershipAccessible" />
+
             <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center">
+              <button class="btn" type="button" id="videoSaveDraft">保存草稿</button>
               <button class="btn primary" type="submit" id="videoSubmit">保存并上架</button>
               <span class="small muted" id="videoHint"></span>
             </div>

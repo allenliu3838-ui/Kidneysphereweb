@@ -11,7 +11,7 @@
     Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
     X-XSS-Protection = "1; mode=block"
     Cross-Origin-Opener-Policy = "same-origin"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://esm.sh https://cdn.skypack.dev https://registry.npmmirror.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://eaatpwakhcjxjonlyfii.supabase.co; frame-src https://player.bilibili.com https://view.officeapps.live.com; media-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://esm.sh https://cdn.skypack.dev https://registry.npmmirror.com https://g.alicdn.com; style-src 'self' 'unsafe-inline' https://g.alicdn.com; img-src 'self' data: https:; font-src 'self' data: https://g.alicdn.com; connect-src 'self' https://eaatpwakhcjxjonlyfii.supabase.co https://vod.kidneysphere.com https://*.aliyuncs.com; frame-src https://player.bilibili.com https://view.officeapps.live.com; media-src 'self' https: blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
 
 # Avoid caching the runtime config during rapid iterations
 [[headers]]
@@ -57,4 +57,22 @@
 [[redirects]]
   from = "/api/me"
   to = "/.netlify/functions/api-me"
+  status = 200
+
+# Video access check: GET /api/videos/:id/access
+[[redirects]]
+  from = "/api/videos/*/access"
+  to = "/.netlify/functions/video-access"
+  status = 200
+
+# Video play authorization: POST /api/videos/*/play-auth
+[[redirects]]
+  from = "/api/videos/*/play-auth"
+  to = "/.netlify/functions/video-play-auth"
+  status = 200
+
+# Dev/admin manual entitlement grant
+[[redirects]]
+  from = "/api/dev/grant-access"
+  to = "/.netlify/functions/dev-grant-access"
   status = 200
