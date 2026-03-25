@@ -205,15 +205,51 @@
     const accessRes = await fetch(`/api/videos/${encodeURIComponent(id)}/access`, { headers });
     const accessData = accessRes.ok ? await accessRes.json() : null;
 
-    if(!accessData || accessData.error === 'video_not_found'){
-      // Fallback: try static video list
+    if(!accessData || accessData.error === 'video_not_found' || accessData.error === 'video_not_published'){
+      // Fallback 1: try static video list
       const sv = getVideoById(id);
       if(sv){
         renderBilibiliPlayer(sv);
       }else{
-        titleEl.textContent = '未找到该视频';
-        metaEl.textContent = '可能链接已更新或目录尚未同步。';
-        wrap.innerHTML = `<div class="note">找不到视频：<code>${esc(id)}</code></div>`;
+        // Fallback 2: query DB directly via Supabase (for DB videos when API unavailable)
+        let dbVideo = null;
+        if(isConfigured()){
+          try{
+            await ensureSupabase();
+            if(supabase){
+              const { data } = await supabase
+                .from('learning_videos')
+                .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,speaker,is_paid,membership_accessible,specialty_id,enabled,deleted_at')
+                .eq('id', id)
+                .maybeSingle();
+              if(data && !data.deleted_at && data.enabled !== false){
+                dbVideo = data;
+              }
+            }
+          }catch(_e){ console.warn('[watch] DB fallback error:', _e); }
+        }
+
+        if(dbVideo){
+          // For free bilibili/external videos, render directly
+          const bvid = dbVideo.bvid || '';
+          if(bvid || (dbVideo.kind === 'bilibili')){
+            renderBilibiliPlayer({ id: dbVideo.id, title: dbVideo.title, speaker: dbVideo.speaker, bvid: bvid, source_url: dbVideo.source_url });
+          }else if(!dbVideo.is_paid && (dbVideo.source_url || dbVideo.mp4_url)){
+            // Free non-bilibili video: render with URL (only for free videos)
+            titleEl.textContent = dbVideo.title || '（无标题）';
+            metaEl.textContent = dbVideo.speaker ? ('主讲：' + dbVideo.speaker) : '';
+            initUrlPlayer(dbVideo.mp4_url || dbVideo.source_url, 'mp4');
+          }else{
+            // Paid video but API unavailable — show error
+            titleEl.textContent = dbVideo.title || '未找到该视频';
+            metaEl.textContent = dbVideo.speaker ? ('主讲：' + dbVideo.speaker) : '';
+            wrap.innerHTML = `<div class="note">该视频需要通过后端授权播放，请稍后重试。</div>`;
+          }
+        }else{
+          titleEl.textContent = '未找到该视频';
+          metaEl.textContent = '可能链接已更新或目录尚未同步。';
+          wrap.innerHTML = `<div class="note">找不到视频：<code>${esc(id)}</code></div>`;
+        }
       }
     }else if(accessData.error){
       showFatalError(accessData.error === 'video_not_published' ? '该视频尚未上架。' : accessData.message || accessData.error);
