@@ -204,6 +204,7 @@ function injectFooter(){
       <div class="small">
         <div>© 2025–2026 肾域</div>
         <div style="margin-top:8px">联系：<a href="mailto:china@kidneysphere.com">china@kidneysphere.com</a></div>
+        <div style="margin-top:6px"><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">沪ICP备2026008040号-2</a></div>
       </div>
     </div>`;
 }
