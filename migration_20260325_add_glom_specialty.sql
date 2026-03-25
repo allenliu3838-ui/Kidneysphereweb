@@ -5,6 +5,10 @@
 -- product_code 前缀：GLOM
 -- ============================================================
 
+-- 0. 先确保 products 表有 early_bird_deadline 列（幂等）
+alter table public.products
+  add column if not exists early_bird_deadline timestamptz;
+
 do $$
 declare
   _glom_id        uuid;
