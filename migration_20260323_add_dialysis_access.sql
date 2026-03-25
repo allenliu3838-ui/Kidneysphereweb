@@ -127,7 +127,7 @@ begin
     1280, true,
     _da_bundle_id,
     '开课前7天以上申请全额退款；开课后不支持退款。',
-    true, 'planning', 4
+    true, 'draft', 4
   )
   on conflict (project_code) do update set
     title                      = excluded.title,

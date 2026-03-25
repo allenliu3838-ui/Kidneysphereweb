@@ -135,7 +135,7 @@ begin
     1280, true,
     _glom_bundle_id,
     '开课前7天以上申请全额退款；开课后不支持退款。',
-    true, 'active', 0
+    true, 'recruiting', 0
   )
   on conflict (project_code) do update set
     title                      = excluded.title,
