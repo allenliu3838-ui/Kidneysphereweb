@@ -92,7 +92,7 @@ function renderEntitlements(list) {
       // CTA button
       let cta = '';
       if (type === 'specialty_bundle' && e.specialty_id) {
-        cta = `<a class="btn tiny" href="videos.html">进入视频库</a>`;
+        cta = `<a class="btn tiny" href="videos.html?specialty=${encodeURIComponent(e.specialty_id)}">进入视频库</a>`;
       } else if (type === 'project_access' && e.project_id) {
         cta = `<a class="btn tiny" href="my-learning.html">查看项目</a>`;
       } else if (type === 'single_video' && e.video_id) {
