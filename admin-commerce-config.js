@@ -1,8 +1,8 @@
 /**
  * admin-commerce-config.js — 系统配置模块（含收款码图片上传）
  */
-import { supabase, toast } from './supabaseClient.js?v=20260322_001';
-import { esc } from './admin-commerce.js?v=20260322_001';
+import { supabase, toast } from './supabaseClient.js?v=20260325_001';
+import { esc } from './admin-commerce.js?v=20260325_001';
 
 /* keys that should render as image-upload fields */
 const IMAGE_KEYS = new Set(['wechat_pay_qr_url', 'alipay_pay_qr_url']);

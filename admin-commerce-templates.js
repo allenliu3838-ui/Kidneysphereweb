@@ -1,8 +1,8 @@
 /**
  * admin-commerce-templates.js — 通知模板模块
  */
-import { supabase, toast, formatBeijingDateTime } from './supabaseClient.js?v=20260322_001';
-import { esc, fmtDate, statusDot, showModal, closeModal } from './admin-commerce.js?v=20260322_001';
+import { supabase, toast, formatBeijingDateTime } from './supabaseClient.js?v=20260325_001';
+import { esc, fmtDate, statusDot, showModal, closeModal } from './admin-commerce.js?v=20260325_001';
 
 const CHANNEL_LABELS = {
   site:  '站内通知',

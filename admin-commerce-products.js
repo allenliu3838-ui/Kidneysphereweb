@@ -1,8 +1,8 @@
 /**
  * admin-commerce-products.js — 商品管理模块
  */
-import { supabase, toast } from './supabaseClient.js?v=20260322_001';
-import { esc, fmtDate, showModal, closeModal } from './admin-commerce.js?v=20260322_001';
+import { supabase, toast } from './supabaseClient.js?v=20260325_001';
+import { esc, fmtDate, showModal, closeModal } from './admin-commerce.js?v=20260325_001';
 
 const TYPE_LABELS = {
   membership_plan: '会员方案',
