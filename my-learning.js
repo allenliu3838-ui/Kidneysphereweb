@@ -141,6 +141,39 @@ function renderEntitlements(list) {
   }
 
   wrap.innerHTML = html;
+
+  // Render membership upgrade/status card
+  const memberCard = document.getElementById('membershipCard');
+  if(memberCard){
+    const hasMembership = groups['membership'] && groups['membership'].length > 0;
+    if(hasMembership){
+      const m = groups['membership'][0];
+      const expiry = m.end_at ? new Date(m.end_at).toLocaleDateString('zh-CN', {year:'numeric',month:'long',day:'numeric'}) : '永久';
+      memberCard.style.background = 'rgba(168,85,247,.08)';
+      memberCard.style.border = '1px solid rgba(168,85,247,.25)';
+      memberCard.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div>
+            <span style="font-size:14px;font-weight:600;color:#c084fc">✓ GlomCon 教育会员</span>
+            <span class="small muted" style="margin-left:8px">有效期至 ${esc(expiry)}</span>
+          </div>
+          <a class="btn tiny" href="videos.html?cat=glomcon">进入 GlomCon 视频库</a>
+        </div>`;
+      memberCard.hidden = false;
+    }else{
+      memberCard.style.background = 'rgba(168,85,247,.05)';
+      memberCard.style.border = '1px solid rgba(168,85,247,.2)';
+      memberCard.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-weight:600;font-size:14px">👑 升级为 GlomCon 教育会员</div>
+            <div class="small muted" style="margin-top:3px">¥199/年 · 解锁全部 GlomCon 中国教育系列视频</div>
+          </div>
+          <a class="btn primary" href="academy.html#membership">开通会员</a>
+        </div>`;
+      memberCard.hidden = false;
+    }
+  }
 }
 
 /* ── 订单状态标签 ── */

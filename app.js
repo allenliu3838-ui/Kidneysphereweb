@@ -578,6 +578,9 @@ async function renderAuthArea(){
 
             <a role="menuitem" href="notifications.html" data-badge="notifications">通知中心 <span class="badge-dot" aria-hidden="true"></span></a>
             <a role="menuitem" href="my-learning.html">我的学习</a>
+            ${(membership && membership !== 'none')
+              ? `<a role="menuitem" href="videos.html?cat=glomcon" style="color:#c084fc">✓ GlomCon 教育会员</a>`
+              : `<a role="menuitem" href="academy.html#membership" style="color:#fbbf24">👑 开通 GlomCon 教育会员</a>`}
             <a role="menuitem" href="favorites.html">我的收藏</a>
             <a role="menuitem" href="verify-doctor.html?next=${nextParam}">${doctorMenuLabel}</a>
 
