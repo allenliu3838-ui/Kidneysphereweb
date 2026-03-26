@@ -59,14 +59,14 @@ on conflict (product_code) do update set
   updated_at = now();
 
 -- 3. 更新 system_config 会员定价
-insert into public.system_config (key, value, label)
+insert into public.system_config (key, value, description)
 values
   ('membership_yearly_price', '199', '年费会员价格(元)'),
   ('membership_monthly_price', '29', '月费会员价格(元)'),
   ('membership_enabled', 'true', '是否开启会员购买')
 on conflict (key) do update set
   value = excluded.value,
-  label = excluded.label;
+  description = excluded.description;
 
 -- 4. 创建首发优惠价格版本（前50名 ¥99/年）
 insert into public.product_price_versions (
