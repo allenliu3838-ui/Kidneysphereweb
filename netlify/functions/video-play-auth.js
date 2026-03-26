@@ -321,8 +321,8 @@ exports.handler = async (event) => {
 
     const aliyunVid = video.aliyun_vid;
 
-    if (aliyunVid) {
-      // Primary path: Aliyun VOD PlayAuth
+    if (aliyunVid && ALIYUN_VOD_ACCESS_KEY_ID && ALIYUN_VOD_ACCESS_KEY_SECRET) {
+      // Primary path: Aliyun VOD PlayAuth (only when keys are configured)
       const authResult = await aliyunGetVideoPlayAuth(aliyunVid);
 
       if (authResult.playAuth) {
@@ -337,22 +337,18 @@ exports.handler = async (event) => {
         });
       }
 
-      // Fallback: try GetPlayInfo for signed URL
-      if (authResult.error === 'aliyun_not_configured') {
-        // Aliyun not configured — fall through to URL fallback
-      } else {
-        // Try signed URL as fallback
-        const playInfo = await aliyunGetVideoInfo(aliyunVid);
-        if (playInfo.playURL) {
-          return json(200, {
-            playerType: 'signed_url',
-            playURL: playInfo.playURL,
-            format: playInfo.format || 'mp4',
-            duration: playInfo.duration || 0,
-            expiresIn: 3600,
-          });
-        }
+      // Try signed URL as fallback
+      const playInfo = await aliyunGetVideoInfo(aliyunVid);
+      if (playInfo.playURL) {
+        return json(200, {
+          playerType: 'signed_url',
+          playURL: playInfo.playURL,
+          format: playInfo.format || 'mp4',
+          duration: playInfo.duration || 0,
+          expiresIn: 3600,
+        });
       }
+      // If both fail, fall through to mp4_url fallback below
     }
 
     // Fallback: return source_url/mp4_url as temporary authorized URL
