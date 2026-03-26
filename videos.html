@@ -550,22 +550,26 @@
       }
       if(error) throw error;
 
-      DB_VIDEOS = (data || []).map(v => ({
-        id: String(v.id),
-        title: v.title || '',
-        speaker: v.speaker || '',
-        category: v.category || 'other',
-        kind: v.kind || (v.bvid ? 'bilibili' : 'external'),
-        bvid: v.bvid || null,
-        aliyun_vid: v.aliyun_vid || null,
-        source_url: v.source_url || v.mp4_url || '',
-        mp4_url: v.mp4_url || null,
-        source: v.source || 'external',
-        is_paid: v.is_paid || false,
-        membership_accessible: v.membership_accessible || false,
-        specialty_id: v.specialty_id || null,
-        product_id: v.product_id || null,
-      }));
+      DB_VIDEOS = (data || []).map(v => {
+        // Auto-fix legacy category='glomcon': reclassify to 'glom' + mark as glomcon source + membership
+        const isLegacyGlomcon = (v.category === 'glomcon');
+        return {
+          id: String(v.id),
+          title: v.title || '',
+          speaker: v.speaker || '',
+          category: isLegacyGlomcon ? 'glom' : (v.category || 'other'),
+          kind: v.kind || (v.bvid ? 'bilibili' : 'external'),
+          bvid: v.bvid || null,
+          aliyun_vid: v.aliyun_vid || null,
+          source_url: v.source_url || v.mp4_url || '',
+          mp4_url: v.mp4_url || null,
+          source: isLegacyGlomcon ? 'glomcon' : (v.source || 'external'),
+          is_paid: isLegacyGlomcon ? true : (v.is_paid || false),
+          membership_accessible: isLegacyGlomcon ? true : (v.membership_accessible || false),
+          specialty_id: v.specialty_id || null,
+          product_id: v.product_id || null,
+        };
+      });
 
       ALL_VIDEOS = [...FREE_VIDEOS, ...DB_VIDEOS];
     }catch(e){
