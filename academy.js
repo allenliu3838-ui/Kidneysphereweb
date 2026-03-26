@@ -51,6 +51,7 @@ async function init(){
     const spec = code.startsWith('ICU') ? 'icu'
                : code.startsWith('TX')  ? 'tx'
                : code.startsWith('PATHO') ? 'patho'
+               : code.startsWith('GLOM-BUNDLE') || code.startsWith('GLOM-REG') ? 'glom'
                : null;
     if(!spec) continue;
     if(!bySpec[spec]) bySpec[spec] = {};
@@ -72,8 +73,13 @@ async function init(){
     }catch(_e){}
   }
 
+  // ── 渲染会员产品 ──
+  const memberYearly = products.find(p => p.product_code === 'MEMBERSHIP-YEARLY');
+  const memberMonthly = products.find(p => p.product_code === 'MEMBERSHIP-MONTHLY');
+  renderMembership(memberYearly, memberMonthly, purchasedIds);
+
   // 按专科渲染（DA 产品未上线，跳过价格覆盖，保留静态骨架）
-  ['icu','tx','patho'].forEach(spec => {
+  ['glom','icu','tx','patho'].forEach(spec => {
     const ps = bySpec[spec];
     if(!ps) return;
     renderPricingCards(spec, ps, purchasedIds);
@@ -83,7 +89,8 @@ async function init(){
   // 班期信息
   for(const proj of projects){
     const code = (proj.project_code || '').toUpperCase();
-    const spec = code.startsWith('ICU')   ? 'icu'
+    const spec = code.startsWith('GLOM')  ? 'glom'
+               : code.startsWith('ICU')   ? 'icu'
                : code.startsWith('TX')    ? 'tx'
                : code.startsWith('PATHO') ? 'patho'
                : code.startsWith('DA')    ? 'da'
@@ -97,9 +104,9 @@ async function init(){
 async function fetchProducts(){
   const { data, error } = await supabase
     .from('products')
-    .select('id,product_code,title,subtitle,price_cny,list_price_cny,product_type,recommended,is_active,project_id,specialty_id,early_bird_deadline')
+    .select('id,product_code,title,subtitle,price_cny,list_price_cny,product_type,recommended,is_active,project_id,specialty_id,early_bird_deadline,membership_period')
     .eq('is_active', true)
-    .in('product_type', ['project_registration','specialty_bundle'])
+    .in('product_type', ['project_registration','specialty_bundle','membership_plan'])
     .order('sort_order');
   if(error) throw error;
   return data || [];
@@ -119,6 +126,45 @@ async function fetchProjects(){
 }
 
 // ── DOM 渲染 ──────────────────────────────────────────────────
+
+function renderMembership(yearly, monthly, purchasedIds){
+  const priceEl = document.getElementById('membershipYearlyPrice');
+  const origEl = document.getElementById('membershipYearlyOrig');
+  const monthlyEl = document.getElementById('membershipMonthlyPrice');
+  const ctaEl = document.getElementById('membershipCta');
+
+  // Check if user already has membership
+  const hasMembership = purchasedIds.has(yearly?.id) || purchasedIds.has(monthly?.id);
+
+  if(hasMembership && ctaEl){
+    ctaEl.innerHTML = '<span class="badge" style="border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.1);color:#4ade80;padding:8px 16px;font-size:14px">已开通会员</span> <a class="btn" href="videos.html?cat=glomcon">进入 GlomCon 视频</a>';
+    const promoEl = document.getElementById('membershipPromo');
+    if(promoEl) promoEl.hidden = true;
+    return;
+  }
+
+  if(yearly){
+    if(priceEl) priceEl.textContent = fmtPrice(yearly.price_cny) + '/年';
+    if(origEl && yearly.list_price_cny > yearly.price_cny){
+      origEl.textContent = fmtPrice(yearly.list_price_cny) + '/年';
+    }else if(origEl){
+      origEl.hidden = true;
+    }
+    const buyYearly = document.getElementById('membershipBuyYearly');
+    if(buyYearly){
+      buyYearly.href = `checkout.html?product_id=${encodeURIComponent(yearly.id)}`;
+      buyYearly.textContent = `年费 ${fmtPrice(yearly.price_cny)}`;
+    }
+  }
+  if(monthly){
+    if(monthlyEl) monthlyEl.textContent = fmtPrice(monthly.price_cny) + '/月';
+    const buyMonthly = document.getElementById('membershipBuyMonthly');
+    if(buyMonthly){
+      buyMonthly.href = `checkout.html?product_id=${encodeURIComponent(monthly.id)}`;
+      buyMonthly.textContent = `月费 ${fmtPrice(monthly.price_cny)}`;
+    }
+  }
+}
 
 function earlyBirdTag(p){
   if(!p?.early_bird_deadline) return '';
