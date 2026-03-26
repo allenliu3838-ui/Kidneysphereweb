@@ -411,7 +411,7 @@
     }
     wrap.innerHTML = `<video controls playsinline style="width:100%;max-width:980px;height:560px;border-radius:16px;background:#000;border:1px solid rgba(255,255,255,.12)"><source src="${esc(url)}" type="video/${format || 'mp4'}" />你的浏览器不支持播放。</video>`;
   }
-    }else{
+
   // ── Render Bilibili player (for static free videos) ──
   function renderBilibiliPlayer(v){
     titleEl.textContent = v.title || '（无标题）';
