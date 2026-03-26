@@ -67,7 +67,7 @@ exports.handler = async (event) => {
 
     // Fetch video info (no sensitive URLs)
     const videoRes = await sbQuery(
-      `learning_videos?id=eq.${encodeURIComponent(videoId)}&select=id,title,access_type,price,cover_image,description,speaker,category,specialty_id,product_id,aliyun_vid,is_paid,membership_accessible,is_published,deleted_at&limit=1`
+      `learning_videos?id=eq.${encodeURIComponent(videoId)}&select=id,title,access_type,price,cover_image,description,speaker,category,kind,bvid,specialty_id,product_id,aliyun_vid,is_paid,membership_accessible,is_published,deleted_at&limit=1`
     );
     if (!videoRes.ok) return json(500, { error: 'db_error' });
     const videos = await videoRes.json();
@@ -132,6 +132,7 @@ exports.handler = async (event) => {
     }
 
     // Build safe video info (no URLs!)
+    // Include kind/bvid so frontend can render bilibili iframe directly
     const safeVideo = {
       id: video.id,
       title: video.title,
@@ -141,6 +142,8 @@ exports.handler = async (event) => {
       description: video.description || '',
       speaker: video.speaker || '',
       category: video.category || '',
+      kind: video.kind || 'external',
+      bvid: video.bvid || null,
       specialtyId: video.specialty_id || null,
       productId: video.product_id || null,
       hasAliyunVod: !!(video.aliyun_vid),

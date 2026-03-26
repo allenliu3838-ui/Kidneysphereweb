@@ -339,8 +339,20 @@
         btnsEl.innerHTML = btnsHtml;
 
       }else if(accessData.canPlay){
-        // ── Can play! Request play authorization ──
-        await requestAndPlay(id, token, video);
+        // ── Can play! ──
+        // For bilibili videos, render iframe directly (no play-auth needed)
+        if(video.kind === 'bilibili' || video.bvid){
+          renderBilibiliPlayer({
+            id: video.id,
+            title: video.title,
+            speaker: video.speaker,
+            bvid: video.bvid,
+            source_url: '',
+          });
+        }else{
+          // For aliyun/mp4/other videos, request play authorization
+          await requestAndPlay(id, token, video);
+        }
       }
     }
   }

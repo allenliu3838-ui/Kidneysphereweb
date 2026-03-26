@@ -257,7 +257,7 @@ exports.handler = async (event) => {
 
     // 2. Fetch video info
     const videoRes = await sbQuery(
-      `learning_videos?id=eq.${encodeURIComponent(videoId)}&select=id,title,access_type,aliyun_vid,source_url,mp4_url,kind,specialty_id,is_published,deleted_at,is_paid,membership_accessible&limit=1`
+      `learning_videos?id=eq.${encodeURIComponent(videoId)}&select=id,title,access_type,aliyun_vid,source_url,mp4_url,bvid,kind,specialty_id,is_published,deleted_at,is_paid,membership_accessible&limit=1`
     );
     if (!videoRes.ok) {
       return json(500, { error: 'db_error' });
@@ -309,6 +309,16 @@ exports.handler = async (event) => {
     }
 
     // 4. Generate playback authorization
+
+    // Bilibili videos: return bvid for iframe embed
+    if (video.kind === 'bilibili' && video.bvid) {
+      return json(200, {
+        playerType: 'bilibili',
+        bvid: video.bvid,
+        title: video.title || '',
+      });
+    }
+
     const aliyunVid = video.aliyun_vid;
 
     if (aliyunVid) {
