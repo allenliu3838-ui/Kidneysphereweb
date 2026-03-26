@@ -7,9 +7,7 @@
   <meta name="description" content="肾域 — 面向肾脏专科的学术社区、临床科研与医生工具平台">
   <link rel="icon" href="assets/logo.png" />
   <link rel="stylesheet" href="styles.css?v=20260325_001" />
-  <!-- Aliplayer SDK for Alibaba Cloud VOD -->
-  <link rel="stylesheet" href="https://g.alicdn.com/apsara-media-box/imp-web-player/2.35.4/skins/default/aliplayer-min.css" />
-  <script async src="https://g.alicdn.com/apsara-media-box/imp-web-player/2.35.4/aliplayer-min.js"></script>
+  <!-- Aliplayer SDK removed: requires License since Dec 2024. Using native HTML5 video. -->
 </head>
 <body>
   <header class="nav"></header>
@@ -385,8 +383,10 @@
       const auth = await res.json();
 
       if(auth.playerType === 'aliyun_playauth'){
-        // ── Aliyun PlayAuth mode: most secure ──
-        initAliyunPlayAuthPlayer(auth.videoId, auth.playAuth, auth.coverUrl);
+        // ── Aliyun PlayAuth mode ──
+        // TODO: re-enable Aliplayer SDK with License for PlayAuth
+        // For now, fall through to show message that PlayAuth needs Aliplayer License
+        wrap.innerHTML = '<div class="note">阿里云 PlayAuth 模式暂不可用（需要配置播放器 License）。请在后台为该视频设置播放地址。</div>';
       }else if(auth.playerType === 'signed_url' || auth.playerType === 'direct_url'){
         // ── Signed URL / direct URL fallback ──
         initUrlPlayer(auth.playURL, auth.format || 'mp4');
@@ -400,108 +400,18 @@
     }
   }
 
-  // ── Initialize Aliplayer with PlayAuth (no URL exposed) ──
-  function initAliyunPlayAuthPlayer(vid, playAuth, coverUrl){
-    wrap.innerHTML = '<div id="aliyun-player" style="width:100%;max-width:980px;border-radius:16px;overflow:hidden;background:#000;border:1px solid rgba(255,255,255,.12)"></div>';
+  // ── PlayAuth player placeholder (requires Aliplayer License) ──
+  // TODO: re-enable when Aliplayer License is configured
 
-    function doInit(){
-      new Aliplayer({
-        id: 'aliyun-player',
-        vid: vid,
-        playauth: playAuth,
-        width: '100%',
-        height: '560px',
-        autoplay: false,
-        isLive: false,
-        cover: coverUrl || '',
-        controlBarVisibility: 'hover',
-        skinLayout: [
-          { name: 'bigPlayButton', align: 'cc' },
-          { name: 'H5Loading', align: 'cc' },
-          { name: 'controlBar', align: 'blabs', x: 0, y: 0, children: [
-            { name: 'progress', align: 'blabs', x: 0, y: 44 },
-            { name: 'playButton', align: 'tl', x: 15, y: 12 },
-            { name: 'timeDisplay', align: 'tl', x: 10, y: 7 },
-            { name: 'fullScreenButton', align: 'tr', x: 10, y: 12 },
-            { name: 'volume', align: 'tr', x: 5, y: 10 },
-          ]}
-        ]
-      });
-    }
-
-    if(typeof Aliplayer !== 'undefined'){
-      doInit();
-    }else{
-      let waited = 0;
-      const timer = setInterval(() => {
-        waited += 200;
-        if(typeof Aliplayer !== 'undefined'){
-          clearInterval(timer);
-          doInit();
-        }else if(waited >= 10000){
-          clearInterval(timer);
-          wrap.innerHTML = '<div class="note" style="border-color:rgba(255,160,80,.4)">播放器加载超时，请刷新页面重试。</div>';
-        }
-      }, 200);
-    }
-  }
-
-  // ── Initialize player with temporary URL ──
+  // ── Initialize player with temporary URL (native HTML5 video) ──
   function initUrlPlayer(url, format){
     if(!url){
       wrap.innerHTML = '<div class="note" style="border-color:rgba(255,120,120,.4)">没有可用的播放地址。</div>';
       return;
     }
-
-    // Try Aliplayer first, then fallback to native video
-    wrap.innerHTML = '<div id="aliyun-player" style="width:100%;max-width:980px;border-radius:16px;overflow:hidden;background:#000;border:1px solid rgba(255,255,255,.12)"></div>';
-
-    function doInit(){
-      if(typeof Aliplayer !== 'undefined'){
-        new Aliplayer({
-          id: 'aliyun-player',
-          source: url,
-          width: '100%',
-          height: '560px',
-          autoplay: false,
-          isLive: false,
-          controlBarVisibility: 'hover',
-          skinLayout: [
-            { name: 'bigPlayButton', align: 'cc' },
-            { name: 'H5Loading', align: 'cc' },
-            { name: 'controlBar', align: 'blabs', x: 0, y: 0, children: [
-              { name: 'progress', align: 'blabs', x: 0, y: 44 },
-              { name: 'playButton', align: 'tl', x: 15, y: 12 },
-              { name: 'timeDisplay', align: 'tl', x: 10, y: 7 },
-              { name: 'fullScreenButton', align: 'tr', x: 10, y: 12 },
-              { name: 'volume', align: 'tr', x: 5, y: 10 },
-            ]}
-          ]
-        });
-      }else{
-        // Native HTML5 video fallback
-        const el = document.getElementById('aliyun-player');
-        if(el) el.innerHTML = `<video controls playsinline style="width:100%;height:560px;background:#000"><source src="${esc(url)}" type="video/${format}" />你的浏览器不支持播放。</video>`;
-      }
-    }
-
-    if(typeof Aliplayer !== 'undefined'){
-      doInit();
-    }else{
-      let waited = 0;
-      const timer = setInterval(() => {
-        waited += 200;
-        if(typeof Aliplayer !== 'undefined'){
-          clearInterval(timer);
-          doInit();
-        }else if(waited >= 5000){
-          clearInterval(timer);
-          doInit(); // Will use native video fallback
-        }
-      }, 200);
-    }
+    wrap.innerHTML = `<video controls playsinline style="width:100%;max-width:980px;height:560px;border-radius:16px;background:#000;border:1px solid rgba(255,255,255,.12)"><source src="${esc(url)}" type="video/${format || 'mp4'}" />你的浏览器不支持播放。</video>`;
   }
-
+    }else{
   // ── Render Bilibili player (for static free videos) ──
   function renderBilibiliPlayer(v){
     titleEl.textContent = v.title || '（无标题）';
