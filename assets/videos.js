@@ -5,6 +5,7 @@
 // - We do NOT download, copy, or redistribute video content.
 // - If a link is incorrect, mark `needs_check: true` and fix later.
 
+// Specialty categories — what the video is about (学科方向)
 export const VIDEO_CATEGORIES = [
   { key: 'glom',    zh: '肾小球与间质性肾病',                     en: 'Glomerular & Interstitial' },
   { key: 'tx',      zh: '肾移植内科',                             en: 'Transplant Medicine' },
@@ -14,7 +15,13 @@ export const VIDEO_CATEGORIES = [
   { key: 'meeting', zh: '病例讨论会议',                           en: 'Case Meetings' },
   { key: 'path',    zh: '肾脏病理',                               en: 'Renal Pathology' },
   { key: 'other',   zh: '其他肾脏病',                             en: 'Other' },
-  { key: 'glomcon', zh: 'GlomCon 中国',                           en: 'GlomCon China' },
+];
+
+// Content sources — where the video comes from (内容来源)
+export const VIDEO_SOURCES = [
+  { key: 'glomcon',      zh: 'GlomCon 中国',   en: 'GlomCon China' },
+  { key: 'kidneysphere', zh: '肾域原创',        en: 'KidneySphere' },
+  { key: 'external',     zh: '外部资源',        en: 'External' },
 ];
 
 // Each item:
@@ -22,7 +29,8 @@ export const VIDEO_CATEGORIES = [
 // - bvid: Bilibili BV id
 // - title: video title
 // - speaker: speaker / host
-// - category: one of VIDEO_CATEGORIES.key
+// - category: one of VIDEO_CATEGORIES.key (specialty direction)
+// - source: one of VIDEO_SOURCES.key (content origin)
 // - source_url: the original Bilibili page
 // - needs_check: flag for possibly incorrect links
 
@@ -33,6 +41,7 @@ export const FREE_VIDEOS = [
     title: '应对IgA肾病治疗的动态格局：2025',
     speaker: 'Dr. Glassock',
     category: 'glom',
+    source: 'glomcon',
     source_url: 'https://www.bilibili.com/video/BV1jjmZByEfu/',
   },
   {
@@ -41,6 +50,7 @@ export const FREE_VIDEOS = [
     title: '狼疮肾病诊疗的前沿进展',
     speaker: 'Dr. Brad Rovin',
     category: 'glom',
+    source: 'glomcon',
     source_url: 'https://www.bilibili.com/video/BV1YNqSBXEkz/',
   },
   {
@@ -49,6 +59,7 @@ export const FREE_VIDEOS = [
     title: 'TMA的诊疗进展',
     speaker: 'Dr. Anuja Java',
     category: 'glom',
+    source: 'glomcon',
     source_url: 'https://www.bilibili.com/video/BV1G2moBNE48/',
   },
   {
@@ -57,6 +68,7 @@ export const FREE_VIDEOS = [
     title: 'FSGS的最新诊疗进展',
     speaker: 'Dr. Glassock',
     category: 'glom',
+    source: 'glomcon',
     source_url: 'https://www.bilibili.com/video/BV19CmoBKELF/',
   },
   {
@@ -65,6 +77,7 @@ export const FREE_VIDEOS = [
     title: '足细胞病',
     speaker: 'Dr. Helmut G. Rennke',
     category: 'glom',
+    source: 'glomcon',
     source_url: 'https://www.bilibili.com/video/BV19Wm2BuEej/',
   },
   {
@@ -73,6 +86,7 @@ export const FREE_VIDEOS = [
     title: '肾脏淀粉样变的最新进展',
     speaker: '李汀婷 教授',
     category: 'glom',
+    source: 'glomcon',
     source_url: 'https://www.bilibili.com/video/BV1Qtm2BiEKS/',
   },
   {
@@ -81,6 +95,7 @@ export const FREE_VIDEOS = [
     title: '移植与妊娠：三部曲',
     speaker: 'Dr. Josephson',
     category: 'tx',
+    source: 'glomcon',
     source_url: 'https://www.bilibili.com/video/BV1nKmGB9EL1/',
   },
   {
@@ -89,6 +104,7 @@ export const FREE_VIDEOS = [
     title: 'MGRS的病理诊断',
     speaker: 'Dr. Vanesa Bijol',
     category: 'path',
+    source: 'glomcon',
     source_url: 'https://www.bilibili.com/video/BV1G4kmBbEsA/',
   },
   {
@@ -97,6 +113,7 @@ export const FREE_VIDEOS = [
     title: '异种肾移植的前沿进展',
     speaker: 'Dr. David K.C. Cooper',
     category: 'tx',
+    source: 'glomcon',
     source_url: 'https://www.bilibili.com/video/BV1epmZBzEnu/',
   },
   {
@@ -105,6 +122,7 @@ export const FREE_VIDEOS = [
     title: '肾脏病理学基本原理 - Part 1',
     speaker: 'Dr. Stillman',
     category: 'path',
+    source: 'glomcon',
     source_url: 'https://www.bilibili.com/video/BV1aqm8BxEba/',
   },
   {
@@ -113,6 +131,7 @@ export const FREE_VIDEOS = [
     title: '肾脏病理学基本原理 - Part 2',
     speaker: 'Dr. Stillman',
     category: 'path',
+    source: 'glomcon',
     source_url: 'https://www.bilibili.com/video/BV1aqm8BxEAs/',
   },
   {
@@ -121,6 +140,7 @@ export const FREE_VIDEOS = [
     title: '肾脏病理学基本原理 - Part 3',
     speaker: 'Dr. Stillman',
     category: 'path',
+    source: 'glomcon',
     source_url: 'https://www.bilibili.com/video/BV1aqm8BxE3b/',
   },
   {
@@ -129,6 +149,7 @@ export const FREE_VIDEOS = [
     title: '多囊肾的最新诊断和治疗',
     speaker: 'Dr. Dahl',
     category: 'other',
+    source: 'glomcon',
     source_url: 'https://www.bilibili.com/video/BV1HAmGBdE1M/',
   },
 ];

@@ -137,7 +137,7 @@ function renderMembership(yearly, monthly, purchasedIds){
   const hasMembership = purchasedIds.has(yearly?.id) || purchasedIds.has(monthly?.id);
 
   if(hasMembership && ctaEl){
-    ctaEl.innerHTML = '<span class="badge" style="border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.1);color:#4ade80;padding:8px 16px;font-size:14px">已开通会员</span> <a class="btn" href="videos.html?cat=glomcon">进入 GlomCon 视频</a>';
+    ctaEl.innerHTML = '<span class="badge" style="border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.1);color:#4ade80;padding:8px 16px;font-size:14px">已开通会员</span> <a class="btn" href="videos.html?source=glomcon">进入 GlomCon 视频</a>';
     const promoEl = document.getElementById('membershipPromo');
     if(promoEl) promoEl.hidden = true;
     return;

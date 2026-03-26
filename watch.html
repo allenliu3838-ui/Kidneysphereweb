@@ -312,7 +312,7 @@
         let btnsHtml = '';
         if(video.membershipAccessible){
           msgEl.innerHTML = `该视频为会员专属内容，开通会员后即可观看。${pendingHint}`;
-          btnsHtml += `<a class="btn primary" href="academy.html#membership">开通会员</a>`;
+          btnsHtml += `<a class="btn primary" href="checkout.html?product=MEMBERSHIP-YEARLY">开通会员 · ¥199/年</a>`;
         }else{
           const priceText = video.price > 0 ? `（¥${video.price}）` : '';
           msgEl.innerHTML = `该视频为付费内容${priceText}，购买后永久解锁。${pendingHint}`;

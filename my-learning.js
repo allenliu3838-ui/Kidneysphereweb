@@ -157,7 +157,7 @@ function renderEntitlements(list) {
             <span style="font-size:14px;font-weight:600;color:#c084fc">✓ GlomCon 教育会员</span>
             <span class="small muted" style="margin-left:8px">有效期至 ${esc(expiry)}</span>
           </div>
-          <a class="btn tiny" href="videos.html?cat=glomcon">进入 GlomCon 视频库</a>
+          <a class="btn tiny" href="videos.html?source=glomcon">进入 GlomCon 视频库</a>
         </div>`;
       memberCard.hidden = false;
     }else{
@@ -169,7 +169,7 @@ function renderEntitlements(list) {
             <div style="font-weight:600;font-size:14px">👑 升级为 GlomCon 教育会员</div>
             <div class="small muted" style="margin-top:3px">¥199/年 · 解锁全部 GlomCon 中国教育系列视频</div>
           </div>
-          <a class="btn primary" href="academy.html#membership">开通会员</a>
+          <a class="btn primary" href="checkout.html?product=MEMBERSHIP-YEARLY">开通会员</a>
         </div>`;
       memberCard.hidden = false;
     }
