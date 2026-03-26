@@ -42,6 +42,7 @@ const els = {
   videoPrice: document.getElementById('videoPrice'),
   videoDescription: document.getElementById('videoDescription'),
   videoCoverImage: document.getElementById('videoCoverImage'),
+  videoContentSource: document.getElementById('videoContentSource'),
   videoSortOrder: document.getElementById('videoSortOrder'),
   videoSaveDraft: document.getElementById('videoSaveDraft'),
   videoPriceRow: document.getElementById('videoPriceRow'),
@@ -525,11 +526,13 @@ async function saveVideo(currentUser, publish = true){
 
     const speaker = String(els.videoSpeaker?.value || '').trim() || null;
     const specialtyId = String(els.videoSpecialty?.value || '').trim() || null;
+    const contentSource = String(els.videoContentSource?.value || 'external').trim();
     const isPaid = accessType !== 'registered_free';
     const membershipAccessible = accessType === 'paid_membership';
 
     const row = {
       title, category, kind, source_url, mp4_url, bvid,
+      source: contentSource,
       enabled: publish, deleted_at: null, created_by: currentUser.id,
       access_type: accessType,
       is_paid: isPaid,
@@ -547,13 +550,14 @@ async function saveVideo(currentUser, publish = true){
     let { error } = await supabase.from('learning_videos').insert(row);
 
     // Fallback: if new columns not yet migrated, retry without them
-    if(error && /access_type|price|cover_image|description|is_published|sort_order/i.test(String(error.message || ''))){
+    if(error && /access_type|price|cover_image|description|is_published|sort_order|source/i.test(String(error.message || ''))){
       delete row.access_type;
       delete row.price;
       delete row.cover_image;
       delete row.description;
       delete row.is_published;
       delete row.sort_order;
+      delete row.source;
       const r2 = await supabase.from('learning_videos').insert(row);
       error = r2.error;
     }
@@ -833,9 +837,9 @@ async function init(){
     }
   });
 
-  // Auto-set access type when GlomCon channel is selected
-  els.videoCategory?.addEventListener('change', ()=>{
-    if(els.videoCategory.value === 'glomcon' && els.videoAccessType){
+  // Auto-set access type when GlomCon source is selected
+  els.videoContentSource?.addEventListener('change', ()=>{
+    if(els.videoContentSource.value === 'glomcon' && els.videoAccessType){
       els.videoAccessType.value = 'paid_membership';
       updateAccessTypeUI();
     }

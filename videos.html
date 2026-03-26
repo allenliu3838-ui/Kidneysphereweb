@@ -3,10 +3,55 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>学习中心 · 免费视频库 · 肾域</title>
+  <title>视频库 · 肾域</title>
   <meta name="description" content="肾域 — 面向肾脏专科的学术社区、临床科研与医生工具平台">
   <link rel="icon" href="assets/logo.png" />
   <link rel="stylesheet" href="styles.css?v=20260213_001" />
+  <style>
+    /* ── Video page specific styles ── */
+    .filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .filter-bar .filter-group{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+    .filter-bar .filter-label{font-size:13px;font-weight:600;color:var(--text-muted,#888);white-space:nowrap}
+    .filter-bar .sep{width:1px;height:20px;background:var(--border,#333);margin:0 4px}
+
+    .specialty-section{margin-top:24px}
+    .specialty-header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+    .specialty-header h3{margin:0;font-size:16px}
+    .specialty-header .count{font-size:13px;color:var(--text-muted,#888);margin-left:6px}
+    .specialty-header .expand-btn{font-size:13px;cursor:pointer;background:none;border:none;color:var(--accent,#a855f7);padding:4px 8px}
+    .specialty-header .expand-btn:hover{text-decoration:underline}
+
+    .video-grid-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+
+    /* Access-level badges */
+    .badge-free{border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.1);color:#4ade80}
+    .badge-member{border-color:rgba(168,85,247,.5);background:rgba(168,85,247,.1);color:#c084fc}
+    .badge-training{border-color:rgba(63,131,248,.5);background:rgba(63,131,248,.1);color:#60a5fa}
+    .badge-purchased{border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.1);color:#4ade80}
+    .badge-source{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.08);color:#fbbf24;font-size:11px}
+
+    /* Video card */
+    .vcard{padding:14px 16px;border-radius:12px;background:var(--card-bg,rgba(255,255,255,.04));border:1px solid var(--border,#222)}
+    .vcard .vcard-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap}
+    .vcard h4{margin:0;font-size:14px;font-weight:600;line-height:1.4}
+    .vcard .vcard-meta{font-size:12px;color:var(--text-muted,#888);margin-top:4px}
+    .vcard .vcard-badges{display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0}
+    .vcard .vcard-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
+    /* Search box */
+    .search-box{padding:8px 12px;border-radius:8px;border:1px solid var(--border,#333);background:var(--input-bg,rgba(255,255,255,.06));color:inherit;font-size:14px;width:100%;max-width:320px}
+    .search-box::placeholder{color:var(--text-muted,#666)}
+
+    /* Modal overlay */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
+    .modal-overlay.active{opacity:1;pointer-events:auto}
+    .modal-box{background:var(--bg,#181818);border:1px solid var(--border,#333);border-radius:16px;padding:24px;max-width:420px;width:100%;position:relative}
+    .modal-box h3{margin:0 0 8px}
+    .modal-box .close-btn{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--text-muted,#888);font-size:20px;cursor:pointer;padding:4px 8px;line-height:1}
+    .modal-box .close-btn:hover{color:var(--text,#eee)}
+    .modal-box .modal-actions{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+    .modal-box .modal-actions a{text-align:center}
+  </style>
 </head>
 <body>
   <header class="nav"></header>
@@ -19,24 +64,22 @@
       <span class="badge">视频库</span>
       <h2 style="margin-top:10px">视频库</h2>
       <p class="small">
-        注册后免费观看公开视频；付费专科课程视频购买后永久解锁。
+        浏览全部视频课程 — 免费内容注册即看，会员和培训内容购买后解锁。
       </p>
 
       <div id="loginHint" class="note" style="margin-top:12px">
-        以下免费视频注册后即可观看。正在检测登录状态…
+        正在检测登录状态…
       </div>
 
       <!-- 升级引导模块（免费注册用户可见，有权益后自动隐藏） -->
       <div id="upgradeModule" style="margin-top:14px;display:none">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div style="padding:14px 16px;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.25);border-radius:12px">
-            <div style="font-size:20px;margin-bottom:4px">👑</div>
             <div style="font-weight:600;font-size:14px">GlomCon 教育会员</div>
             <div class="small muted" style="margin-top:3px">¥199/年 · 解锁全部 GlomCon 中国教育系列视频</div>
-            <div style="margin-top:10px"><a class="btn primary" href="academy.html#membership">开通会员</a></div>
+            <div style="margin-top:10px"><a class="btn primary" href="checkout.html?product=MEMBERSHIP-YEARLY">立即开通</a></div>
           </div>
           <div style="padding:14px 16px;background:rgba(63,131,248,.08);border:1px solid rgba(63,131,248,.25);border-radius:12px">
-            <div style="font-size:20px;margin-bottom:4px">📚</div>
             <div style="font-weight:600;font-size:14px">专科培训项目</div>
             <div class="small muted" style="margin-top:3px">¥780 起 · 系统化课程 + 直播互动 + 学习群 + 回放</div>
             <div style="margin-top:10px"><a class="btn" href="academy.html#training-projects">查看培训项目</a></div>
@@ -46,55 +89,86 @@
 
       <div class="hr"></div>
 
-      <div class="section-title">
-        <div>
-          <h3>频道筛选</h3>
-          <p>点击频道筛选；付费视频标注 🔒，登录后可购买。</p>
+      <!-- Filter bar: search + access level + source -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between">
+          <input type="text" id="searchBox" class="search-box" placeholder="搜索视频标题或讲师…" />
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <a class="btn" href="academy.html">培训与定价</a>
+            <a class="btn" href="my-learning.html">我的学习</a>
+          </div>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <a class="btn" href="academy.html">培训与定价</a>
-          <a class="btn" href="my-learning.html">我的学习</a>
+        <div class="filter-bar">
+          <span class="filter-label">付费级别</span>
+          <div id="accessPills" class="filter-group"></div>
+          <div class="sep"></div>
+          <span class="filter-label">内容来源</span>
+          <div id="sourcePills" class="filter-group"></div>
         </div>
       </div>
 
-      <div id="catPills" class="pills" style="margin-top:10px"></div>
-
       <div class="hr"></div>
 
-      <div id="videoGrid" class="grid cols-3"></div>
+      <!-- Grouped video sections -->
+      <div id="videoSections"></div>
 
       <div class="hr"></div>
 
       <div class="note small">
-          <b>版权与合规：</b>本站仅做"链接整理与学习索引"，不存储/搬运视频内容。
-          <span data-admin-only hidden><br/>管理员提示：如需更新静态清单，可编辑 <code>assets/videos.js</code>；也可在本页的"管理员：新增视频"中添加到数据库。</span>
-        </div>
+        <b>版权与合规：</b>本站仅做"链接整理与学习索引"，不存储/搬运视频内容。
+        <span data-admin-only hidden><br/>管理员提示：如需更新静态清单，可编辑 <code>assets/videos.js</code>；也可在学习中心的"管理员：新增视频"中添加到数据库。</span>
+      </div>
     </div>
   </div>
 </section>
 
+<!-- Payment prompt modal -->
+<div id="payModal" class="modal-overlay">
+  <div class="modal-box">
+    <button class="close-btn" id="payModalClose">&times;</button>
+    <div id="payModalContent"></div>
+  </div>
+</div>
+
 <script type="module">
   import { supabase, ensureSupabase, isConfigured, getCurrentUser, toast } from './supabaseClient.js?v=20260128_030';
-  import { VIDEO_CATEGORIES, FREE_VIDEOS } from './assets/videos.js?v=20260118_001';
+  import { VIDEO_CATEGORIES, VIDEO_SOURCES, FREE_VIDEOS } from './assets/videos.js?v=20260326_001';
 
-  // mix static FREE_VIDEOS with DB learning_videos
+  // ── State ──
   let DB_VIDEOS = [];
   let ALL_VIDEOS = [...FREE_VIDEOS];
-  // Set of video IDs the current user has access to (paid videos)
   let _accessSet = new Set();
-  // Map: specialty_id → bundle product_id (for buy buttons)
   let _specialtyBundles = {};
   let _currentUser = null;
 
+  // Filters
+  let _filterAccess = 'all';   // all | free | member | training
+  let _filterSource = 'all';   // all | glomcon | kidneysphere | external
+  let _searchQuery = '';
+
+  // Specialty expansion state: track which specialties are expanded
+  const _expanded = new Set();
+  const PREVIEW_COUNT = 4; // show this many per group by default
+
+  // ── URL params ──
   const qs = new URLSearchParams(location.search);
-  let currentCat = (qs.get('cat') || 'all').toString();
-  const _specialtyFilter = qs.get('specialty') || null;  // specialty_id filter from my-learning
-  let _specialtyName = null;  // resolved from DB
+  const _specialtyFilter = qs.get('specialty') || null;
+  let _specialtyName = null;
 
-  const catPills = document.getElementById('catPills');
-  const grid = document.getElementById('videoGrid');
+  // Pre-set filters from URL
+  if(qs.get('source')) _filterSource = qs.get('source');
+  if(qs.get('access')) _filterAccess = qs.get('access');
+
+  // ── DOM refs ──
+  const sections = document.getElementById('videoSections');
   const loginHint = document.getElementById('loginHint');
+  const searchBox = document.getElementById('searchBox');
+  const accessPills = document.getElementById('accessPills');
+  const sourcePills = document.getElementById('sourcePills');
+  const payModal = document.getElementById('payModal');
+  const payModalContent = document.getElementById('payModalContent');
 
+  // ── Helpers ──
   function esc(s){
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
@@ -108,43 +182,25 @@
     return btn;
   }
 
-  function setCat(cat){
-    currentCat = cat;
-    const url = new URL(location.href);
-    if(cat === 'all') url.searchParams.delete('cat');
-    else url.searchParams.set('cat', cat);
-    history.replaceState({}, '', url.toString());
-    renderCats();
-    renderVideos();
+  // Determine the access level of a video: 'free' | 'member' | 'training'
+  function videoAccessLevel(v){
+    if(!v.is_paid) return 'free';
+    if(v.membership_accessible) return 'member';
+    return 'training';
   }
 
-  function renderCats(){
-    const all = [{ key: 'all', zh: '全部', en: 'All' }, ...VIDEO_CATEGORIES];
-    catPills.innerHTML = '';
-    all.forEach(c => {
-      const label = c.key === 'all' ? '全部 / All' : `${c.zh} / ${c.en}`;
-      catPills.appendChild(pill(label, currentCat === c.key, ()=> setCat(c.key)));
-    });
-  }
-
-  function checkAliyunUrlExpiry(url){
-    if(!url) return { expired: false };
-    try{
-      const u = new URL(url);
-      const exp = u.searchParams.get('Expires');
-      if(!exp) return { expired: false };
-      const expiresAt = new Date(Number(exp) * 1000);
-      if(isNaN(expiresAt.getTime())) return { expired: false };
-      return { expired: expiresAt.getTime() < Date.now(), expiresAt };
-    }catch{ return { expired: false }; }
+  // Check if user has access to a paid video
+  function hasVideoAccess(v){
+    if(!v.is_paid) return true;
+    return _accessSet.has(v.id)
+      || (v.specialty_id && _accessSet.has('sp_' + v.specialty_id))
+      || (v.membership_accessible && _accessSet.has('membership'));
   }
 
   // Build watch.html URL — SECURITY: never pass source URLs in query params
-  // Only pass id (+ bvid for static Bilibili videos for instant render)
   function watchUrl(v){
     const u = new URL('watch.html', location.href);
     u.searchParams.set('id', v.id);
-    // Only pass bvid for Bilibili (free) videos so the immediate script can render
     let bvid = v.bvid || '';
     if(!bvid){
       const src = v.source_url || v.mp4_url || '';
@@ -152,140 +208,291 @@
       if(m) bvid = m[1];
     }
     if(bvid) u.searchParams.set('bvid', bvid);
-    // Do NOT pass src, mp4_url, or aliyun URLs — these are fetched securely by the backend
     return u.toString();
   }
 
-  function videoCard(v){
-    let kind = v.kind || (v.bvid ? 'bilibili' : 'external');
-    if(kind !== 'aliyun' && /aliyuncs\.com|alicdn\.com|aliyun\.com/i.test(v.source_url || v.mp4_url || '')){
-      kind = 'aliyun';
+  // ── Modal ──
+  function showPayModal(v){
+    const level = videoAccessLevel(v);
+    let html = '';
+
+    if(!_currentUser){
+      html = `
+        <h3>需要登录</h3>
+        <p class="small muted">登录后可购买并观看此视频。</p>
+        <div class="modal-actions">
+          <a class="btn primary" href="login.html?next=${encodeURIComponent('videos.html')}">登录 / 注册</a>
+        </div>`;
+    } else if(level === 'member'){
+      html = `
+        <h3>GlomCon 会员内容</h3>
+        <p class="small muted">此视频为 GlomCon 中国教育系列内容，开通年度会员即可解锁全部会员视频。</p>
+        <div class="modal-actions">
+          <a class="btn primary" href="checkout.html?product=MEMBERSHIP-YEARLY">开通会员 · ¥199/年</a>
+          <a class="btn" href="academy.html#membership">了解会员详情</a>
+        </div>`;
+    } else if(level === 'training'){
+      let btns = '';
+      if(v.product_id){
+        btns += `<a class="btn primary" href="checkout.html?product_id=${encodeURIComponent(v.product_id)}">购买单集</a>`;
+      }
+      const bundleId = v.specialty_id && _specialtyBundles[v.specialty_id];
+      if(bundleId){
+        btns += `<a class="btn" href="checkout.html?product_id=${encodeURIComponent(bundleId)}">购买整套课</a>`;
+      }
+      btns += `<a class="btn" href="academy.html#training-projects">查看培训项目</a>`;
+      html = `
+        <h3>培训课程内容</h3>
+        <p class="small muted">此视频为专科培训课程内容，可通过以下方式解锁观看。</p>
+        <div class="modal-actions">${btns}</div>`;
     }
-    const urlToCheck = v.mp4_url || v.source_url || '';
-    const expiry = checkAliyunUrlExpiry(urlToCheck);
-    const expiredBadge = expiry.expired
-      ? `<span class="badge" style="border-color:rgba(255,100,100,.6);background:rgba(255,100,100,.1);color:#f66">链接已过期</span>`
-      : '';
-    const needsCheckBadge = v.needs_check
-      ? `<span class="badge" style="border-color:rgba(255,160,160,.5);background:rgba(255,160,160,.08)">待核对</span>` : '';
+
+    payModalContent.innerHTML = html;
+    payModal.classList.add('active');
+  }
+
+  function hidePayModal(){
+    payModal.classList.remove('active');
+  }
+  document.getElementById('payModalClose').addEventListener('click', hidePayModal);
+  payModal.addEventListener('click', e => { if(e.target === payModal) hidePayModal(); });
+
+  // ── Filters rendering ──
+  function renderFilterPills(){
+    const accessOpts = [
+      { key: 'all', label: '全部' },
+      { key: 'free', label: '免费' },
+      { key: 'member', label: '会员' },
+      { key: 'training', label: '培训课程' },
+    ];
+    accessPills.innerHTML = '';
+    accessOpts.forEach(o => {
+      accessPills.appendChild(pill(o.label, _filterAccess === o.key, () => {
+        _filterAccess = o.key;
+        renderFilterPills();
+        renderAll();
+      }));
+    });
+
+    const sourceOpts = [
+      { key: 'all', label: '全部' },
+      ...VIDEO_SOURCES.map(s => ({ key: s.key, label: s.zh })),
+    ];
+    sourcePills.innerHTML = '';
+    sourceOpts.forEach(o => {
+      sourcePills.appendChild(pill(o.label, _filterSource === o.key, () => {
+        _filterSource = o.key;
+        renderFilterPills();
+        renderAll();
+      }));
+    });
+  }
+
+  // ── Search ──
+  let _searchTimer = null;
+  searchBox.addEventListener('input', () => {
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(() => {
+      _searchQuery = searchBox.value.trim().toLowerCase();
+      renderAll();
+    }, 250);
+  });
+
+  // ── Video card ──
+  function videoCard(v){
+    const level = videoAccessLevel(v);
+    const access = hasVideoAccess(v);
     const speaker = (v.speaker || '').trim();
     const catMeta = VIDEO_CATEGORIES.find(c => c.key === v.category);
     const catLabel = catMeta ? catMeta.zh : (v.category || '');
-    const metaLine = speaker ? `主讲：${esc(speaker)}` : `分类：${esc(catLabel)}`;
-    const openUrl = v.mp4_url || v.source_url || '';
-    const canOpen = !!openUrl;
-    const openText = kind === 'aliyun' ? '阿里云播放' : (kind === 'mp4' ? '打开视频' : (kind === 'external' ? '打开链接' : '打开B站'));
 
-    // ── Paid video logic ──
-    if(v.is_paid){
-      const isMemberVideo = v.membership_accessible;
-      const hasAccess = _accessSet.has(v.id)
-        || (v.specialty_id && _accessSet.has('sp_' + v.specialty_id))
-        || (isMemberVideo && _accessSet.has('membership'));
-      const lockBadge = isMemberVideo
-        ? `<span class="badge" style="border-color:rgba(168,85,247,.5);background:rgba(168,85,247,.1);color:#c084fc">会员</span>`
-        : `<span class="badge" style="border-color:rgba(234,179,8,.5);background:rgba(234,179,8,.1);color:#fbbf24">付费</span>`;
-
-      let actionBtns = '';
-      if(hasAccess){
-        // User has access — only link to watch page (no direct URL exposed)
-        actionBtns = `<a class="btn primary" href="${esc(watchUrl(v))}">立即观看</a>`;
-      } else {
-        // Not purchased
-        if(!_currentUser){
-          actionBtns = `<a class="btn" href="login.html?next=${encodeURIComponent('videos.html')}">登录后购买</a>`;
-        } else if(isMemberVideo){
-          // Membership video — guide to membership purchase
-          actionBtns = `<a class="btn primary" href="academy.html#membership">开通会员</a>`;
-        } else {
-          if(v.product_id){
-            actionBtns += `<a class="btn primary" href="checkout.html?product_id=${encodeURIComponent(v.product_id)}">购买单集</a>`;
-          }
-          const bundleId = v.specialty_id && _specialtyBundles[v.specialty_id];
-          if(bundleId){
-            actionBtns += `<a class="btn" href="checkout.html?product_id=${encodeURIComponent(bundleId)}">购买整套课</a>`;
-          }
-          if(!v.product_id && !bundleId){
-            actionBtns = `<a class="btn" href="learning.html">查看课程详情</a>`;
-          }
-        }
-      }
-
-      return `
-        <div class="card soft" style="${hasAccess ? '' : 'opacity:.85'}">
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
-            <div>
-              <h3 style="margin:0">${esc(v.title || '')}</h3>
-              <div class="small muted" style="margin-top:6px">${metaLine}</div>
-            </div>
-            <div style="display:flex;gap:4px;flex-wrap:wrap">
-              ${lockBadge}
-              ${hasAccess ? `<span class="badge" style="border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.1);color:#4ade80">已购</span>` : ''}
-              ${expiredBadge}${needsCheckBadge}
-            </div>
-          </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
-            ${actionBtns}
-          </div>
-        </div>`;
+    // Badges
+    let badgeHtml = '';
+    if(level === 'free'){
+      badgeHtml += `<span class="badge badge-free">免费</span>`;
+    } else if(level === 'member'){
+      badgeHtml += `<span class="badge badge-member">会员</span>`;
+    } else {
+      badgeHtml += `<span class="badge badge-training">培训课程</span>`;
+    }
+    if(access && v.is_paid){
+      badgeHtml += `<span class="badge badge-purchased">已购</span>`;
+    }
+    // Source badge for GlomCon
+    const srcMeta = VIDEO_SOURCES.find(s => s.key === (v.source || ''));
+    if(srcMeta && v.source === 'glomcon'){
+      badgeHtml += `<span class="badge badge-source">${esc(srcMeta.zh)}</span>`;
     }
 
-    // ── Free video ──
+    // Meta line
+    const metaParts = [];
+    if(speaker) metaParts.push(`主讲：${esc(speaker)}`);
+    if(catLabel) metaParts.push(esc(catLabel));
+    const metaLine = metaParts.join(' · ');
+
+    // Action: click to watch or show payment modal
+    const vid = esc(v.id);
+    let actionHtml = '';
+    if(access){
+      actionHtml = `<a class="btn primary" href="${esc(watchUrl(v))}">观看</a>`;
+    } else {
+      actionHtml = `<button class="btn primary" data-pay-video="${vid}">观看</button>`;
+    }
+
     return `
-      <div class="card soft">
-        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap">
-          <div>
-            <h3 style="margin:0">${esc(v.title || '')}</h3>
-            <div class="small muted" style="margin-top:6px">${metaLine}</div>
+      <div class="vcard">
+        <div class="vcard-top">
+          <div style="min-width:0">
+            <h4>${esc(v.title || '')}</h4>
+            <div class="vcard-meta">${metaLine}</div>
           </div>
-          ${needsCheckBadge}
-          ${expiredBadge}
+          <div class="vcard-badges">${badgeHtml}</div>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
-          <a class="btn primary" href="${esc(watchUrl(v))}">观看（需登录）</a>
-          ${canOpen ? `<a class="btn" href="${esc(openUrl)}" target="_blank" rel="noopener">${openText}</a>` : ''}
-        </div>
+        <div class="vcard-actions">${actionHtml}</div>
       </div>`;
   }
 
-  function renderVideos(){
-    let list = ALL_VIDEOS;
+  // ── Grouped rendering by specialty ──
+  function getFilteredVideos(){
+    let list = [...ALL_VIDEOS];
 
-    // If specialty filter is active, only show videos belonging to that specialty
+    // Specialty filter (from URL param, e.g. my-learning)
     if(_specialtyFilter){
       list = list.filter(v => v.specialty_id === _specialtyFilter);
     }
 
-    // Then apply category filter
-    if(currentCat !== 'all'){
-      list = list.filter(v => v.category === currentCat);
+    // Access level filter
+    if(_filterAccess !== 'all'){
+      list = list.filter(v => videoAccessLevel(v) === _filterAccess);
     }
 
-    if(!list || list.length === 0){
-      grid.innerHTML = `<div class="note">${_specialtyFilter ? '该专科暂无视频内容。' : '该频道暂无视频内容。'}</div>`;
+    // Source filter
+    if(_filterSource !== 'all'){
+      list = list.filter(v => (v.source || 'external') === _filterSource);
+    }
+
+    // Search
+    if(_searchQuery){
+      list = list.filter(v =>
+        (v.title || '').toLowerCase().includes(_searchQuery) ||
+        (v.speaker || '').toLowerCase().includes(_searchQuery)
+      );
+    }
+
+    return list;
+  }
+
+  function renderAll(){
+    const list = getFilteredVideos();
+
+    if(list.length === 0){
+      sections.innerHTML = `<div class="note">没有符合条件的视频。</div>`;
       return;
     }
 
-    grid.innerHTML = list.map(videoCard).join('');
+    // If specialty filter is active or search is active, show flat list
+    if(_specialtyFilter || _searchQuery){
+      sections.innerHTML = `<div class="video-grid-row">${list.map(videoCard).join('')}</div>`;
+      bindPayButtons();
+      return;
+    }
+
+    // Group by category
+    const groups = new Map();
+    for(const v of list){
+      const cat = v.category || 'other';
+      if(!groups.has(cat)) groups.set(cat, []);
+      groups.get(cat).push(v);
+    }
+
+    // Sort groups by VIDEO_CATEGORIES order
+    const catOrder = VIDEO_CATEGORIES.map(c => c.key);
+    const sortedGroups = [...groups.entries()].sort((a, b) => {
+      const ai = catOrder.indexOf(a[0]);
+      const bi = catOrder.indexOf(b[0]);
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    });
+
+    // Sort videos within each group: free first, then by title
+    const levelOrder = { free: 0, member: 1, training: 2 };
+    for(const [, videos] of sortedGroups){
+      videos.sort((a, b) => (levelOrder[videoAccessLevel(a)] ?? 2) - (levelOrder[videoAccessLevel(b)] ?? 2));
+    }
+
+    let html = '';
+    for(const [catKey, videos] of sortedGroups){
+      const catMeta = VIDEO_CATEGORIES.find(c => c.key === catKey);
+      const catName = catMeta ? `${catMeta.zh}` : catKey;
+      const isExpanded = _expanded.has(catKey);
+      const showVideos = isExpanded ? videos : videos.slice(0, PREVIEW_COUNT);
+      const hasMore = videos.length > PREVIEW_COUNT;
+
+      html += `
+        <div class="specialty-section">
+          <div class="specialty-header">
+            <h3>${esc(catName)}<span class="count">(${videos.length})</span></h3>
+            ${hasMore ? `<button class="expand-btn" data-toggle-cat="${esc(catKey)}">${isExpanded ? '收起' : `查看全部 ${videos.length} 个 →`}</button>` : ''}
+          </div>
+          <div class="video-grid-row">
+            ${showVideos.map(videoCard).join('')}
+          </div>
+        </div>`;
+    }
+
+    sections.innerHTML = html;
+    bindPayButtons();
+    bindToggleButtons();
   }
 
-  async function renderLoginHint(){
+  // ── Event binding ──
+  function bindPayButtons(){
+    sections.querySelectorAll('[data-pay-video]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const vid = btn.getAttribute('data-pay-video');
+        const v = ALL_VIDEOS.find(x => String(x.id) === vid);
+        if(v) showPayModal(v);
+      });
+    });
+  }
+
+  function bindToggleButtons(){
+    sections.querySelectorAll('[data-toggle-cat]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cat = btn.getAttribute('data-toggle-cat');
+        if(_expanded.has(cat)) _expanded.delete(cat);
+        else _expanded.add(cat);
+        renderAll();
+      });
+    });
+  }
+
+  // ── Login hint ──
+  function renderLoginHint(){
     if(!isConfigured() || !supabase){
       loginHint.innerHTML = `<b>提示：</b>当前服务暂不可用（系统初始化中）。`;
       return;
     }
     if(_currentUser){
-      loginHint.innerHTML = `✅ 已登录：<b>${esc(_currentUser.email || _currentUser.id)}</b>。<a href="my-learning.html">查看我的学习</a>`;
-    }else{
-      loginHint.innerHTML = `🔒 你当前未登录。浏览目录后点击"购买"或"观看"将引导你登录/注册。`;
+      loginHint.innerHTML = `已登录：<b>${esc(_currentUser.email || _currentUser.id)}</b>。<a href="my-learning.html">查看我的学习</a>`;
+    } else {
+      loginHint.innerHTML = `你当前未登录。浏览目录后点击"观看"将引导你登录或购买。`;
     }
   }
 
-  /* Batch-load user entitlements for paid video access check */
+  // ── Upgrade module ──
+  function renderUpgradeModule(){
+    const mod = document.getElementById('upgradeModule');
+    if(!mod) return;
+    const hasPaid = ALL_VIDEOS.some(v => v.is_paid);
+    if(!hasPaid){ mod.style.display = 'none'; return; }
+    if(_accessSet.size > 0){ mod.style.display = 'none'; return; }
+    mod.style.display = 'block';
+  }
+
+  // ── Data loading ──
   async function loadUserAccess(paidVideos){
     if(!_currentUser || !supabase || !paidVideos.length) return;
     try{
-      // Fetch all active entitlements for this user (single_video + specialty_bundle)
       const { data: ents } = await supabase
         .from('user_entitlements')
         .select('entitlement_type, video_id, specialty_id, end_at, status')
@@ -308,7 +515,6 @@
     }
   }
 
-  /* Load specialty → bundle product mapping for buy buttons */
   async function loadSpecialtyBundles(){
     if(!supabase) return;
     try{
@@ -328,13 +534,13 @@
     try{
       let { data, error } = await supabase
         .from('learning_videos')
-        .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,speaker,created_at,enabled,deleted_at,is_paid,membership_accessible,specialty_id,product_id')
+        .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,speaker,created_at,enabled,deleted_at,is_paid,membership_accessible,specialty_id,product_id,source')
         .eq('enabled', true)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
         .limit(200);
       // Backward compat
-      if(error && /is_paid|specialty_id|product_id|aliyun_vid/i.test(String(error.message || ''))){
+      if(error && /is_paid|specialty_id|product_id|aliyun_vid|source/i.test(String(error.message || ''))){
         const r2 = await supabase
           .from('learning_videos')
           .select('id,title,category,kind,source_url,mp4_url,bvid,speaker,created_at,enabled,deleted_at')
@@ -354,6 +560,7 @@
         aliyun_vid: v.aliyun_vid || null,
         source_url: v.source_url || v.mp4_url || '',
         mp4_url: v.mp4_url || null,
+        source: v.source || 'external',
         is_paid: v.is_paid || false,
         membership_accessible: v.membership_accessible || false,
         specialty_id: v.specialty_id || null,
@@ -368,33 +575,31 @@
     }
   }
 
-  // ── Immediately render free videos + categories (sync, no DB needed) ──
-  try{ renderCats(); }catch(e){ console.error('[videos] renderCats error:', e); }
-  try{ renderVideos(); }catch(e){ console.error('[videos] renderVideos error:', e); }
-
+  // ── Specialty filter header (from my-learning) ──
   function renderSpecialtyHeader(){
     if(!_specialtyFilter) return;
     const name = _specialtyName || '专科课程';
     const h2 = document.querySelector('.hero h2');
     if(h2) h2.textContent = `${name} · 视频库`;
     document.title = `${name} · 视频库 · 肾域`;
-    // Add "查看全部" link below heading
     const badge = document.querySelector('.hero .badge');
     if(badge) badge.textContent = `${name} · 视频库`;
-    // Insert a back-to-all link if not already present
     if(!document.getElementById('specialtyBackLink')){
       const link = document.createElement('div');
       link.id = 'specialtyBackLink';
       link.style.cssText = 'margin-top:8px;';
-      link.innerHTML = `<a class="btn tiny" href="videos.html">← 查看全部视频</a>  <a class="btn tiny" href="my-learning.html">返回我的学习</a>`;
+      link.innerHTML = `<a class="btn tiny" href="videos.html">\u2190 查看全部视频</a>  <a class="btn tiny" href="my-learning.html">返回我的学习</a>`;
       const h2El = document.querySelector('.hero h2');
       if(h2El) h2El.parentNode.insertBefore(link, h2El.nextSibling);
     }
   }
 
+  // ── Init: immediately render static free videos ──
+  try{ renderFilterPills(); }catch(e){ console.error('[videos] renderFilterPills error:', e); }
+  try{ renderAll(); }catch(e){ console.error('[videos] renderAll error:', e); }
+
   async function init(){
     try{
-      // Check login + load DB videos in parallel, with 12s timeout to prevent hang
       const timeout = new Promise(resolve => setTimeout(() => resolve([null, undefined]), 12000));
       const work = Promise.all([
         getCurrentUser().catch(() => null),
@@ -403,7 +608,7 @@
       const results = await Promise.race([work, timeout]);
       _currentUser = results?.[0] ?? null;
 
-      const paidVideos = DB_VIDEOS.filter(v => v.is_paid);
+      const paidVideos = ALL_VIDEOS.filter(v => v.is_paid);
       if(paidVideos.length > 0 && _currentUser){
         await Promise.all([loadUserAccess(paidVideos), loadSpecialtyBundles()]).catch(() => {});
       } else if(paidVideos.length > 0){
@@ -412,7 +617,6 @@
     }catch(err){
       console.warn('videos init error (non-fatal):', err);
     }
-    // If specialty filter is active, resolve specialty name for display
     if(_specialtyFilter && supabase){
       try{
         const { data: sp } = await supabase.from('specialties').select('name').eq('id', _specialtyFilter).single();
@@ -420,19 +624,9 @@
       }catch(_e){}
       renderSpecialtyHeader();
     }
-    // Re-render with DB videos + access info
-    try{ renderVideos(); }catch(e){ console.error('[videos] renderVideos error:', e); }
+    try{ renderAll(); }catch(e){ console.error('[videos] renderAll error:', e); }
     try{ renderLoginHint(); }catch(e){ console.error('[videos] renderLoginHint error:', e); }
     try{ renderUpgradeModule(); }catch(e){ console.error('[videos] renderUpgradeModule error:', e); }
-  }
-
-  function renderUpgradeModule(){
-    const mod = document.getElementById('upgradeModule');
-    if(!mod) return;
-    const hasPaid = DB_VIDEOS.some(v => v.is_paid);
-    if(!hasPaid){ mod.style.display = 'none'; return; }
-    if(_accessSet.size > 0){ mod.style.display = 'none'; return; }
-    mod.style.display = 'block';
   }
 
   init();
@@ -440,7 +634,7 @@
 
   </main>
 
-  <footer class="footer" data-blurb="当前版本 · 以“病例讨论 + 学习中心 + 前沿进展”为核心，持续迭代完善。"></footer>
+  <footer class="footer" data-blurb="当前版本 · 以"病例讨论 + 学习中心 + 前沿进展"为核心，持续迭代完善。"></footer>
 <script type="module" src="app.js?v=20260128_030"></script>
 </body>
 </html>
