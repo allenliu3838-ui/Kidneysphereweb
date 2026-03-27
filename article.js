@@ -15,10 +15,13 @@ import { renderSafeHtml } from './ks_richtext.js?v=20260213_001';
 import { fetchContentById, fetchMe } from './content-api.js?v=20260305_001';
 
 const root = document.getElementById('articleRoot');
-const editBtn = document.getElementById('editArticleBtn');
+const adminActionsEl = document.getElementById('adminArticleActions');
 const favBtn = document.getElementById('articleFavBtn');
 const shareBtn = document.getElementById('articleShareBtn');
 const likeBtn = document.getElementById('articleLikeBtn');
+
+// Edit button is injected dynamically for admins only
+let editBtn = null;
 
 function esc(s){
   return String(s ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -534,8 +537,10 @@ async function main(){
   const profile = user ? await getUserProfile(user.id) : null;
   const isAdmin = Boolean(user && isAdminRole(profile?.role));
 
-  if(editBtn){
-    editBtn.href = `article-editor.html?id=${encodeURIComponent(id)}`;
+  // Inject edit button only for admins (not in initial HTML)
+  if(isAdmin && adminActionsEl){
+    adminActionsEl.innerHTML = `<div style="margin:12px 0"><a class="btn primary" href="article-editor.html?id=${encodeURIComponent(id)}">编辑此文章</a></div>`;
+    editBtn = adminActionsEl.querySelector('a');
   }
 
   // Favorite button

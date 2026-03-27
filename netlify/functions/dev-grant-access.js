@@ -53,6 +53,13 @@ async function sbInsert(table, row) {
 
 exports.handler = async (event) => {
   try {
+    // Production safety: require DEV_GRANT_ENABLED=true environment variable
+    // Without this, the endpoint returns 404 (as if it doesn't exist)
+    const enabled = String(process.env.DEV_GRANT_ENABLED || '').toLowerCase();
+    if (enabled !== 'true' && enabled !== '1') {
+      return json(404, { error: 'not_found' });
+    }
+
     if (event.httpMethod !== 'POST') return json(405, { error: 'method_not_allowed' });
 
     const token = pickToken(event);

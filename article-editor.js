@@ -10,7 +10,6 @@ import { renderSafeHtml } from './ks_richtext.js?v=20260213_001';
 
 const gateEl = document.getElementById('editorGate');
 const rootEl = document.getElementById('editorRoot');
-const statusMsg = document.getElementById('aStatusMsg');
 
 let loadedArticle = null;
 
@@ -18,32 +17,137 @@ let rtEditor = null;
 
 let _actionsDocked = false;
 
-const els = {
-  title: document.getElementById('aTitle'),
-  status: document.getElementById('aStatus'),
-  pinned: document.getElementById('aPinned'),
-  summary: document.getElementById('aSummary'),
-  cover: document.getElementById('aCover'),
-  tags: document.getElementById('aTags'),
-  authorName: document.getElementById('aAuthorName'),
-  content: document.getElementById('aContent'),
-  preview: document.getElementById('aPreview'),
-  saveBtn: document.getElementById('aSaveBtn'),
-  previewBtn: document.getElementById('aPreviewBtn'),
-  deleteBtn: document.getElementById('aDeleteBtn'),
+// DOM element references — populated after auth-gated HTML injection
+let els = {};
+let statusMsg = null;
 
-  // Templates & auto-format (v8.16.14)
-  tplSelect: document.getElementById('aTemplate'),
-  tplApplyBtn: document.getElementById('aApplyTemplate'),
-  autoFormatBtn: document.getElementById('aAutoFormat'),
-  smartOrganizeBtn: document.getElementById('aSmartOrganize'),
+function injectEditorHTML() {
+  if (!rootEl) return;
+  rootEl.innerHTML = `
+  <div class="card soft" style="margin-top:14px">
+    <div class="form-row" style="gap:10px;flex-wrap:wrap">
+      <div style="flex:2;min-width:240px">
+        <label class="small muted">标题</label>
+        <input class="input" id="aTitle" placeholder="请输入文章标题"/>
+      </div>
+      <div style="flex:1;min-width:240px">
+        <label class="small muted">状态</label>
+        <select class="input" id="aStatus">
+          <option value="draft">草稿</option>
+          <option value="in_review">审核中</option>
+          <option value="published">已发布</option>
+          <option value="archived">归档</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+        <label class="small muted" style="display:flex;gap:8px;align-items:center">
+          <input type="checkbox" id="aPinned"/> 置顶
+        </label>
+      </div>
+    </div>
 
-  // Media uploader (v7.2)
-  mediaFile: document.getElementById('aMediaFile'),
-  uploadInsertBtn: document.getElementById('aUploadInsert'),
-  uploadCoverBtn: document.getElementById('aUploadCover'),
-  uploadMsg: document.getElementById('aUploadMsg'),
-};
+    <div class="form-row" style="gap:10px;flex-wrap:wrap;margin-top:10px">
+      <div style="flex:2;min-width:240px">
+        <label class="small muted">摘要（用于列表/首页展示）</label>
+        <textarea class="input prose-input" id="aSummary" rows="2" placeholder="可选：简短摘要"></textarea>
+      </div>
+      <div style="flex:1;min-width:240px">
+        <label class="small muted">封面图 URL（可选）</label>
+        <input class="input" id="aCover" placeholder="https://..."/>
+      </div>
+    </div>
+
+    <div class="form-row" style="gap:10px;flex-wrap:wrap;margin-top:10px">
+      <div style="flex:1;min-width:320px">
+        <label class="small muted">上传图片 / 短视频（MP4 ≤ 50MB）</label>
+        <input class="input" id="aMediaFile" type="file" accept="image/*,video/mp4,application/pdf,.pdf,.doc,.docx" />
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center">
+          <button class="btn tiny" id="aUploadInsert" type="button">上传并插入正文</button>
+          <button class="btn tiny" id="aUploadCover" type="button">上传并设为封面</button>
+          <span class="small muted" id="aUploadMsg"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-row" style="gap:10px;flex-wrap:wrap;margin-top:10px">
+      <div style="flex:1;min-width:240px">
+        <label class="small muted">标签（逗号分隔，可选）</label>
+        <input class="input" id="aTags" placeholder="例如：AAV, 指南, 综述"/>
+      </div>
+      <div style="flex:1;min-width:240px">
+        <label class="small muted">作者显示名（可选）</label>
+        <input class="input" id="aAuthorName" placeholder="例如：刘松 / 肾域 编辑部"/>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="form-row" style="gap:10px;flex-wrap:wrap;margin-top:10px">
+      <div style="flex:1;min-width:260px">
+        <label class="small muted">文章模板（可选）</label>
+        <select class="input" id="aTemplate">
+          <option value="">不使用模板</option>
+          <option value="im_note">内科笔记模板（学习笔记）</option>
+          <option value="case_review">病例复盘模板（Case Review）</option>
+          <option value="guideline">指南/共识速览模板</option>
+          <option value="drug">用药总结模板</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+        <button class="btn tiny" id="aApplyTemplate" type="button">一键套模板</button>
+        <button class="btn tiny" id="aAutoFormat" type="button">一键排版</button>
+        <button class="btn tiny" id="aSmartOrganize" type="button" disabled title="智能整理（AI）即将上线">智能整理（即将上线）</button>
+      </div>
+    </div>
+
+    <div class="form-row" style="gap:10px;flex-wrap:wrap;align-items:flex-start">
+      <div style="flex:1;min-width:320px">
+        <label class="small muted">正文（所见即所得）</label>
+        <textarea class="input prose-input" id="aContent" rows="16" placeholder="# 标题\n\n正文…"></textarea>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center">
+          <button class="btn primary" id="aSaveBtn" type="button">保存</button>
+          <button class="btn" id="aPreviewBtn" type="button">预览</button>
+          <button class="btn danger" id="aDeleteBtn" type="button">删除</button>
+          <span class="small muted" id="aStatusMsg"></span>
+        </div>
+      </div>
+
+      <div style="flex:1;min-width:320px">
+        <div class="small muted">预览</div>
+        <div class="card soft article-preview" id="aPreview" style="margin-top:10px;max-height:520px;overflow:auto">
+          <div class="muted small">点击"预览"查看渲染效果。</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function populateEls() {
+  statusMsg = document.getElementById('aStatusMsg');
+  els = {
+    title: document.getElementById('aTitle'),
+    status: document.getElementById('aStatus'),
+    pinned: document.getElementById('aPinned'),
+    summary: document.getElementById('aSummary'),
+    cover: document.getElementById('aCover'),
+    tags: document.getElementById('aTags'),
+    authorName: document.getElementById('aAuthorName'),
+    content: document.getElementById('aContent'),
+    preview: document.getElementById('aPreview'),
+    saveBtn: document.getElementById('aSaveBtn'),
+    previewBtn: document.getElementById('aPreviewBtn'),
+    deleteBtn: document.getElementById('aDeleteBtn'),
+    tplSelect: document.getElementById('aTemplate'),
+    tplApplyBtn: document.getElementById('aApplyTemplate'),
+    autoFormatBtn: document.getElementById('aAutoFormat'),
+    smartOrganizeBtn: document.getElementById('aSmartOrganize'),
+    mediaFile: document.getElementById('aMediaFile'),
+    uploadInsertBtn: document.getElementById('aUploadInsert'),
+    uploadCoverBtn: document.getElementById('aUploadCover'),
+    uploadMsg: document.getElementById('aUploadMsg'),
+  };
+}
 
 function esc(s){
   return String(s ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -841,7 +945,8 @@ async function main(){
     }
 
     gateEl.hidden = true;
-    rootEl.hidden = false;
+    injectEditorHTML();
+    populateEls();
 
     const id = getId();
     if(id){

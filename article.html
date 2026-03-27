@@ -5,23 +5,30 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>文章详情 · 肾域</title>
   <meta name="description" content="肾域 — 面向肾脏专科的学术社区、临床科研与医生工具平台">
+  <link rel="canonical" href="https://kidneysphere.com/article" />
   <meta property="og:title" content="文章 · 肾域"/>
-  <meta property="og:description" content="肾域 × 肾域"/>
+  <meta property="og:description" content="肾域 — 面向肾脏专科的学术社区、临床科研与医生工具平台"/>
   <meta property="og:type" content="article"/>
-  <!-- 微信朋友圈/微信群分享：固定分享封面（更稳定，不依赖 JS 执行） -->
-  <meta property="og:image" content="/assets/wechat_share_logo.png"/>
-  <meta property="og:image:secure_url" content="/assets/wechat_share_logo.png"/>
+  <meta property="og:image" content="https://kidneysphere.com/assets/wechat_share_logo.png"/>
   <meta property="og:image:width" content="1200"/>
   <meta property="og:image:height" content="1200"/>
-  <meta name="twitter:image" content="/assets/wechat_share_logo.png"/>
+  <meta name="twitter:image" content="https://kidneysphere.com/assets/wechat_share_logo.png"/>
   <link rel="image_src" href="/assets/wechat_share_logo.png" />
-  <link rel="apple-touch-icon" href="/assets/wechat_share_logo.png" />
   <meta property="og:site_name" content="肾域"/>
   <meta name="twitter:card" content="summary_large_image"/>
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=20260213_001"/>
+  <link rel="stylesheet" href="styles.css?v=20260327_001"/>
 </head>
 <body>
+
+  <noscript>
+    <div style="padding:40px 20px;text-align:center;font-family:sans-serif;color:#333;background:#f5f5f5">
+      <h1>文章详情 · 肾域</h1>
+      <p>面向肾脏专科的学术社区、临床科研与医生工具平台。</p>
+      <p>请启用 JavaScript 以阅读完整文章内容。</p>
+      <p><a href="https://kidneysphere.com/articles">← 返回文章列表</a> | <a href="https://kidneysphere.com/">首页</a></p>
+    </div>
+  </noscript>
 
   <header class="nav"></header>
 
@@ -29,22 +36,24 @@
   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:18px 0">
     <a class="btn" href="articles.html">← 返回文章列表</a>
     <a class="btn" href="index.html">首页</a>
-    <button class="btn" id="articleFavBtn" type="button">⭐ 收藏</button>
+    <button class="btn" id="articleFavBtn" type="button">收藏</button>
     <button class="btn" id="articleLikeBtn" type="button" title="点赞">
-      <span class="like-label">👍 点赞</span> · <span class="like-count">0</span>
+      <span class="like-label">点赞</span> · <span class="like-count">0</span>
     </button>
-    <button class="btn" id="articleShareBtn" type="button">🔗 分享</button>
-    <a class="btn primary" id="editArticleBtn" href="#" data-admin-only hidden>编辑此文章</a>
+    <button class="btn" id="articleShareBtn" type="button">分享</button>
   </div>
 
   <div class="card soft" id="articleRoot">
-    <div class="muted small">加载中…</div>
+    <div class="muted small">正在加载文章…</div>
   </div>
+
+  <!-- Edit button injected by JS only for authenticated admins -->
+  <div id="adminArticleActions"></div>
 </main>
 
 <footer class="footer"></footer>
 
-<script type="module" src="app.js?v=20260128_030"></script>
-<script type="module" src="article.js?v=20260203_001"></script>
+<script type="module" src="app.js?v=20260327_001"></script>
+<script type="module" src="article.js?v=20260327_001"></script>
 </body>
 </html>

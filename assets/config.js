@@ -15,6 +15,12 @@ export const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Feature flags
 export const REQUIRE_DOCTOR_VERIFICATION_FOR_DISCUSSION = false;
 
+// Beta product lines — set to false to hide from public site
+// When false, links to these products show "coming soon" / "申请内测" instead
+export const FEATURE_REMOTE_CONSULTATION = false;  // kidneysphereremote.cn
+export const FEATURE_FOLLOWUP = false;              // kidneyspherefollowup.cn
+export const FEATURE_DOCTOR_APP = false;            // kidneyspheredoctorapp.cn
+
 // Membership / Payment (legacy – new unified system reads from system_config table)
 export const MEMBERSHIP_ENABLED = true;
 export const MEMBERSHIP_PLAN = "annual";
@@ -29,6 +35,9 @@ try {
     window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
     window.REQUIRE_DOCTOR_VERIFICATION_FOR_DISCUSSION =
       REQUIRE_DOCTOR_VERIFICATION_FOR_DISCUSSION;
+    window.FEATURE_REMOTE_CONSULTATION = FEATURE_REMOTE_CONSULTATION;
+    window.FEATURE_FOLLOWUP = FEATURE_FOLLOWUP;
+    window.FEATURE_DOCTOR_APP = FEATURE_DOCTOR_APP;
     window.MEMBERSHIP_ENABLED = MEMBERSHIP_ENABLED;
     window.MEMBERSHIP_PLAN = MEMBERSHIP_PLAN;
     window.MEMBERSHIP_PRICE_CNY = MEMBERSHIP_PRICE_CNY;

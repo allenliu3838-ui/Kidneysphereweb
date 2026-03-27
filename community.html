@@ -23,10 +23,26 @@
 
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
         <a class="btn primary" href="#channelsTop">进入讨论板块</a>
-        <a class="btn" href="post-case.html">+ 发布病例（需登录）</a>
-        <a class="btn" href="post-case.html?c=literature">+ 发布文献讨论（需登录）</a>
-        <a class="btn" href="post-case.html?c=research">+ 发布科研讨论（需登录）</a>
+        <a class="btn" id="postCaseBtn" href="login.html?next=post-case.html">+ 发布病例（需登录）</a>
+        <a class="btn" id="postLitBtn" href="login.html?next=post-case.html%3Fc%3Dliterature">+ 发布文献讨论（需登录）</a>
+        <a class="btn" id="postResBtn" href="login.html?next=post-case.html%3Fc%3Dresearch">+ 发布科研讨论（需登录）</a>
       </div>
+      <script type="module">
+        import { getCurrentUser } from './supabaseClient.js?v=20260128_030';
+        (async () => {
+          try {
+            const u = await getCurrentUser();
+            if (u) {
+              const a = document.getElementById('postCaseBtn');
+              const b = document.getElementById('postLitBtn');
+              const c = document.getElementById('postResBtn');
+              if (a) { a.href = 'post-case.html'; a.textContent = '+ 发布病例'; }
+              if (b) { b.href = 'post-case.html?c=literature'; b.textContent = '+ 发布文献讨论'; }
+              if (c) { c.href = 'post-case.html?c=research'; c.textContent = '+ 发布科研讨论'; }
+            }
+          } catch (_e) {}
+        })();
+      </script>
 
       <div class="note" style="margin-top:14px">
         <b>提示：</b>已开放「病例讨论 / 文献学习 / 科研讨论」板块。所有时间统一为<b>北京时间</b>。

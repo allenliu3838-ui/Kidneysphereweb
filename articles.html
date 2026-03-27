@@ -19,9 +19,8 @@
       <div class="badge">Articles</div>
       <h1>文献库（UpToDate 风格）</h1>
       <p class="muted">归属「学习中心」的内容沉淀区：会议纪要、综述解读、指南要点、临床研究进展等。</p>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px" id="articlesActions">
         <a class="btn" href="learning.html#hot-articles">返回学习中心</a>
-        <a class="btn primary" href="article-editor.html" data-admin-only hidden>写文章</a>
       </div>
     </div>
   </div>
@@ -35,10 +34,7 @@
 
       <div class="form-row" style="gap:10px;flex-wrap:wrap">
         <input class="input" id="articlesSearch" placeholder="搜索标题/摘要…" style="min-width:220px"/>
-        <select class="input" id="articlesScope" style="min-width:160px" data-admin-only hidden>
-          <option value="published">仅已发布</option>
-          <option value="all">全部（含草稿）</option>
-        </select>
+        <span id="articlesScopeWrap"></span>
         <button class="btn" id="articlesRefresh" type="button">刷新</button>
       </div>
     </div>
