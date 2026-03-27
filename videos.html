@@ -397,46 +397,65 @@
       return;
     }
 
-    // Group by category
-    const groups = new Map();
-    for(const v of list){
-      const cat = v.category || 'other';
-      if(!groups.has(cat)) groups.set(cat, []);
-      groups.get(cat).push(v);
-    }
+    // ── Top-level grouping by content type ──
+    const trainingVideos = list.filter(v => videoAccessLevel(v) === 'training');
+    const glomconVideos = list.filter(v => v.source === 'glomcon' && videoAccessLevel(v) !== 'training');
+    const freeVideos = list.filter(v => videoAccessLevel(v) === 'free' && v.source !== 'glomcon');
 
-    // Sort groups by VIDEO_CATEGORIES order
-    const catOrder = VIDEO_CATEGORIES.map(c => c.key);
-    const sortedGroups = [...groups.entries()].sort((a, b) => {
-      const ai = catOrder.indexOf(a[0]);
-      const bi = catOrder.indexOf(b[0]);
-      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
-    });
-
-    // Sort videos within each group: free first, then by title
-    const levelOrder = { free: 0, member: 1, training: 2 };
-    for(const [, videos] of sortedGroups){
-      videos.sort((a, b) => (levelOrder[videoAccessLevel(a)] ?? 2) - (levelOrder[videoAccessLevel(b)] ?? 2));
-    }
+    const topGroups = [
+      { key: 'training', label: '培训课程', sublabel: '系统化专科培训 · 购买后解锁', badge: 'badge-training', videos: trainingVideos },
+      { key: 'glomcon', label: 'GlomCon 教育系列', sublabel: '会员内容 · 开通年度会员解锁', badge: 'badge-member', videos: glomconVideos },
+      { key: 'free', label: '免费视频', sublabel: '注册即看', badge: 'badge-free', videos: freeVideos },
+    ];
 
     let html = '';
-    for(const [catKey, videos] of sortedGroups){
-      const catMeta = VIDEO_CATEGORIES.find(c => c.key === catKey);
-      const catName = catMeta ? `${catMeta.zh}` : catKey;
-      const isExpanded = _expanded.has(catKey);
-      const showVideos = isExpanded ? videos : videos.slice(0, PREVIEW_COUNT);
-      const hasMore = videos.length > PREVIEW_COUNT;
+    for(const group of topGroups){
+      if(group.videos.length === 0) continue;
+
+      // Sub-group by specialty category
+      const subGroups = new Map();
+      for(const v of group.videos){
+        const cat = v.category || 'other';
+        if(!subGroups.has(cat)) subGroups.set(cat, []);
+        subGroups.get(cat).push(v);
+      }
+
+      const catOrder = VIDEO_CATEGORIES.map(c => c.key);
+      const sortedSubs = [...subGroups.entries()].sort((a, b) => {
+        const ai = catOrder.indexOf(a[0]);
+        const bi = catOrder.indexOf(b[0]);
+        return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+      });
 
       html += `
-        <div class="specialty-section">
-          <div class="specialty-header">
-            <h3>${esc(catName)}<span class="count">(${videos.length})</span></h3>
-            ${hasMore ? `<button class="expand-btn" data-toggle-cat="${esc(catKey)}">${isExpanded ? '收起' : `查看全部 ${videos.length} 个 →`}</button>` : ''}
+        <div class="source-group" style="margin-top:28px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+            <h2 style="margin:0;font-size:18px">${esc(group.label)}</h2>
+            <span class="badge ${group.badge}">${group.videos.length} 个视频</span>
           </div>
-          <div class="video-grid-row">
-            ${showVideos.map(videoCard).join('')}
-          </div>
-        </div>`;
+          <div class="small muted" style="margin-bottom:16px">${esc(group.sublabel)}</div>`;
+
+      for(const [catKey, videos] of sortedSubs){
+        const catMeta = VIDEO_CATEGORIES.find(c => c.key === catKey);
+        const catName = catMeta ? catMeta.zh : catKey;
+        const expandKey = group.key + '_' + catKey;
+        const isExpanded = _expanded.has(expandKey);
+        const showVideos = isExpanded ? videos : videos.slice(0, PREVIEW_COUNT);
+        const hasMore = videos.length > PREVIEW_COUNT;
+
+        html += `
+          <div class="specialty-section">
+            <div class="specialty-header">
+              <h3>${esc(catName)}<span class="count">(${videos.length})</span></h3>
+              ${hasMore ? `<button class="expand-btn" data-toggle-cat="${esc(expandKey)}">${isExpanded ? '收起' : `查看全部 ${videos.length} 个 →`}</button>` : ''}
+            </div>
+            <div class="video-grid-row">
+              ${showVideos.map(videoCard).join('')}
+            </div>
+          </div>`;
+      }
+
+      html += `</div>`;
     }
 
     sections.innerHTML = html;
