@@ -169,7 +169,7 @@ function updatePayUI() {
       qrBox.querySelector('p').textContent = '请扫描二维码完成支付';
     } else {
       qrImg.hidden = true;
-      qrBox.querySelector('p').textContent = '收款码未配置，请联系管理员设置。如需支付请选择对公转账。';
+      qrBox.querySelector('p').textContent = '当前支付方式暂不可用，请联系 china@kidneysphere.com 咨询。';
     }
   }
 

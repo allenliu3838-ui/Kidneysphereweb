@@ -292,7 +292,7 @@ async function init() {
   const main = document.getElementById('mlMain');
 
   if (!isConfigured()) {
-    gate.innerHTML = '<b>提示：</b>服务暂不可用，请联系管理员。';
+    gate.innerHTML = '<b>提示：</b>服务暂时不可用，请稍后刷新重试。';
     return;
   }
 

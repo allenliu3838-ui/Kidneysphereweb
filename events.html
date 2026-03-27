@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>会议与活动 · 肾域</title>
   <meta name="description" content="肾域 — 面向肾脏专科的学术社区、临床科研与医生工具平台">
+  <link rel="canonical" href="https://kidneysphere.com/events" />
   <link rel="icon" href="assets/logo.png" />
   <link rel="stylesheet" href="styles.css?v=20260213_001" />
 </head>
@@ -74,43 +75,7 @@
             <b>内容沉淀：</b>每次会议将整理为"会议纪要 / 精选病例 / 关键文献"内容卡片，持续沉淀为可检索的知识库。
           </div>
 
-          <div id="eventsAdmin" data-admin-only hidden style="display:none">
-            <div class="hr"></div>
-            <form class="form" id="addEventForm" style="margin-top:12px">
-              <div class="form-row">
-                <div>
-                  <label>Key <input class="input" name="key" placeholder="e.g. sun_zoom" required></label>
-                </div>
-                <div>
-                  <label>平台 <input class="input" name="platform" placeholder="Zoom / 腾讯会议 / 线下" /></label>
-                </div>
-              </div>
-              <label>中文标题 <input class="input" name="title_zh" placeholder="例如：每周日 10:00（北京时间）" required></label>
-              <label>简介（可选） <textarea class="input" name="description" rows="2" placeholder="一句话说明会议定位"></textarea></label>
-              <div class="form-row">
-                <div>
-                  <label>状态
-                    <select class="input" name="status">
-                      <option value="pending">待确认</option>
-                      <option value="confirmed">已确认</option>
-                      <option value="rescheduled">已改期</option>
-                      <option value="canceled">已取消</option>
-                      <option value="planning">筹备中</option>
-                    </select>
-                  </label>
-                </div>
-                <div>
-                  <label>下次时间（北京时间） <input class="input" type="datetime-local" name="next_time" /></label>
-                </div>
-              </div>
-              <label>常规规则（可选） <input class="input" name="rule_zh" placeholder="例如：每周日 10:00（北京时间）" /></label>
-              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
-                <button class="btn primary" type="submit">添加会议</button>
-              </div>
-            </form>
-            <div class="hr"></div>
-            <div id="adminEventsList" class="stack" style="margin-top:12px"></div>
-          </div>
+          <div id="eventsAdmin"></div>
         </div>
       </div>
     </section>

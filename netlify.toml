@@ -76,3 +76,10 @@
   from = "/api/dev/grant-access"
   to = "/.netlify/functions/dev-grant-access"
   status = 200
+
+# Domain canonicalization: www → non-www (301)
+[[redirects]]
+  from = "https://www.kidneysphere.com/*"
+  to = "https://kidneysphere.com/:splat"
+  status = 301
+  force = true

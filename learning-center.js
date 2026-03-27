@@ -795,6 +795,165 @@ async function init(){
   const isAdmin = isAdminRole(role);
   if(!isAdmin) return;
 
+  // Dynamically inject admin video panel HTML only when admin is authenticated
+  if(els.videoAdminPanel && !document.getElementById('videoAddForm')){
+    els.videoAdminPanel.innerHTML = `
+        <div class="card soft" style="margin-top:12px">
+          <h3 style="margin:0">新增视频</h3>
+          <div class="hr"></div>
+          <form id="videoAddForm" class="form" style="max-width:860px">
+            <div class="form-row">
+              <div style="flex:1;min-width:240px">
+                <label>视频名称 *</label>
+                <input class="input" id="videoTitle" required />
+              </div>
+              <div style="min-width:220px">
+                <label>频道 *</label>
+                <select class="input" id="videoCategory" required></select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div style="min-width:220px">
+                <label>视频来源 *</label>
+                <select class="input" id="videoSourceType">
+                  <option value="aliyun_vod">阿里云点播 (推荐)</option>
+                  <option value="bilibili">B站视频</option>
+                  <option value="external_url">外部视频链接</option>
+                  <option value="upload_mp4">上传 MP4</option>
+                </select>
+              </div>
+              <div style="flex:1;min-width:240px" id="videoAliyunVidWrap">
+                <label>阿里云视频ID *</label>
+                <input class="input" id="videoAliyunVid" placeholder="如：93d2f12b0c6e71ed..." />
+              </div>
+              <div style="flex:1;min-width:240px" id="videoUrlWrap" hidden>
+                <label>外部视频链接</label>
+                <input class="input" id="videoUrl" placeholder="https://..." />
+              </div>
+              <div style="min-width:240px" id="videoMp4Wrap" hidden>
+                <label>上传 MP4 (≤50MB)</label>
+                <input class="input" id="videoMp4" type="file" accept="video/mp4" />
+              </div>
+            </div>
+
+            <div class="form-row" id="videoAliyunUrlWrap" style="display:none">
+              <div style="flex:1;min-width:240px">
+                <label>阿里云播放地址（调试用，不作为正式播放）</label>
+                <input class="input" id="videoAliyunUrl" placeholder="仅调试用途" style="opacity:.6" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div style="min-width:200px">
+                <label>主讲人</label>
+                <input class="input" id="videoSpeaker" />
+              </div>
+              <div style="min-width:220px">
+                <label>所属专科</label>
+                <select class="input" id="videoSpecialty">
+                  <option value="">无</option>
+                </select>
+              </div>
+              <div style="min-width:180px">
+                <label>内容来源</label>
+                <select class="input" id="videoContentSource">
+                  <option value="glomcon">GlomCon 中国</option>
+                  <option value="kidneysphere">肾域原创</option>
+                  <option value="external">外部资源</option>
+                </select>
+              </div>
+              <div style="min-width:220px">
+                <label>访问权限 *</label>
+                <select class="input" id="videoAccessType">
+                  <option value="registered_free">注册后可看（免费）</option>
+                  <option value="paid_single">单视频付费</option>
+                  <option value="paid_specialty">跟随专科课程</option>
+                  <option value="paid_membership">付费会员可看</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row" id="videoPriceRow" hidden>
+              <div style="min-width:160px">
+                <label>价格（元）</label>
+                <input class="input" id="videoPrice" type="number" min="0" step="0.01" placeholder="0.00" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div style="flex:1;min-width:240px">
+                <label>视频简介</label>
+                <textarea class="input" id="videoDescription" rows="2" style="resize:vertical"></textarea>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div style="min-width:200px">
+                <label>封面图 URL</label>
+                <input class="input" id="videoCoverImage" placeholder="https://..." />
+              </div>
+              <div style="min-width:120px">
+                <label>排序</label>
+                <input class="input" id="videoSortOrder" type="number" value="0" />
+              </div>
+            </div>
+
+            <!-- Hidden legacy fields for backward compat -->
+            <input type="hidden" id="videoIsPaid" />
+            <input type="hidden" id="videoMembershipAccessible" />
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center">
+              <button class="btn" type="button" id="videoSaveDraft">保存草稿</button>
+              <button class="btn primary" type="submit" id="videoSubmit">保存并上架</button>
+              <span class="small muted" id="videoHint"></span>
+            </div>
+          </form>
+          <div class="hr"></div>
+          <div>
+            <div class="section-title" style="margin:0">
+              <div><h3 style="margin:0">最近添加的视频</h3></div>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px">
+                <input type="checkbox" id="showDeletedVideos" /> 显示已删除
+              </label>
+            </div>
+            <div id="videoAdminList" style="margin-top:10px"></div>
+          </div>
+        </div>
+    `;
+    // Re-query dynamically injected elements
+    els.videoTitle = document.getElementById('videoTitle');
+    els.videoCategory = document.getElementById('videoCategory');
+    els.videoUrl = document.getElementById('videoUrl');
+    els.videoMp4 = document.getElementById('videoMp4');
+    els.videoAliyunUrl = document.getElementById('videoAliyunUrl');
+    els.videoAliyunVid = document.getElementById('videoAliyunVid');
+    els.videoSpeaker = document.getElementById('videoSpeaker');
+    els.videoSpecialty = document.getElementById('videoSpecialty');
+    els.videoIsPaid = document.getElementById('videoIsPaid');
+    els.videoMembershipAccessible = document.getElementById('videoMembershipAccessible');
+    els.videoSourceType = document.getElementById('videoSourceType');
+    els.videoAccessType = document.getElementById('videoAccessType');
+    els.videoPrice = document.getElementById('videoPrice');
+    els.videoDescription = document.getElementById('videoDescription');
+    els.videoCoverImage = document.getElementById('videoCoverImage');
+    els.videoContentSource = document.getElementById('videoContentSource');
+    els.videoSortOrder = document.getElementById('videoSortOrder');
+    els.videoSaveDraft = document.getElementById('videoSaveDraft');
+    els.videoPriceRow = document.getElementById('videoPriceRow');
+    els.videoAliyunVidWrap = document.getElementById('videoAliyunVidWrap');
+    els.videoUrlWrap = document.getElementById('videoUrlWrap');
+    els.videoMp4Wrap = document.getElementById('videoMp4Wrap');
+    els.videoAliyunUrlWrap = document.getElementById('videoAliyunUrlWrap');
+    els.videoSave = document.getElementById('videoSave') || document.getElementById('videoSubmit');
+    els.videoAdminHint = document.getElementById('videoAdminHint') || document.getElementById('videoHint');
+    els.videoAdminList = document.getElementById('videoAdminList');
+    els.showDeletedVideos = document.getElementById('showDeletedVideos');
+  }
+
+  // Re-fill categories after dynamic injection
+  fillVideoCategories();
+
   // Load specialties + admin videos in parallel
   await Promise.all([loadSpecialties(), loadAdminVideos()]);
 

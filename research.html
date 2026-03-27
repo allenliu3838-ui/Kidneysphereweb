@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GlomCon中国临床研究中心 · 肾域</title>
   <meta name="description" content="GlomCon中国临床研究中心 · 肾域">
+  <link rel="canonical" href="https://kidneysphere.com/research" />
   <link rel="icon" href="assets/logo.png" />
   <link rel="stylesheet" href="styles.css?v=20260213_001" />
 </head>
@@ -63,38 +64,7 @@
 
 <div id="projectGrid" class="grid cols-2" style="margin-top:12px"></div>
 
-          <div id="adminBox" data-admin-only hidden style="display:none">
-            <div class="hr"></div>
-            <form class="form" id="settingsForm" style="margin-top:12px">
-              <label>中心介绍<textarea class="input" name="intro" rows="4"></textarea></label>
-              <label>联系方式<textarea class="input" name="contact" rows="2"></textarea></label>
-              <label>地址<textarea class="input" name="address" rows="2"></textarea></label>
-              <button class="btn primary" type="submit">保存中心信息</button>
-            </form>
-            <div class="hr"></div>
-            <form class="form" id="projectForm" style="margin-top:12px">
-              <div class="form-row">
-                <div><label>项目名称 <input class="input" name="title" required></label></div>
-                <div><label>状态
-                  <select class="input" name="status">
-                    <option value="planning">筹备中</option>
-                    <option value="starting">启动中</option>
-                    <option value="recruiting">招募中</option>
-                    <option value="ongoing">进行中</option>
-                    <option value="completed">已完成</option>
-                  </select></label>
-                </div>
-              </div>
-              <div class="form-row">
-                <div><label>研究类型 <input class="input" name="study_type"></label></div>
-                <div><label>负责人 <input class="input" name="pi"></label></div>
-              </div>
-              <label>摘要 <textarea class="input" name="summary" rows="3"></textarea></label>
-              <button class="btn primary" type="submit">添加项目</button>
-            </form>
-            <div class="hr"></div>
-            <div id="adminProjectsList" class="stack" style="margin-top:12px"></div>
-          </div>
+          <div id="adminBox"></div>
 
           <div class="hr"></div>
 

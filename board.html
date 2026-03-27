@@ -197,7 +197,7 @@
       // IMPORTANT: supabaseClient.js 不会自动初始化客户端；必须先 ensureSupabase()
       await ensureSupabase();
       if(!supabase){
-        list.innerHTML = `<div class="note">服务初始化失败（可能网络拦截或配置错误）。请刷新重试；如仍失败，请联系管理员。</div>`;
+        list.innerHTML = `<div class="note">服务暂时不可用，请稍后刷新重试。如持续出现此问题，请联系 <a href="mailto:china@kidneysphere.com">china@kidneysphere.com</a>。</div>`;
         return;
       }
       try{
@@ -211,7 +211,7 @@
     // English (international) remains coming soon.
     if(!['case','research','literature'].includes(channel)){
       const meta = CHANNEL_META[channel] || { t: '该板块', d: '' };
-      list.innerHTML = `<div class="note"><b>${escapeHtml(meta.t || '该板块')}</b> 暂未开放，敬请期待。${meta.d ? ` ${escapeHtml(meta.d)}` : ''}</div>`;
+      list.innerHTML = `<div class="note"><b>${escapeHtml(meta.t || '该板块')}</b> 即将上线，请关注后续更新。</div>`;
       return;
     }
 

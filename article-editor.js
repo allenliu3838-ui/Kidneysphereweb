@@ -828,7 +828,7 @@ async function main(){
   try{
     const user = await getCurrentUser();
     if(!user){
-      gateEl.innerHTML = `<div class="muted small">请先登录管理员账号。</div><div style="margin-top:10px"><a class="btn primary" href="login.html?next=article-editor.html">去登录</a></div>`;
+      location.replace('login.html?next=article-editor.html');
       return;
     }
 
@@ -836,7 +836,7 @@ async function main(){
     const role = String(profile?.role || '');
 
     if(!isAdminRole(role)){
-      gateEl.innerHTML = `<div class="muted small">你当前角色为：<b>${esc(role || 'member')}</b>。只有管理员可写文章。</div>`;
+      location.replace('index.html');
       return;
     }
 
@@ -1150,7 +1150,7 @@ async function main(){
     });
 
   }catch(e){
-    gateEl.innerHTML = `<div class="muted small">初始化失败：${esc(e?.message || String(e))}</div>`;
+    location.replace('login.html?next=article-editor.html');
   }
 }
 

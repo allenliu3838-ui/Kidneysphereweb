@@ -333,7 +333,7 @@ async function loadArticles(){
     const detail = showDev ? `<div class="small muted" style="margin-top:8px">错误详情：${msg}</div>` : '';
     listEl.innerHTML = `
       <div class="muted small">读取文章失败，请刷新后重试。</div>
-      <div class="small muted" style="margin-top:8px">如仍无法加载，请稍后再试或联系管理员。</div>
+      <div class="small muted" style="margin-top:8px">如仍无法加载，请稍后再试。</div>
       ${detail}
     `;
   }

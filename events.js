@@ -12,8 +12,9 @@ import {
 
 const grid = document.getElementById('eventsGrid');
 const adminWrap = document.getElementById('eventsAdmin');
-const addEventForm = document.getElementById('addEventForm');
-const adminList = document.getElementById('adminEventsList');
+// addEventForm and adminList are dynamically injected, so we look them up after injection
+function getAddEventForm(){ return document.getElementById('addEventForm'); }
+function getAdminList(){ return document.getElementById('adminEventsList'); }
 
 const DEFAULT_EVENTS = [
   {
@@ -317,6 +318,7 @@ function adminEventCard(ev, linkRow){
 }
 
 function bindAdminHandlers(events, linkMap){
+  const adminList = getAdminList();
   if(!adminList) return;
 
   // save
@@ -446,6 +448,47 @@ async function load(){
   await initAuth();
   if(adminWrap) adminWrap.hidden = !isAdmin;
 
+  // Dynamically inject admin form HTML only when admin is authenticated
+  if(isAdmin && adminWrap && !document.getElementById('addEventForm')){
+    adminWrap.innerHTML = `
+            <div class="hr"></div>
+            <form class="form" id="addEventForm" style="margin-top:12px">
+              <div class="form-row">
+                <div>
+                  <label>Key <input class="input" name="key" placeholder="e.g. sun_zoom" required></label>
+                </div>
+                <div>
+                  <label>平台 <input class="input" name="platform" placeholder="Zoom / 腾讯会议 / 线下" /></label>
+                </div>
+              </div>
+              <label>中文标题 <input class="input" name="title_zh" placeholder="例如：每周日 10:00（北京时间）" required></label>
+              <label>简介（可选） <textarea class="input" name="description" rows="2" placeholder="一句话说明会议定位"></textarea></label>
+              <div class="form-row">
+                <div>
+                  <label>状态
+                    <select class="input" name="status">
+                      <option value="pending">待确认</option>
+                      <option value="confirmed">已确认</option>
+                      <option value="rescheduled">已改期</option>
+                      <option value="canceled">已取消</option>
+                      <option value="planning">筹备中</option>
+                    </select>
+                  </label>
+                </div>
+                <div>
+                  <label>下次时间（北京时间） <input class="input" type="datetime-local" name="next_time" /></label>
+                </div>
+              </div>
+              <label>常规规则（可选） <input class="input" name="rule_zh" placeholder="例如：每周日 10:00（北京时间）" /></label>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+                <button class="btn primary" type="submit">添加会议</button>
+              </div>
+            </form>
+            <div class="hr"></div>
+            <div id="adminEventsList" class="stack" style="margin-top:12px"></div>
+    `;
+  }
+
   // Try load from DB
   let events = null;
   if(isConfigured() && supabase){
@@ -489,20 +532,22 @@ async function load(){
   grid.innerHTML = list.map(ev => publicCard(ev, ev.id ? linkMap[ev.id] : null)).join('');
 
   // Admin panel requires DB
-  if(isAdmin && adminWrap && adminList){
+  const adminListEl = getAdminList();
+  if(isAdmin && adminWrap && adminListEl){
     if(!events){
-      adminList.innerHTML = `<div class="note"><b>提示：</b>未检测到数据库表 event_series。请先运行新的 SUPABASE_SETUP.sql（或确认已建表）。</div>`;
+      adminListEl.innerHTML = `<div class="note"><b>提示：</b>未检测到数据库表 event_series。请先运行新的 SUPABASE_SETUP.sql（或确认已建表）。</div>`;
     }else{
-      adminList.innerHTML = events.map(ev => adminEventCard(ev, linkMap[ev.id])).join('');
+      adminListEl.innerHTML = events.map(ev => adminEventCard(ev, linkMap[ev.id])).join('');
       bindAdminHandlers(events, linkMap);
     }
   }
 
   // add new
-  if(isAdmin && addEventForm){
-    addEventForm.onsubmit = async (e)=>{
+  const addEventFormEl = getAddEventForm();
+  if(isAdmin && addEventFormEl){
+    addEventFormEl.onsubmit = async (e)=>{
       e.preventDefault();
-      const fd = new FormData(addEventForm);
+      const fd = new FormData(addEventFormEl);
       const key = String(fd.get('key')||'').trim();
       const platform = String(fd.get('platform')||'').trim();
       const title_zh = String(fd.get('title_zh')||'').trim();
@@ -516,7 +561,7 @@ async function load(){
         return;
       }
 
-      const btn = addEventForm.querySelector('button[type="submit"]');
+      const btn = addEventFormEl.querySelector('button[type="submit"]');
       if(btn) btn.disabled = true;
       try{
         const { error } = await supabase
@@ -533,7 +578,7 @@ async function load(){
             updated_by: currentUser?.id || null,
           });
         if(error) throw error;
-        addEventForm.reset();
+        addEventFormEl.reset();
         toast('已添加','会议已创建。','ok');
         await load();
       }catch(err){

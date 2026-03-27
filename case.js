@@ -1544,7 +1544,7 @@ function _humanizeRlsError(err){
   if(showDev) return msg;
   // Strip potential database internals for non-admin users
   if(/PGRST|pg_|relation "|column "|duplicate key|violates|Could not find/i.test(msg)){
-    return '操作失败，请稍后重试或联系管理员。';
+    return '操作失败，请稍后重试。';
   }
   return msg;
 }
