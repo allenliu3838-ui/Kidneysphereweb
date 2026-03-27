@@ -105,20 +105,20 @@ async function init() {
 
   if (isConfigured() && !supabase) await ensureSupabase();
   if (!isConfigured() || !supabase) {
-    gate.innerHTML = '<b>演示模式：</b>未配置 Supabase。';
+    location.replace('index.html');
     return;
   }
 
   _user = await getCurrentUser();
   if (!_user) {
-    gate.innerHTML = '请先 <a href="login.html?next=admin-commerce.html">登录</a>。';
+    location.replace('login.html?next=admin-commerce.html');
     return;
   }
 
   _profile = await getUserProfile(_user);
   _isAdmin = isAdminRole(_profile?.role);
   if (!_isAdmin) {
-    gate.innerHTML = '<b>无权限：</b>仅管理员可访问此页面。';
+    location.replace('index.html');
     return;
   }
 

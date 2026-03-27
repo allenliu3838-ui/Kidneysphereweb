@@ -423,7 +423,7 @@ async function loadHomeShowcase(){
       setTabActive(kind);
       updateShowcaseActions(kind);
       if(list.length === 0){
-        showcaseCardsEl.innerHTML = `<div class="muted small">暂无内容。</div>`;
+        showcaseCardsEl.innerHTML = `<div class="muted small">即将公布，敬请关注。</div>`;
         return;
       }
       showcaseCardsEl.innerHTML = list.map(it => renderShowcaseCard(it, kind)).join('');

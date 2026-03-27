@@ -436,7 +436,7 @@ export function toast(title, message = '', type = 'ok') {
     if (devKw.test(rawTitle) || titleTooTech || !rawTitle.trim()) {
       t = type === 'err' ? '功能暂不可用' : '提示';
     }
-    m = '系统正在维护或升级中，请稍后重试；如持续失败，请联系管理员。';
+    m = '系统正在维护或升级中，请稍后重试。';
   }
 
   if (!el) {

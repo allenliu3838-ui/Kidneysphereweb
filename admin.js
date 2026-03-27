@@ -19,14 +19,14 @@ async function initAdminGate(){
   }
 
   if(!isConfigured() || !supabase){
-    gate.innerHTML = '<b>演示模式：</b>未配置 Supabase，无法进入管理后台。';
+    location.replace('index.html');
     return;
   }
 
   try{
     const u = await getCurrentUser();
     if(!u){
-      gate.innerHTML = '请先 <a href="login.html?next=admin.html">登录</a> 管理员账号。';
+      location.replace('login.html?next=' + encodeURIComponent(location.pathname.split('/').pop() + location.search + location.hash));
       return;
     }
     const p = await getUserProfile(u);
@@ -34,7 +34,7 @@ async function initAdminGate(){
     const ok = isAdminRole(role);
 
     if(!ok){
-      gate.innerHTML = '当前账号无管理员权限。请切换管理员/超级管理员账号后再试。';
+      location.replace('index.html');
       return;
     }
 
@@ -47,8 +47,7 @@ async function initAdminGate(){
       if(el) el.scrollIntoView({ behavior:'smooth', block:'start' });
     }
   }catch(e){
-    gate.textContent = '无法读取登录状态：' + (e?.message || String(e));
-    toast('管理后台初始化失败', e?.message || String(e), 'err');
+    location.replace('login.html?next=' + encodeURIComponent(location.pathname.split('/').pop()));
   }
 }
 

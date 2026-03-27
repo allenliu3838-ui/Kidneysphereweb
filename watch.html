@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>播放 · 肾域</title>
   <meta name="description" content="肾域 — 面向肾脏专科的学术社区、临床科研与医生工具平台">
+  <meta name="robots" content="noindex,nofollow" />
   <link rel="icon" href="assets/logo.png" />
   <link rel="stylesheet" href="styles.css?v=20260325_001" />
   <!-- Aliplayer SDK removed: requires License since Dec 2024. Using native HTML5 video. -->
@@ -54,7 +55,7 @@
         <ul class="list" style="margin:8px 0 0">
           <li>请先确认已登录。</li>
           <li>尝试刷新页面；或使用无痕窗口；或清理站点缓存后重试。</li>
-          <li>仍不行请联系管理员。</li>
+          <li>仍不行请联系 <a href="mailto:china@kidneysphere.com">china@kidneysphere.com</a>。</li>
         </ul>
       </div>
 
@@ -436,7 +437,7 @@
 
   // Supabase demo mode hint
   if(!isConfigured()){
-    toast('服务暂不可用', '当前服务尚未完成初始化或配置，请联系管理员。', 'err');
+    toast('服务暂不可用', '系统正在维护中，请稍后再试。', 'err');
   }
 
   }catch(fatalErr){
@@ -449,7 +450,7 @@
 
   </main>
 
-  <footer class="footer" data-blurb="当前版本 · 学习中心视频库"></footer>
+  <footer class="footer" data-blurb="面向肾脏专科的学术教育与持续培训平台。"></footer>
 <script type="module" src="app.js?v=20260128_030"></script>
 </body>
 </html>

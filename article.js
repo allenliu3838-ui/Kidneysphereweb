@@ -334,7 +334,7 @@ async function toggleLike(articleId){
   if(!likeBtn) return;
 
   if(!isConfigured()){
-    toast('服务暂不可用', '系统尚未完成初始化或配置，请联系管理员。', 'err');
+    toast('服务暂不可用', '系统正在维护中，请稍后再试。', 'err');
     return;
   }
 
@@ -518,7 +518,7 @@ async function main(){
   }
 
   if(!isConfigured()){
-    root.innerHTML = `<div class="note"><b>服务暂不可用：</b>系统尚未完成初始化或配置，请联系管理员。</div>`;
+    root.innerHTML = '<div class="note"><b>服务暂不可用</b>，请稍后刷新重试。</div>';
     if(favBtn) favBtn.hidden = true;
     return;
   }
@@ -737,8 +737,8 @@ async function main(){
   }catch(e){
     const msg = esc(e?.message || String(e));
     const hint = isMissingTableError(e, 'articles')
-      ? `<div class="small muted" style="margin-top:8px">提示：文章功能暂不可用（系统初始化或升级中）。请稍后重试；如持续失败，请联系管理员。</div>`
-      : `<div class="small muted" style="margin-top:8px">提示：请刷新页面后重试；如仍失败，请稍后再试或联系管理员。</div>`;
+      ? `<div class="small muted" style="margin-top:8px">提示：文章功能暂不可用（系统初始化或升级中）。请稍后重试。</div>`
+      : `<div class="small muted" style="margin-top:8px">提示：请刷新页面后重试；如仍失败，请稍后再试。</div>`;
     const showDev = Boolean(typeof window !== 'undefined' && window.__SHOW_DEV_HINTS__);
     const detail = showDev ? `<div class="small muted" style="margin-top:8px">错误详情：${msg}</div>` : '';
     root.innerHTML = `

@@ -323,6 +323,75 @@ async function loadAndRender(){
   await initAuth();
   if(els.admin) els.admin.hidden = !isAdmin;
 
+  // Dynamically inject admin form HTML only when admin is authenticated
+  if(isAdmin && els.admin && !document.getElementById('addModuleForm')){
+    els.admin.innerHTML = `
+            <div class="hr"></div>
+            <form class="form" id="addModuleForm" style="margin-top:12px">
+              <div class="form-row">
+                <div>
+                  <label>板块标题 <input name="title_zh" required></label>
+                </div>
+                <div>
+                  <label>类型
+                    <select name="kind" class="input">
+                      <option value="cards">卡片列表</option>
+                      <option value="richtext">长文</option>
+                      <option value="sponsors">赞助商专区</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+              <label>简介 <textarea name="description" rows="2"></textarea></label>
+              <div class="form-row">
+                <div>
+                  <label>排序 <input name="sort" type="number" value="0"></label>
+                </div>
+                <div style="display:flex;align-items:end;gap:10px">
+                  <button class="btn primary" type="submit">添加板块</button>
+                </div>
+              </div>
+            </form>
+            <div class="hr"></div>
+            <form class="form" id="addCardForm">
+              <label>选择板块 <select class="input" name="module_id" id="moduleSelect"></select></label>
+              <label>卡片标题 <input class="input" name="title" required></label>
+              <label>摘要 <textarea class="input" name="summary" rows="3"></textarea></label>
+              <div class="form-row">
+                <div><label>链接 <input class="input" name="link_url"></label></div>
+                <div><label>图片 URL <input class="input" name="image_url"></label></div>
+              </div>
+              <button class="btn primary" type="submit">添加卡片</button>
+            </form>
+            <div class="hr"></div>
+            <div id="sponsors"></div>
+            <form class="form" id="addSponsorForm">
+              <div class="form-row">
+                <div><label>名称 <input class="input" name="name" required></label></div>
+                <div><label>级别 <select class="input" name="tier"><option value="partner">Partner</option><option value="silver">Silver</option><option value="gold">Gold</option></select></label></div>
+              </div>
+              <label>简介 <textarea class="input" name="description" rows="2"></textarea></label>
+              <div class="form-row">
+                <div><label>官网链接 <input class="input" name="website"></label></div>
+                <div><label>Logo上传 <input class="input" type="file" accept="image/*" name="logo_file"></label></div>
+              </div>
+              <label>Logo URL <input class="input" name="logo_url"></label>
+              <input type="hidden" name="logo_url_uploaded" value="" />
+              <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:10px">
+                <label style="display:flex;gap:8px;align-items:center;margin:0;font-weight:600">
+                  <input type="checkbox" name="show_on_home" checked /> 首页展示
+                </label>
+              </div>
+              <button class="btn primary" type="submit">添加赞助商</button>
+            </form>
+    `;
+    // Re-query dynamically injected elements
+    els.moduleSelect = document.getElementById('moduleSelect');
+    els.addModuleForm = document.getElementById('addModuleForm');
+    els.addCardForm = document.getElementById('addCardForm');
+    els.addSponsorForm = document.getElementById('addSponsorForm');
+  }
+
   let modules = [];
   try{
     const { data, error } = await supabase

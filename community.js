@@ -16,8 +16,8 @@ function readViewModePref(){
 const channelGrid = document.getElementById('channelGrid');
 const sectionGrid = document.getElementById('sectionGrid');
 const adminBox = document.getElementById('sectionAdmin');
-const addForm = document.getElementById('addSectionForm');
-const seedBtn = document.getElementById('seedDefaultBtn');
+let addForm = document.getElementById('addSectionForm');
+let seedBtn = document.getElementById('seedDefaultBtn');
 
 const DEFAULT_CHANNELS = [
   {
@@ -66,7 +66,7 @@ function statusBadge(status){
   const s = (status || '').toString().toLowerCase();
   if(s === 'active') return `<span class="badge">已开放</span>`;
   if(s === 'hidden') return `<span class="badge">隐藏</span>`;
-  return `<span class="badge" style="border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.06)">敬请期待</span>`;
+  return `<span class="badge" style="border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.06)">即将上线</span>`;
 }
 
 function renderChannels(channels){
@@ -105,7 +105,7 @@ function renderChannels(channels){
         button = `<a class="btn" href="#">进入板块</a>`;
       }
     }else{
-      button = `<span class="btn disabled" aria-disabled="true">敬请期待</span>`;
+      button = `<span class="btn disabled" aria-disabled="true">即将上线</span>`;
     }
 
     return `
@@ -151,7 +151,7 @@ function renderSections(sections, isAdmin){
   const moreCard = `
     <div class="card soft" id="moreSections">
       <h3>+ 更多分区</h3>
-      <p class="small">核心社区会持续扩容（例如：肾脏病理、肾脏感染、肿瘤相关肾病等）。国际讨论专区（英语）将于后续开放。</p>
+      <p class="small">核心社区会持续扩容（例如：肾脏病理、肾脏感染、肿瘤相关肾病等）。</p>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
         ${isAdmin ? `<button class="btn primary" id="jumpAdminBtn" type="button">新增分区</button>` : ``}
       </div>
@@ -227,8 +227,25 @@ async function reloadSections(isAdmin){
 
 async function bindAdminActions(isAdmin){
   if(!isAdmin) return;
+  if(!adminBox) return;
 
-  adminBox.hidden = false;
+  // Dynamically inject admin form (not in static HTML to avoid source exposure)
+  adminBox.innerHTML = `
+    <div class="hr"></div>
+    <form class="form" id="addSectionForm" style="margin-top:12px">
+      <div class="form-row">
+        <div><label>Key <input name="key" required></label></div>
+        <div><label>中文标题 <input name="title_zh" required></label></div>
+      </div>
+      <label>简介 <textarea name="description" rows="3"></textarea></label>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+        <button class="btn primary" type="submit">添加分区</button>
+        <button class="btn" type="button" id="seedDefaultBtn">写入默认分区</button>
+      </div>
+    </form>
+  `;
+  addForm = document.getElementById('addSectionForm');
+  seedBtn = document.getElementById('seedDefaultBtn');
 
   addForm?.addEventListener('submit', async (e)=>{
     e.preventDefault();

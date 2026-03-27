@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>社区讨论 · 肾域</title>
   <meta name="description" content="肾域 — 面向肾脏专科的学术社区、临床科研与医生工具平台">
+  <link rel="canonical" href="https://kidneysphere.com/community" />
   <link rel="icon" href="assets/logo.png" />
   <link rel="stylesheet" href="styles.css?v=20260213_001" />
 </head>
@@ -12,7 +13,7 @@
   <header class="nav"></header>
 
   <main>
-    
+
 <section class="hero">
   <div class="container">
     <div class="card">
@@ -28,7 +29,7 @@
       </div>
 
       <div class="note" style="margin-top:14px">
-        <b>提示：</b>已开放「病例讨论 / 文献学习 / 科研讨论」；<b>国际讨论专区（英语）</b>将于后续开放。所有时间统一为<b>北京时间</b>。
+        <b>提示：</b>已开放「病例讨论 / 文献学习 / 科研讨论」板块。所有时间统一为<b>北京时间</b>。
       </div>
 
       <div class="hr"></div>
@@ -36,7 +37,7 @@
       <div class="section-title" id="channelsTop">
         <div>
           <h3>讨论板块（Channels）</h3>
-          <p>病例讨论分区 + 文献学习 + 科研讨论。国际讨论专区（英语）敬请期待。</p>
+          <p>病例讨论分区 + 文献学习 + 科研讨论。国际讨论专区（英语）即将上线。</p>
         </div>
         <span class="badge">导航</span>
       </div>
@@ -55,20 +56,7 @@
 
       <div class="grid cols-2" id="sectionGrid"></div>
 
-      <div id="sectionAdmin" data-admin-only hidden style="display:none">
-        <div class="hr"></div>
-        <form class="form" id="addSectionForm" style="margin-top:12px">
-          <div class="form-row">
-            <div><label>Key <input name="key" required></label></div>
-            <div><label>中文标题 <input name="title_zh" required></label></div>
-          </div>
-          <label>简介 <textarea name="description" rows="3"></textarea></label>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
-            <button class="btn primary" type="submit">添加分区</button>
-            <button class="btn" type="button" id="seedDefaultBtn">写入默认分区</button>
-          </div>
-        </form>
-      </div>
+      <div id="sectionAdmin"></div>
 
       <div class="hr"></div>
 

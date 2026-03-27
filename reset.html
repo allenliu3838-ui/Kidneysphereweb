@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>重置密码 · 肾域</title>
   <meta name="description" content="肾域 — 面向肾脏专科的学术社区、临床科研与医生工具平台">
+  <meta name="robots" content="noindex,nofollow" />
   <link rel="icon" href="assets/logo.png" />
   <link rel="stylesheet" href="styles.css?v=20260213_001" />
 </head>
@@ -96,7 +97,7 @@
       async function ensureRecoverySession(){
         if(!isConfigured()){
           // Do not expose deployment details to end users.
-          setStatus('<div class="muted">系统配置异常，请联系管理员。</div>');
+          setStatus('<div class="muted">系统暂时不可用，请稍后重试。</div>');
           return false;
         }
 
@@ -106,7 +107,7 @@
           sb = await ensureSupabase();
         }catch(e){
           console.error(e);
-          setStatus('<div class="muted">系统暂时无法连接认证服务，请稍后再试或联系管理员。</div>');
+          setStatus('<div class="muted">系统暂时无法连接认证服务，请稍后再试。</div>');
           return false;
         }
 
@@ -213,7 +214,7 @@
 
           const { data: { session } } = await sb.auth.getSession();
 	          if(!session){
-	            setStatus('<div class="muted">未获取到 session。请重新打开邮件里的重置链接，或回到登录页重新发送重置邮件。若持续失败，请联系管理员协助排查。</div>');
+	            setStatus('<div class="muted">未获取到 session。请重新打开邮件里的重置链接，或回到登录页重新发送重置邮件。</div>');
 	            return false;
 	          }
           // Show which account is being recovered (avoid confusion)

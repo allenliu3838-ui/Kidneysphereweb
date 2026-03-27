@@ -135,9 +135,7 @@ function injectNav(){
         <button type="button" class="nav-dropdown-trigger" aria-haspopup="true" aria-expanded="false"><span class="zh">产品工具</span><span class="en">Products</span><span class="chev">▾</span></button>
         <div class="nav-dropdown-menu">
           <a href="https://kidneysphereregistry.cn" target="_blank" rel="noopener">🔬 肾域·科研</a>
-          <a href="https://kidneysphereremote.cn" target="_blank" rel="noopener">👨‍⚕️ 肾域·随诊</a>
-          <a href="https://kidneyspherefollowup.cn" target="_blank" rel="noopener">📋 肾域·记录</a>
-          <a href="https://kidneyspheredoctorapp.cn" target="_blank" rel="noopener">📱 肾域·医生</a>
+          <span class="small muted" style="padding:6px 12px;opacity:.6">更多产品即将上线</span>
         </div>
       </div>
       <div class="auth" data-auth>
@@ -200,6 +198,11 @@ function injectFooter(){
           <b>肾域</b>
         </div>
         <div class="small">${blurb}</div>
+      </div>
+      <div class="small" style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+        <a href="privacy.html">隐私政策</a>
+        <a href="terms.html">用户协议</a>
+        <a href="disclaimer.html">免责声明</a>
       </div>
       <div class="small">
         <div>© 2025–2026 肾域</div>
@@ -320,9 +323,7 @@ function initMobileDrawer(){
     + `<div class="drawer-divider"></div>
        <div class="drawer-section-title">肾域产品</div>
        <a href="https://kidneysphereregistry.cn" target="_blank" rel="noopener">🔬 肾域·科研</a>
-       <a href="https://kidneysphereremote.cn" target="_blank" rel="noopener">👨‍⚕️ 肾域·随诊</a>
-       <a href="https://kidneyspherefollowup.cn" target="_blank" rel="noopener">📋 肾域·记录</a>
-       <a href="https://kidneyspheredoctorapp.cn" target="_blank" rel="noopener">📱 肾域·医生</a>`;
+       <span class="small muted" style="padding:6px 0;opacity:.6">更多产品即将上线</span>`;
   }
 
   const body = document.body;

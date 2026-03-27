@@ -24,11 +24,12 @@ import { supabase, ensureSupabase, isConfigured, toast, getCurrentUser, getUserP
 
     const grid = document.getElementById('projectGrid');
     const adminBox = document.getElementById('adminBox');
-    const form = document.getElementById('projectForm');
-    const adminList = document.getElementById('adminProjectsList');
+    // form, adminList, settingsForm are dynamically injected, so we look them up after injection
+    function getProjectForm(){ return document.getElementById('projectForm'); }
+    function getAdminList(){ return document.getElementById('adminProjectsList'); }
+    function getSettingsForm(){ return document.getElementById('settingsForm'); }
 
     const infoEl = document.getElementById('researchInfo');
-    const settingsForm = document.getElementById('settingsForm');
 
 
     function esc(str){ return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
@@ -127,6 +128,7 @@ import { supabase, ensureSupabase, isConfigured, toast, getCurrentUser, getUserP
     }
 
     function bindAdminListHandlers(items){
+      const adminList = getAdminList();
       if(!adminList) return;
 
       // save
@@ -191,6 +193,7 @@ import { supabase, ensureSupabase, isConfigured, toast, getCurrentUser, getUserP
 
     
     async function loadSettings(isAdmin){
+      const settingsForm = getSettingsForm();
       if(!infoEl && !settingsForm) return;
       if(!isConfigured() || !supabase){
         // keep default HTML (static fallback)
@@ -251,13 +254,50 @@ async function load(){
       }catch(_e){}
       adminBox.hidden = !isAdmin;
 
+      // Dynamically inject admin form HTML only when admin is authenticated
+      if(isAdmin && adminBox && !document.getElementById('projectForm')){
+        adminBox.innerHTML = `
+            <div class="hr"></div>
+            <form class="form" id="settingsForm" style="margin-top:12px">
+              <label>中心介绍<textarea class="input" name="intro" rows="4"></textarea></label>
+              <label>联系方式<textarea class="input" name="contact" rows="2"></textarea></label>
+              <label>地址<textarea class="input" name="address" rows="2"></textarea></label>
+              <button class="btn primary" type="submit">保存中心信息</button>
+            </form>
+            <div class="hr"></div>
+            <form class="form" id="projectForm" style="margin-top:12px">
+              <div class="form-row">
+                <div><label>项目名称 <input class="input" name="title" required></label></div>
+                <div><label>状态
+                  <select class="input" name="status">
+                    <option value="planning">筹备中</option>
+                    <option value="starting">启动中</option>
+                    <option value="recruiting">招募中</option>
+                    <option value="ongoing">进行中</option>
+                    <option value="completed">已完成</option>
+                  </select></label>
+                </div>
+              </div>
+              <div class="form-row">
+                <div><label>研究类型 <input class="input" name="study_type"></label></div>
+                <div><label>负责人 <input class="input" name="pi"></label></div>
+              </div>
+              <label>摘要 <textarea class="input" name="summary" rows="3"></textarea></label>
+              <button class="btn primary" type="submit">添加项目</button>
+            </form>
+            <div class="hr"></div>
+            <div id="adminProjectsList" class="stack" style="margin-top:12px"></div>
+        `;
+      }
+
       await loadSettings(isAdmin);
 
 
       // Load projects (if table exists)
       if(!isConfigured() || !supabase){
         render([]);
-        if(adminList) adminList.innerHTML = '';
+        const al = getAdminList();
+        if(al) al.innerHTML = '';
         return;
       }
 
@@ -273,7 +313,8 @@ async function load(){
         render(pubData || []);
 
         // Admin list (all)
-        if(isAdmin && adminList){
+        const adminListEl = getAdminList();
+        if(isAdmin && adminListEl){
           const { data: allData, error: allErr } = await supabase
             .from('research_projects')
             .select('id, title, status, study_type, summary, pi, sort_order, created_at, active')
@@ -281,61 +322,74 @@ async function load(){
             .order('created_at', { ascending: false });
           if(allErr) throw allErr;
           const items = allData || [];
-          adminList.innerHTML = items.length
+          adminListEl.innerHTML = items.length
             ? items.map(adminProjectCard).join('')
             : '<div class="muted small">暂无项目。</div>';
           bindAdminListHandlers(items);
         }
       }catch(e){
         grid.innerHTML = `<div class="muted small">读取失败：${esc(e.message || String(e))}<br/>（如未初始化表，请先运行 Supabase SQL 初始化脚本）</div>`;
-        if(adminList) adminList.innerHTML = '';
+        const al = getAdminList();
+        if(al) al.innerHTML = '';
       }
     }
 
-    settingsForm?.addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      if(!isConfigured() || !supabase){ toast('未配置','请先配置 Supabase。','err'); return; }
-      try{
-        const u = await getCurrentUser();
-        const p = u ? await getUserProfile(u) : null;
-        const role = normalizeRole(p?.role || u?.user_metadata?.role);
-        if(!isAdminRole(role)){ toast('无权限','仅管理员可编辑中心信息。','err'); return; }
-        const fd = new FormData(settingsForm);
-        const intro = String(fd.get('intro')||'').trim() || null;
-        const contact = String(fd.get('contact')||'').trim() || null;
-        const address = String(fd.get('address')||'').trim() || null;
-        const payload = { id: 1, intro, contact, address, updated_at: new Date().toISOString(), updated_by: u.id };
-        const { error } = await supabase.from('research_settings').upsert(payload, { onConflict: 'id' });
-        if(error) throw error;
-        toast('已保存','中心信息已更新。','ok');
-        await loadSettings(true);
-      }catch(err){
-        toast('保存失败', err.message || String(err), 'err');
-      }
-    });
+    // Bind settings form and project form after load (they are dynamically injected)
+    function bindSettingsForm(){
+      const settingsForm = getSettingsForm();
+      if(!settingsForm) return;
+      settingsForm.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        if(!isConfigured() || !supabase){ toast('未配置','请先配置 Supabase。','err'); return; }
+        try{
+          const u = await getCurrentUser();
+          const p = u ? await getUserProfile(u) : null;
+          const role = normalizeRole(p?.role || u?.user_metadata?.role);
+          if(!isAdminRole(role)){ toast('无权限','仅管理员可编辑中心信息。','err'); return; }
+          const fd = new FormData(settingsForm);
+          const intro = String(fd.get('intro')||'').trim() || null;
+          const contact = String(fd.get('contact')||'').trim() || null;
+          const address = String(fd.get('address')||'').trim() || null;
+          const payload = { id: 1, intro, contact, address, updated_at: new Date().toISOString(), updated_by: u.id };
+          const { error } = await supabase.from('research_settings').upsert(payload, { onConflict: 'id' });
+          if(error) throw error;
+          toast('已保存','中心信息已更新。','ok');
+          await loadSettings(true);
+        }catch(err){
+          toast('保存失败', err.message || String(err), 'err');
+        }
+      });
+    }
 
-form?.addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      if(!isConfigured() || !supabase){ toast('未配置', '请先配置 Supabase。', 'err'); return; }
-      const fd = new FormData(form);
-      const payload = {
-        title: String(fd.get('title')||'').trim(),
-        status: String(fd.get('status')||'planning'),
-        study_type: String(fd.get('study_type')||'').trim() || null,
-        summary: String(fd.get('summary')||'').trim() || null,
-        pi: String(fd.get('pi')||'').trim() || null,
-        active: true,
-      };
-      if(!payload.title){ toast('缺少名称','请填写项目名称。','err'); return; }
-      try{
-        const { error } = await supabase.from('research_projects').insert(payload);
-        if(error) throw error;
-        toast('已添加','项目已加入项目库。','ok');
-        form.reset();
-        await load();
-      }catch(err){
-        toast('添加失败', err.message || String(err), 'err');
-      }
-    });
+    function bindProjectForm(){
+      const form = getProjectForm();
+      if(!form) return;
+      form.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        if(!isConfigured() || !supabase){ toast('未配置', '请先配置 Supabase。', 'err'); return; }
+        const fd = new FormData(form);
+        const payload = {
+          title: String(fd.get('title')||'').trim(),
+          status: String(fd.get('status')||'planning'),
+          study_type: String(fd.get('study_type')||'').trim() || null,
+          summary: String(fd.get('summary')||'').trim() || null,
+          pi: String(fd.get('pi')||'').trim() || null,
+          active: true,
+        };
+        if(!payload.title){ toast('缺少名称','请填写项目名称。','err'); return; }
+        try{
+          const { error } = await supabase.from('research_projects').insert(payload);
+          if(error) throw error;
+          toast('已添加','项目已加入项目库。','ok');
+          form.reset();
+          await load();
+        }catch(err){
+          toast('添加失败', err.message || String(err), 'err');
+        }
+      });
+    }
 
-    load();
+    load().then(()=>{
+      bindSettingsForm();
+      bindProjectForm();
+    });
