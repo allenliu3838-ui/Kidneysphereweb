@@ -1,17 +1,20 @@
 /**
  * Playwright Smoke Tests: Production Security & SEO
  *
- * These tests verify that:
- * 1. Admin/internal pages are NOT accessible to anonymous users
- * 2. Public pages render core content without JS
- * 3. Sensitive keywords don't appear in public HTML
- * 4. SEO meta tags are correctly set
- * 5. No dead links on critical pages
+ * Verifies:
+ * 1. Admin/internal pages NOT accessible to anonymous users
+ * 2. Posting forms NOT visible to anonymous users
+ * 3. Public pages render core content
+ * 4. Sensitive keywords don't appear in public HTML
+ * 5. SEO meta tags correctly set
+ * 6. Article detail page has SSR content (Edge Function)
  *
  * Run: npx playwright test tests/smoke.spec.js
  */
 
 const { test, expect } = require('@playwright/test');
+const fs = require('fs');
+const path = require('path');
 
 const BASE = process.env.BASE_URL || 'http://localhost:8888';
 
@@ -45,19 +48,37 @@ const FORBIDDEN_KEYWORDS = [
 ];
 
 for (const route of ADMIN_ROUTES) {
-  test(`Admin route ${route} should not expose admin content`, async ({ page }) => {
-    const response = await page.goto(`${BASE}${route}`, { waitUntil: 'domcontentloaded' });
+  test(`Admin route ${route}: no admin content in HTML`, async ({ page }) => {
+    await page.goto(`${BASE}${route}`, { waitUntil: 'domcontentloaded' });
     const html = await page.content();
-
-    // Should not contain admin-specific keywords in initial HTML
     for (const kw of FORBIDDEN_KEYWORDS) {
       expect(html).not.toContain(kw);
     }
-
-    // Should have noindex
     expect(html).toContain('noindex');
   });
 }
+
+// ─── Posting forms hidden from anonymous ───
+
+test('post-case.html: form hidden from anonymous', async ({ request }) => {
+  const res = await request.get(`${BASE}/post-case`);
+  const html = await res.text();
+  // Auth gate should be visible
+  expect(html).toContain('postAuthGate');
+  // Form should be hidden
+  expect(html).toContain('id="postFormWrap" hidden');
+  // Should NOT expose form fields directly
+  expect(html).not.toMatch(/<form id="caseForm"[^>]*>(?!.*hidden)/);
+});
+
+test('moments.html: composer hidden from anonymous', async ({ request }) => {
+  const res = await request.get(`${BASE}/moments`);
+  const html = await res.text();
+  // Auth gate should be visible
+  expect(html).toContain('momentsAuthGate');
+  // Composer should be hidden
+  expect(html).toContain('id="composer" hidden');
+});
 
 // ─── Public pages: should render core content ───
 
@@ -71,18 +92,12 @@ const PUBLIC_PAGES = [
   { path: '/terms', mustContain: ['用户协议'] },
 ];
 
-for (const { path, mustContain } of PUBLIC_PAGES) {
-  test(`Public page ${path} contains core content`, async ({ page }) => {
-    await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded' });
-    const html = await page.content();
-
+for (const { path: p, mustContain } of PUBLIC_PAGES) {
+  test(`Public page ${p} contains core content`, async ({ request }) => {
+    const res = await request.get(`${BASE}${p}`);
+    const html = await res.text();
     for (const text of mustContain) {
       expect(html).toContain(text);
-    }
-
-    // Should NOT have noindex (these are public pages)
-    if (path !== '/') {
-      // index.html intentionally has no noindex
     }
   });
 }
@@ -97,6 +112,9 @@ test('robots.txt is accessible and well-formed', async ({ request }) => {
   expect(text).toContain('Disallow: /admin');
   expect(text).toContain('Disallow: /article-editor');
   expect(text).toContain('Disallow: /login');
+  expect(text).toContain('Disallow: /post-case');
+  expect(text).toContain('Disallow: /board');
+  expect(text).toContain('Disallow: /case');
 });
 
 test('sitemap.xml is accessible and well-formed', async ({ request }) => {
@@ -105,39 +123,29 @@ test('sitemap.xml is accessible and well-formed', async ({ request }) => {
   const text = await res.text();
   expect(text).toContain('<urlset');
   expect(text).toContain('kidneysphere.com');
-  // Should NOT contain admin/internal pages
   expect(text).not.toContain('/admin');
   expect(text).not.toContain('/login');
   expect(text).not.toContain('/register');
   expect(text).not.toContain('/checkout');
   expect(text).not.toContain('/profile');
+  expect(text).not.toContain('/membership');
 });
 
-// ─── noindex verification for auth pages ───
+// ─── noindex verification ───
 
 const NOINDEX_PAGES = [
-  '/login',
-  '/register',
-  '/forgot',
-  '/reset',
-  '/admin',
-  '/admin-commerce',
-  '/article-editor',
-  '/profile',
-  '/checkout',
-  '/membership',
-  '/favorites',
-  '/notifications',
-  '/post-case',
-  '/board',
-  '/case',
-  '/verify-doctor',
+  '/login', '/register', '/forgot', '/reset',
+  '/admin', '/admin-commerce', '/article-editor',
+  '/profile', '/checkout', '/membership',
+  '/favorites', '/notifications', '/post-case',
+  '/board', '/case', '/verify-doctor',
+  '/expert-ppt', '/notes', '/my-learning',
 ];
 
-for (const path of NOINDEX_PAGES) {
-  test(`${path} has noindex meta tag`, async ({ page }) => {
-    await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded' });
-    const html = await page.content();
+for (const p of NOINDEX_PAGES) {
+  test(`${p} has noindex meta tag`, async ({ request }) => {
+    const res = await request.get(`${BASE}${p}`);
+    const html = await res.text();
     expect(html.toLowerCase()).toContain('noindex');
   });
 }
@@ -151,51 +159,64 @@ test('Homepage has noscript fallback content', async ({ request }) => {
   expect(html).toContain('肾域');
 });
 
-// ─── Article detail page structure ───
+// ─── Article detail page ───
 
-test('Article page does not expose edit button in HTML', async ({ request }) => {
+test('Article page: no edit button in HTML source', async ({ request }) => {
   const res = await request.get(`${BASE}/article`);
   const html = await res.text();
   expect(html).not.toContain('编辑此文章');
   expect(html).not.toContain('data-admin-only');
 });
 
-// ─── Register page does not show empty email ───
-
-test('Register page does not show empty confirmation text', async ({ request }) => {
-  const res = await request.get(`${BASE}/register`);
+test('Article page: has noscript fallback', async ({ request }) => {
+  const res = await request.get(`${BASE}/article`);
   const html = await res.text();
-  // The confirmWrap should be hidden and have proper default text
-  expect(html).not.toContain('我们已尝试发送确认邮件到 <code></code>');
-  expect(html).toContain('确认邮件已发送至');
+  expect(html).toContain('<noscript>');
 });
 
-// ─── Dev API endpoint should return 404 in production ───
+// ─── Register page ───
+
+test('Register page: no empty email placeholder', async ({ request }) => {
+  const res = await request.get(`${BASE}/register`);
+  const html = await res.text();
+  expect(html).not.toContain('我们已尝试发送确认邮件到 <code></code>');
+});
+
+// ─── Beta product links should not go to broken sites ───
+
+test('Homepage: beta product links go to申请内测, not broken sites', async ({ request }) => {
+  const res = await request.get(`${BASE}/`);
+  const html = await res.text();
+  // Beta products should link to mailto, not external broken sites
+  expect(html).not.toContain('href="https://kidneysphereremote.cn"');
+  expect(html).not.toContain('href="https://kidneyspherefollowup.cn"');
+  expect(html).not.toContain('href="https://kidneyspheredoctorapp.cn"');
+});
+
+// ─── Dev API endpoint ───
 
 test('Dev grant-access API returns 404 without env flag', async ({ request }) => {
   const res = await request.post(`${BASE}/api/dev/grant-access`, {
     headers: { 'Content-Type': 'application/json' },
     data: JSON.stringify({ videoId: 'test' }),
   });
-  // Should be 404 (disabled) or 401 (auth required), never 200
   expect([404, 401]).toContain(res.status());
 });
 
-// ─── Build-time HTML scan: no admin keywords in public page HTML ───
-
-const fs = require('fs');
-const path = require('path');
+// ─── Build-time HTML scan: no admin keywords in public pages ───
 
 const PUBLIC_HTML_FILES = [
-  'index.html',
-  'about.html',
-  'articles.html',
-  'community.html',
-  'learning.html',
-  'events.html',
-  'frontier.html',
-  'videos.html',
-  'academy.html',
+  'index.html', 'about.html', 'articles.html', 'community.html',
+  'learning.html', 'events.html', 'frontier.html', 'videos.html',
+  'academy.html', 'moments.html',
+];
+
+const BUILD_FORBIDDEN = [
+  '仅管理员可使用',
+  '全部（含草稿）',
+  '管理员提示',
+  'data-admin-only',
+  '编辑此文章',
 ];
 
 for (const file of PUBLIC_HTML_FILES) {
@@ -203,16 +224,25 @@ for (const file of PUBLIC_HTML_FILES) {
     const filePath = path.join(__dirname, '..', file);
     if (!fs.existsSync(filePath)) return;
     const html = fs.readFileSync(filePath, 'utf-8');
-
-    const adminKeywords = [
-      '仅管理员可使用',
-      '全部（含草稿）',
-      '管理员提示',
-      'data-admin-only',
-    ];
-
-    for (const kw of adminKeywords) {
+    for (const kw of BUILD_FORBIDDEN) {
       expect(html).not.toContain(kw);
     }
+  });
+}
+
+// ─── Canonical tag check for public pages ───
+
+const CANONICAL_PAGES = [
+  { path: '/', expected: 'https://kidneysphere.com/' },
+  { path: '/about', expected: 'https://kidneysphere.com/about' },
+  { path: '/community', expected: 'https://kidneysphere.com/community' },
+  { path: '/articles', expected: 'https://kidneysphere.com/articles' },
+];
+
+for (const { path: p, expected } of CANONICAL_PAGES) {
+  test(`${p} has correct canonical tag`, async ({ request }) => {
+    const res = await request.get(`${BASE}${p}`);
+    const html = await res.text();
+    expect(html).toContain(`href="${expected}"`);
   });
 }

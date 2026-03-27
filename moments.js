@@ -3326,6 +3326,18 @@ async function initRealtime(){
 }
 
 // boot
+(async function revealComposerIfAuthed(){
+  try{
+    await initAuth();
+    const gate = document.getElementById('momentsAuthGate');
+    const composer = document.getElementById('composer');
+    if(currentUser){
+      if(gate) gate.hidden = true;
+      if(composer) composer.hidden = false;
+    }
+  }catch(_e){}
+})();
+
 initUploader();
 
 // Paging controls
