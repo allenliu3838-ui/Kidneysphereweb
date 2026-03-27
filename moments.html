@@ -45,8 +45,17 @@
 
           <div class="hr"></div>
 
-          <!-- Composer -->
-          <div class="moment-composer" id="composer">
+          <!-- Auth gate for anonymous users -->
+          <div id="momentsAuthGate" class="note" style="margin-bottom:14px">
+            <b>发布动态需要登录。</b>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+              <a class="btn primary" href="login.html?next=moments.html">登录</a>
+              <a class="btn" href="register.html?next=moments.html">注册</a>
+            </div>
+          </div>
+
+          <!-- Composer: hidden until auth verified by JS -->
+          <div class="moment-composer" id="composer" hidden>
             <div class="note" id="composerHint" style="display:none"></div>
 
             <div class="edit-bar" id="editBar" style="display:none">

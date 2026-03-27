@@ -1,5 +1,15 @@
 [build]
   publish = "."
+  edge_functions = "netlify/edge-functions"
+
+# Article SSR: inject article content into HTML response
+[[edge_functions]]
+  path = "/article"
+  function = "article-ssr"
+
+[[edge_functions]]
+  path = "/article.html"
+  function = "article-ssr"
 
 [[headers]]
   for = "/*"

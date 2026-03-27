@@ -18,13 +18,26 @@
   <div class="container">
     <div class="card" style="max-width:860px;margin:0 auto">
       <span class="badge" id="postBadge">发布病例</span>
-      <h2 style="margin-top:10px" id="postTitle">登录后可立即发布</h2>
-      <p id="postIntro">填写标题、摘要与标签，可拖拽/粘贴添加附件（图片/PDF/Word）。发布后即可在社区中被查看与讨论。</p>
+      <h2 style="margin-top:10px" id="postTitle">登录后可发布</h2>
 
-      <!-- Doctor verification gate (Channel A: invite code). Filled by JS. -->
-      <div id="doctorGate" class="note" style="display:none; margin-top:12px"></div>
+      <!-- Auth gate: shown to anonymous users -->
+      <div id="postAuthGate">
+        <p>发布病例讨论需要先登录。</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+          <a class="btn primary" href="login.html?next=post-case.html">登录</a>
+          <a class="btn" href="register.html?next=post-case.html">注册</a>
+          <a class="btn" href="community.html">返回社区</a>
+        </div>
+      </div>
 
-      <form id="caseForm">
+      <!-- Form: hidden until auth verified by JS -->
+      <div id="postFormWrap" hidden>
+        <p id="postIntro">填写标题、摘要与标签，可拖拽/粘贴添加附件（图片/PDF/Word）。发布后即可在社区中被查看与讨论。</p>
+
+        <!-- Doctor verification gate (Channel A: invite code). Filled by JS. -->
+        <div id="doctorGate" class="note" style="display:none; margin-top:12px"></div>
+
+        <form id="caseForm">
         <label>选择板块</label>
         <select class="input" name="board" id="sectionSelect">
           <option value="glom">肾小球与间质性肾病社区</option>
@@ -64,6 +77,7 @@
       <div class="note">
         <b>提示：</b>发布病例需完成医生认证。支持 <a href="verify-doctor.html"><b>邀请码快速认证</b></a> 与 <b>人工审核认证</b> 两种方式。
       </div>
+      </div><!-- /postFormWrap -->
     </div>
   </div>
 </section>
@@ -571,6 +585,12 @@
   // Keep the full URL (including mode & preset board) for login redirect
   const next = encodeURIComponent('post-case.html' + location.search);
   await ensureAuthed(`login.html?next=${next}`);
+
+  // Auth passed — reveal form, hide gate
+  const postAuthGate = document.getElementById('postAuthGate');
+  const postFormWrap = document.getElementById('postFormWrap');
+  if(postAuthGate) postAuthGate.hidden = true;
+  if(postFormWrap) postFormWrap.hidden = false;
 
   // AI tools are paused in this phase
   const ENABLE_AI_POST_TOOLS = false;
