@@ -1,6 +1,7 @@
 /**
  * admin-commerce.js — 主入口
  * Tab 切换 + Dashboard 统计 + 权限检查
+ * Content is injected dynamically after auth verification.
  */
 import {
   supabase, ensureSupabase, isConfigured,
@@ -60,6 +61,64 @@ export function closeModal() {
   document.getElementById('modalContainer').innerHTML = '';
 }
 
+/* ── inject admin content ── */
+function injectCommerceContent() {
+  const root = document.getElementById('commerceRoot');
+  if (!root) return;
+
+  root.innerHTML = `
+    <section class="section">
+      <div class="container">
+        <div class="card" style="margin-bottom:18px">
+          <div class="section-title">
+            <div><h2>商品与订单管理</h2><p>统一管理商品、定价、订单、权益、项目报名、学习群。</p></div>
+            <span class="badge">Commerce Admin</span>
+          </div>
+        </div>
+
+        <div class="grid cols-4" id="dashboardStats" style="margin-bottom:18px">
+          <div class="card soft stat-card"><div class="num" id="statOrders">-</div><div class="label">待审核订单</div></div>
+          <div class="card soft stat-card"><div class="num" id="statProducts">-</div><div class="label">在售商品</div></div>
+          <div class="card soft stat-card"><div class="num" id="statEntitlements">-</div><div class="label">活跃权益</div></div>
+          <div class="card soft stat-card"><div class="num" id="statEnrollments">-</div><div class="label">项目报名</div></div>
+        </div>
+
+        <div class="card">
+          <div class="commerce-tabs" id="commerceTabs">
+            <button class="btn active" data-tab="orders">订单审核</button>
+            <button class="btn" data-tab="products">商品中心</button>
+            <button class="btn" data-tab="config">系统配置</button>
+            <button class="btn" data-tab="entitlements">权益管理</button>
+            <button class="btn" data-tab="projects">项目中心</button>
+            <button class="btn" data-tab="cohorts">班期管理</button>
+            <button class="btn" data-tab="groups">学习群</button>
+            <button class="btn" data-tab="templates">通知模板</button>
+            <button class="btn" data-tab="audit">审计日志</button>
+          </div>
+        </div>
+
+        <div class="tab-panel active" id="panel-orders"><div class="card soft"><div class="section-title"><h3>订单核销中心</h3><div style="display:flex;gap:8px"><select class="input" id="orderFilterStatus" style="width:auto"><option value="pending_review">待审核</option><option value="pending_payment">待付款</option><option value="all">全部</option><option value="approved">已通过</option><option value="rejected">已驳回</option><option value="cancelled">已取消</option></select><button class="btn" id="refreshOrders" type="button">刷新</button></div></div><div id="ordersTableWrap" style="overflow-x:auto;margin-top:12px"><div class="muted">加载中…</div></div></div></div>
+
+        <div class="tab-panel" id="panel-products"><div class="card soft"><div class="section-title"><h3>商品中心</h3><button class="btn primary" id="btnAddProduct" type="button">新建商品</button></div><div id="productsTableWrap" style="overflow-x:auto;margin-top:12px"><div class="muted">加载中…</div></div></div></div>
+
+        <div class="tab-panel" id="panel-config"><div class="card soft"><div class="section-title"><h3>系统配置</h3><button class="btn" id="refreshConfig" type="button">刷新</button></div><div id="configForm" style="margin-top:12px"><div class="muted">加载中…</div></div></div></div>
+
+        <div class="tab-panel" id="panel-entitlements"><div class="card soft"><div class="section-title"><h3>权益管理</h3><button class="btn" id="refreshEntitlements" type="button">刷新</button></div><div class="inline-form" style="margin:12px 0"><input class="input" id="entSearchInput" placeholder="搜索用户ID或邮箱…" /><button class="btn" id="entSearchBtn" type="button">搜索</button></div><div id="entitlementsTableWrap" style="overflow-x:auto"><div class="muted">加载中…</div></div></div></div>
+
+        <div class="tab-panel" id="panel-projects"><div class="card soft"><div class="section-title"><h3>项目中心</h3><button class="btn primary" id="btnAddProject" type="button">新建项目</button></div><div id="projectsTableWrap" style="overflow-x:auto;margin-top:12px"><div class="muted">加载中…</div></div></div></div>
+
+        <div class="tab-panel" id="panel-cohorts"><div class="card soft"><div class="section-title"><h3>班期管理</h3><button class="btn primary" id="btnAddCohort" type="button">新建班期</button></div><div id="cohortsTableWrap" style="overflow-x:auto;margin-top:12px"><div class="muted">加载中…</div></div></div></div>
+
+        <div class="tab-panel" id="panel-groups"><div class="card soft"><div class="section-title"><h3>学习群中心</h3><button class="btn primary" id="btnAddGroup" type="button">新建学习群</button></div><div id="groupsTableWrap" style="overflow-x:auto;margin-top:12px"><div class="muted">加载中…</div></div><div class="hr"></div><h4>入群邀请管理</h4><div id="groupInvitesWrap" style="overflow-x:auto;margin-top:12px"><div class="muted">加载中…</div></div></div></div>
+
+        <div class="tab-panel" id="panel-templates"><div class="card soft"><div class="section-title"><h3>通知模板</h3><button class="btn primary" id="btnAddTemplate" type="button">新建模板</button></div><div id="templatesTableWrap" style="overflow-x:auto;margin-top:12px"><div class="muted">加载中…</div></div></div></div>
+
+        <div class="tab-panel" id="panel-audit"><div class="card soft"><div class="section-title"><h3>审计日志</h3><button class="btn" id="refreshAudit" type="button">刷新</button></div><div id="auditTableWrap" style="overflow-x:auto;margin-top:12px"><div class="muted">加载中…</div></div></div></div>
+
+      </div>
+    </section>`;
+}
+
 /* ── tabs ── */
 function initTabs() {
   const tabs = document.getElementById('commerceTabs');
@@ -74,7 +133,6 @@ function initTabs() {
     const panel = document.getElementById(`panel-${tab}`);
     if (panel) {
       panel.classList.add('active');
-      // dispatch custom event so sub-modules can lazy-load
       panel.dispatchEvent(new CustomEvent('panel:show', { detail: { tab } }));
     }
   });
@@ -101,7 +159,6 @@ async function loadStats() {
 /* ── init ── */
 async function init() {
   const gate = document.getElementById('commerceGate');
-  const main = document.getElementById('commerceMain');
 
   if (isConfigured() && !supabase) await ensureSupabase();
   if (!isConfigured() || !supabase) {
@@ -122,8 +179,9 @@ async function init() {
     return;
   }
 
+  // Auth passed — inject content
   gate.hidden = true;
-  main.hidden = false;
+  injectCommerceContent();
   initTabs();
   loadStats();
 
@@ -144,7 +202,6 @@ async function init() {
     else if (m.status === 'rejected') console.warn(`Module ${i} failed:`, m.reason);
   });
 
-  // Show first panel
   document.getElementById('panel-orders')?.dispatchEvent(new CustomEvent('panel:show'));
 }
 

@@ -14,7 +14,7 @@ const listEl = document.getElementById('articlesList');
 const countEl = document.getElementById('articlesCount');
 const searchEl = document.getElementById('articlesSearch');
 const refreshBtn = document.getElementById('articlesRefresh');
-const scopeEl = document.getElementById('articlesScope');
+let scopeEl = document.getElementById('articlesScope');
 const tagInfoEl = document.getElementById('articlesTagInfo'); // optional
 
 
@@ -256,8 +256,27 @@ async function loadArticles(){
   const role = String(profile?.role || '');
   const isAdmin = Boolean(user && isAdminRole(role));
 
+  // Inject admin-only elements dynamically (not in initial HTML)
+  if(isAdmin){
+    const actionsEl = document.getElementById('articlesActions');
+    if(actionsEl && !actionsEl.querySelector('[data-admin-injected]')){
+      const btn = document.createElement('a');
+      btn.className = 'btn primary';
+      btn.href = 'article-editor.html';
+      btn.textContent = '写文章';
+      btn.setAttribute('data-admin-injected', '');
+      actionsEl.appendChild(btn);
+    }
+    const scopeWrap = document.getElementById('articlesScopeWrap');
+    if(scopeWrap && !scopeWrap.querySelector('select')){
+      scopeWrap.innerHTML = `<select class="input" id="articlesScope" style="min-width:160px"><option value="published">仅已发布</option><option value="all">全部（含草稿）</option></select>`;
+      scopeEl = document.getElementById('articlesScope');
+      scopeEl?.addEventListener('change', loadArticles);
+    }
+  }
+
   // if user isn't admin, force scope to published
-  const effectiveScope = isAdmin ? scope : 'published';
+  const effectiveScope = isAdmin ? (scopeEl?.value || 'published') : 'published';
 
   try{
     let items = [];

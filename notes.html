@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>综述/笔记（内科）· 肾域</title>
   <meta name="description" content="肾域 — 面向肾脏专科的学术社区、临床科研与医生工具平台">
-  <link rel="canonical" href="https://kidneysphere.com/notes" />
+  <meta name="robots" content="noindex,nofollow" />
   <link rel="icon" href="assets/logo.png" />
   <link rel="stylesheet" href="styles.css?v=20260213_001"/>
 </head>
@@ -22,7 +22,7 @@
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
         <a class="btn" href="learning.html#hot-articles">返回学习中心</a>
         <a class="btn" href="articles.html">去文章库（全量）</a>
-        <a class="btn primary" href="article-editor.html?tag=%E5%86%85%E7%A7%91%E7%AC%94%E8%AE%B0" data-admin-only hidden>写笔记</a>
+        <!-- Write button injected by JS for admins -->
       </div>
       <div class="small muted" style="margin-top:10px">
         默认仅展示带标签 <b>内科笔记</b> 的内容（可在编辑器里通过「标签」字段管理分类）。
@@ -40,10 +40,7 @@
 
       <div class="form-row" style="gap:10px;flex-wrap:wrap">
         <input class="input" id="articlesSearch" placeholder="搜索标题/摘要…" style="min-width:220px"/>
-        <select class="input" id="articlesScope" style="min-width:160px" data-admin-only hidden>
-          <option value="published">仅已发布</option>
-          <option value="all">全部（含草稿）</option>
-        </select>
+        <span id="articlesScopeWrap"></span>
         <button class="btn" id="articlesRefresh" type="button">刷新</button>
       </div>
     </div>
