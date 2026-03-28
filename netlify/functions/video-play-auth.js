@@ -5,14 +5,18 @@
  * Flow:
  *   1. Authenticate user via Supabase JWT
  *   2. Check video access via check_video_access RPC
- *   3. If authorized, call Aliyun VOD GetVideoPlayAuth API
- *   4. Return temporary playAuth token (valid ~100s by default)
+ *   3. If authorized, call Aliyun VOD GetPlayInfo API
+ *   4. Return temporary signed URL for playback
  *   5. Log the play attempt
  *
  * POST /api/videos/:id/play-auth
  * Headers: Authorization: Bearer <supabase_jwt>
- * Response: { playAuth, videoId, playerType, expiresIn }
+ * Response: { playURL, playerType, expiresIn }
  */
+
+const https = require('https');
+const http = require('http');
+const { createHmac } = require('crypto');
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -29,6 +33,38 @@ const json = (statusCode, payload) => ({
   },
   body: JSON.stringify(payload),
 });
+
+// ── HTTP helper using Node built-in modules (no fetch dependency) ──
+function httpRequest(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const mod = parsed.protocol === 'https:' ? https : http;
+    const reqOptions = {
+      hostname: parsed.hostname,
+      port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+      path: parsed.pathname + parsed.search,
+      method: options.method || 'GET',
+      headers: options.headers || {},
+    };
+    const req = mod.request(reqOptions, (res) => {
+      let body = '';
+      res.on('data', (chunk) => { body += chunk; });
+      res.on('end', () => {
+        resolve({
+          ok: res.statusCode >= 200 && res.statusCode < 300,
+          status: res.statusCode,
+          statusCode: res.statusCode,
+          text: () => Promise.resolve(body),
+          json: () => Promise.resolve(JSON.parse(body)),
+        });
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(10000, () => { req.destroy(new Error('timeout')); });
+    if (options.body) req.write(options.body);
+    req.end();
+  });
+}
 
 // ── Rate limiter ──
 const rateMap = new Map();
@@ -58,23 +94,17 @@ function pickToken(event) {
   return '';
 }
 
-// ── Supabase REST helper (service role) ──
+// ── Supabase REST helpers ──
 async function sbQuery(path) {
   const key = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      Accept: 'application/json',
-    },
+  return httpRequest(`${SUPABASE_URL}/rest/v1/${path}`, {
+    headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' },
   });
-  return res;
 }
 
 async function sbRpc(fnName, params, userToken) {
   const key = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
-  // Use user's token so auth.uid() works inside the function
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fnName}`, {
+  return httpRequest(`${SUPABASE_URL}/rest/v1/rpc/${fnName}`, {
     method: 'POST',
     headers: {
       apikey: SUPABASE_ANON_KEY,
@@ -84,12 +114,11 @@ async function sbRpc(fnName, params, userToken) {
     },
     body: JSON.stringify(params),
   });
-  return res;
 }
 
 async function sbInsert(table, row) {
   const key = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+  return httpRequest(`${SUPABASE_URL}/rest/v1/${table}`, {
     method: 'POST',
     headers: {
       apikey: key,
@@ -99,13 +128,9 @@ async function sbInsert(table, row) {
     },
     body: JSON.stringify(row),
   });
-  return res;
 }
 
-// ── Aliyun VOD: GetVideoPlayAuth ──
-// Uses HMAC-SHA1 signature per Alibaba Cloud OpenAPI spec
-const { createHmac } = require('crypto');
-
+// ── Aliyun VOD helpers ──
 function percentEncode(str) {
   return encodeURIComponent(str)
     .replace(/\+/g, '%20')
@@ -121,57 +146,18 @@ function generateNonce() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-async function aliyunGetVideoPlayAuth(videoId, authTimeout = 3000) {
-  if (!ALIYUN_VOD_ACCESS_KEY_ID || !ALIYUN_VOD_ACCESS_KEY_SECRET) {
-    return { error: 'aliyun_not_configured' };
-  }
-
-  const params = {
-    Action: 'GetVideoPlayAuth',
-    VideoId: videoId,
-    AuthInfoTimeout: String(authTimeout), // seconds, default 3000 (~50min)
-    Format: 'JSON',
-    Version: '2017-03-21',
-    AccessKeyId: ALIYUN_VOD_ACCESS_KEY_ID,
-    SignatureMethod: 'HMAC-SHA1',
-    SignatureVersion: '1.0',
-    SignatureNonce: generateNonce(),
-    Timestamp: formatISODate(),
-  };
-
-  // Build canonical query string (sorted)
+function buildAliyunSignedUrl(params) {
   const sortedKeys = Object.keys(params).sort();
   const canonicalQS = sortedKeys.map(k => `${percentEncode(k)}=${percentEncode(params[k])}`).join('&');
-
-  // String to sign
   const stringToSign = `GET&${percentEncode('/')}&${percentEncode(canonicalQS)}`;
-
-  // HMAC-SHA1 with key = AccessKeySecret + "&"
   const hmac = createHmac('sha1', ALIYUN_VOD_ACCESS_KEY_SECRET + '&');
   hmac.update(stringToSign);
   const signature = hmac.digest('base64');
-
-  // Build request URL
   const endpoint = `https://vod.${ALIYUN_VOD_REGION}.aliyuncs.com`;
-  const url = `${endpoint}/?${canonicalQS}&Signature=${percentEncode(signature)}`;
-
-  try {
-    const res = await fetch(url, { method: 'GET' });
-    const data = await res.json();
-    if (data.PlayAuth) {
-      return {
-        playAuth: data.PlayAuth,
-        videoMeta: data.VideoMeta || {},
-      };
-    }
-    return { error: data.Code || 'aliyun_error', message: data.Message || '' };
-  } catch (e) {
-    return { error: 'aliyun_fetch_failed', message: String(e?.message || e) };
-  }
+  return `${endpoint}/?${canonicalQS}&Signature=${percentEncode(signature)}`;
 }
 
-// ── Aliyun VOD: GetVideoInfo (for fallback signed URL) ──
-async function aliyunGetVideoInfo(videoId) {
+async function aliyunGetPlayInfo(videoId) {
   if (!ALIYUN_VOD_ACCESS_KEY_ID || !ALIYUN_VOD_ACCESS_KEY_SECRET) {
     return { error: 'aliyun_not_configured' };
   }
@@ -180,7 +166,7 @@ async function aliyunGetVideoInfo(videoId) {
     Action: 'GetPlayInfo',
     VideoId: videoId,
     Formats: '',
-    AuthTimeout: '3600', // 1 hour signed URL
+    AuthTimeout: '3600',
     Format: 'JSON',
     Version: '2017-03-21',
     AccessKeyId: ALIYUN_VOD_ACCESS_KEY_ID,
@@ -190,19 +176,11 @@ async function aliyunGetVideoInfo(videoId) {
     Timestamp: formatISODate(),
   };
 
-  const sortedKeys = Object.keys(params).sort();
-  const canonicalQS = sortedKeys.map(k => `${percentEncode(k)}=${percentEncode(params[k])}`).join('&');
-  const stringToSign = `GET&${percentEncode('/')}&${percentEncode(canonicalQS)}`;
-  const hmac = createHmac('sha1', ALIYUN_VOD_ACCESS_KEY_SECRET + '&');
-  hmac.update(stringToSign);
-  const signature = hmac.digest('base64');
-
-  const endpoint = `https://vod.${ALIYUN_VOD_REGION}.aliyuncs.com`;
-  const url = `${endpoint}/?${canonicalQS}&Signature=${percentEncode(signature)}`;
-
   try {
-    const res = await fetch(url, { method: 'GET' });
+    const url = buildAliyunSignedUrl(params);
+    const res = await httpRequest(url);
     const data = await res.json();
+    console.log('[video-play-auth] Aliyun GetPlayInfo response:', JSON.stringify(data).substring(0, 200));
     if (data.PlayInfoList?.PlayInfo?.length > 0) {
       const info = data.PlayInfoList.PlayInfo[0];
       return {
@@ -235,14 +213,13 @@ exports.handler = async (event) => {
       return json(405, { error: 'method_not_allowed' });
     }
 
-    // Extract video ID from path: /api/videos/:id/play-auth
     const pathMatch = (event.path || '').match(/\/api\/videos\/([^/]+)\/play-auth/);
     if (!pathMatch) {
       return json(400, { error: 'missing_video_id' });
     }
     const videoId = decodeURIComponent(pathMatch[1]);
+    console.log('[video-play-auth] videoId:', videoId);
 
-    // 1. Authenticate user
     const token = pickToken(event);
     if (!token) {
       return json(401, { error: 'unauthorized', message: '请先登录。' });
@@ -252,13 +229,15 @@ exports.handler = async (event) => {
       return json(500, { error: 'server_not_configured' });
     }
 
-    const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    // 1. Authenticate user
+    const userRes = await httpRequest(`${SUPABASE_URL}/auth/v1/user`, {
       headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
     });
     if (!userRes.ok) {
       return json(401, { error: 'invalid_token', message: '登录已过期，请重新登录。' });
     }
     const user = await userRes.json();
+    console.log('[video-play-auth] user authenticated:', user.id);
 
     // 2. Fetch video info
     const videoRes = await sbQuery(
@@ -275,6 +254,7 @@ exports.handler = async (event) => {
     if (!video.is_published && video.is_published !== null) {
       return json(403, { error: 'video_not_published' });
     }
+    console.log('[video-play-auth] video:', video.id, 'aliyun_vid:', video.aliyun_vid, 'kind:', video.kind);
 
     // 3. Access check
     const accessType = video.access_type || (video.is_paid ? 'paid_single' : 'registered_free');
@@ -283,7 +263,6 @@ exports.handler = async (event) => {
     if (accessType === 'registered_free') {
       canPlay = true;
     } else {
-      // Call check_video_access RPC with user's token
       const rpcRes = await sbRpc('check_video_access', {
         p_user_id: user.id,
         p_video_id: videoId,
@@ -294,16 +273,14 @@ exports.handler = async (event) => {
       }
     }
 
-    // Log the attempt
-    const logRow = {
+    // Log the attempt (fire and forget)
+    sbInsert('play_logs', {
       user_id: user.id,
       video_id: videoId,
       status: canPlay ? 'authorized' : 'denied',
       ip: ip,
       user_agent: (event.headers || {})['user-agent'] || '',
-    };
-    // Fire and forget — don't block response
-    sbInsert('play_logs', logRow).catch(() => {});
+    }).catch(() => {});
 
     if (!canPlay) {
       return json(403, {
@@ -313,9 +290,11 @@ exports.handler = async (event) => {
       });
     }
 
+    console.log('[video-play-auth] access granted, generating playback URL...');
+
     // 4. Generate playback authorization
 
-    // Bilibili videos: return bvid for iframe embed
+    // Bilibili videos
     if (video.kind === 'bilibili' && video.bvid) {
       return json(200, {
         playerType: 'bilibili',
@@ -324,13 +303,12 @@ exports.handler = async (event) => {
       });
     }
 
+    // Aliyun VOD signed URL
     const aliyunVid = video.aliyun_vid;
-
     if (aliyunVid && ALIYUN_VOD_ACCESS_KEY_ID && ALIYUN_VOD_ACCESS_KEY_SECRET) {
-      // Use GetPlayInfo to get a temporary signed URL (works with native HTML5 video)
-      // PlayAuth requires Aliplayer SDK License, so we prefer signed URLs
-      const playInfo = await aliyunGetVideoInfo(aliyunVid);
+      const playInfo = await aliyunGetPlayInfo(aliyunVid);
       if (playInfo.playURL) {
+        console.log('[video-play-auth] returning Aliyun signed URL');
         return json(200, {
           playerType: 'signed_url',
           playURL: playInfo.playURL,
@@ -339,19 +317,18 @@ exports.handler = async (event) => {
           expiresIn: 3600,
         });
       }
-      // If GetPlayInfo fails, fall through to mp4_url fallback below
+      console.log('[video-play-auth] Aliyun GetPlayInfo failed:', playInfo.error, playInfo.message);
     }
 
-    // Fallback: return source_url/mp4_url as temporary authorized URL
-    // This is for videos not yet migrated to Aliyun VOD
+    // Fallback: direct URL
     const fallbackUrl = video.mp4_url || video.source_url || '';
     if (fallbackUrl) {
+      console.log('[video-play-auth] returning fallback URL');
       return json(200, {
         playerType: 'direct_url',
         playURL: fallbackUrl,
         format: 'mp4',
         expiresIn: 0,
-        _warning: 'Using direct URL fallback. Migrate to Aliyun VOD for secure playback.',
       });
     }
 

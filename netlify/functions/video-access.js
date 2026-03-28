@@ -9,6 +9,9 @@
  * Response: { canPlay, needLogin, needPurchase, reason, video: {...} }
  */
 
+const https = require('https');
+const http = require('http');
+
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
@@ -21,6 +24,38 @@ const json = (statusCode, payload) => ({
   },
   body: JSON.stringify(payload),
 });
+
+// ── HTTP helper using Node built-in modules (no fetch dependency) ──
+function httpRequest(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const mod = parsed.protocol === 'https:' ? https : http;
+    const reqOptions = {
+      hostname: parsed.hostname,
+      port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+      path: parsed.pathname + parsed.search,
+      method: options.method || 'GET',
+      headers: options.headers || {},
+    };
+    const req = mod.request(reqOptions, (res) => {
+      let body = '';
+      res.on('data', (chunk) => { body += chunk; });
+      res.on('end', () => {
+        resolve({
+          ok: res.statusCode >= 200 && res.statusCode < 300,
+          status: res.statusCode,
+          statusCode: res.statusCode,
+          text: () => Promise.resolve(body),
+          json: () => Promise.resolve(JSON.parse(body)),
+        });
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(10000, () => { req.destroy(new Error('timeout')); });
+    if (options.body) req.write(options.body);
+    req.end();
+  });
+}
 
 const rateMap = new Map();
 function rateCheck(ip) {
@@ -46,14 +81,14 @@ function pickToken(event) {
 
 async function sbQuery(path) {
   const key = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
-  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+  return httpRequest(`${SUPABASE_URL}/rest/v1/${path}`, {
     headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' },
   });
 }
 
 exports.handler = async (event) => {
   console.log('[video-access] invoked, path:', event.path, 'method:', event.httpMethod);
-  console.log('[video-access] env: SUPABASE_URL=', SUPABASE_URL ? 'SET(' + SUPABASE_URL.substring(0, 30) + '...)' : 'MISSING',
+  console.log('[video-access] env: SUPABASE_URL=', SUPABASE_URL ? 'SET' : 'MISSING',
     'SERVICE_KEY=', SUPABASE_SERVICE_ROLE_KEY ? 'SET' : 'MISSING',
     'ANON_KEY=', SUPABASE_ANON_KEY ? 'SET' : 'MISSING');
   try {
@@ -62,7 +97,6 @@ exports.handler = async (event) => {
 
     if (event.httpMethod !== 'GET') return json(405, { error: 'method_not_allowed' });
 
-    // Extract video ID from path
     const pathMatch = (event.path || '').match(/\/api\/videos\/([^/]+)\/access/);
     if (!pathMatch) return json(400, { error: 'missing_video_id' });
     const videoId = decodeURIComponent(pathMatch[1]);
@@ -70,7 +104,6 @@ exports.handler = async (event) => {
 
     if (!SUPABASE_URL) return json(500, { error: 'server_not_configured' });
 
-    // Fetch video info (no sensitive URLs)
     console.log('[video-access] fetching video from DB...');
     const videoRes = await sbQuery(
       `learning_videos?id=eq.${encodeURIComponent(videoId)}&select=id,title,access_type,price,cover_image,description,speaker,category,kind,bvid,specialty_id,product_id,aliyun_vid,is_paid,membership_accessible,is_published,deleted_at&limit=1`
@@ -91,12 +124,11 @@ exports.handler = async (event) => {
     const accessType = video.access_type || (video.is_paid ? 'paid_single' : 'registered_free');
     console.log('[video-access] accessType:', accessType);
 
-    // Check user auth
     const token = pickToken(event);
     let user = null;
     if (token) {
       console.log('[video-access] verifying user token...');
-      const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      const userRes = await httpRequest(`${SUPABASE_URL}/auth/v1/user`, {
         headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
       });
       console.log('[video-access] user auth response:', userRes.status);
@@ -122,8 +154,7 @@ exports.handler = async (event) => {
       canPlay = true;
       reason = 'free';
     } else {
-      // Check access via service role RPC
-      const rpcRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/check_video_access`, {
+      const rpcRes = await httpRequest(`${SUPABASE_URL}/rest/v1/rpc/check_video_access`, {
         method: 'POST',
         headers: {
           apikey: SUPABASE_ANON_KEY,
@@ -153,8 +184,6 @@ exports.handler = async (event) => {
       }
     }
 
-    // Build safe video info (no URLs!)
-    // Include kind/bvid so frontend can render bilibili iframe directly
     const safeVideo = {
       id: video.id,
       title: video.title,
