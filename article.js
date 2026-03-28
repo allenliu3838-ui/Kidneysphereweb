@@ -12,7 +12,7 @@ import {
 import { applyShareMeta, copyToClipboard, buildStableUrl } from './share.js?v=20260118_001';
 
 import { renderSafeHtml } from './ks_richtext.js?v=20260213_001';
-import { fetchContentById, fetchMe } from './content-api.js?v=20260305_001';
+import { fetchContentById, fetchMe } from './content-api.js?v=20260328_002';
 
 const root = document.getElementById('articleRoot');
 const adminActionsEl = document.getElementById('adminArticleActions');

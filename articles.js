@@ -8,7 +8,7 @@ import {
   getUserProfile,
   isAdminRole,
 } from './supabaseClient.js?v=20260128_030';
-import { fetchContentList } from './content-api.js?v=20260305_001';
+import { fetchContentList } from './content-api.js?v=20260328_002';
 
 const listEl = document.getElementById('articlesList');
 const countEl = document.getElementById('articlesCount');
