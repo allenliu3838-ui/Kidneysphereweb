@@ -788,7 +788,20 @@ async function init(){
 
   if(!isConfigured()) return;
   await ensureSupabase();
-  const user = await getCurrentUser();
+
+  // Wait for Supabase auth session to be restored from localStorage
+  let user = await getCurrentUser();
+  if(!user){
+    // Session may not be restored yet; wait for auth state change
+    user = await new Promise((resolve)=>{
+      const { data:{ subscription } } = supabase.auth.onAuthStateChange((_event, session)=>{
+        subscription.unsubscribe();
+        resolve(session?.user || null);
+      });
+      // Timeout after 3 seconds if no auth event
+      setTimeout(()=>{ subscription.unsubscribe(); resolve(null); }, 3000);
+    });
+  }
   if(!user) return;
   const profile = await getUserProfile(user);
   const role = normalizeRole(profile?.role);
