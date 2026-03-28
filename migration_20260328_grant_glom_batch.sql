@@ -193,7 +193,9 @@ declare
     '1066129938@qq.com',
     'ruibaobring@aliyun.com',
     'xujunmei02@163.com',
-    '3931052891@qq.com'
+    '3931052891@qq.com',
+    '490802210@qq.com',
+    'haiyan_kang1205@163.com'
   ];
 begin
 
