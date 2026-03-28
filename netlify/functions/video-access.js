@@ -53,6 +53,9 @@ async function sbQuery(path) {
 
 exports.handler = async (event) => {
   console.log('[video-access] invoked, path:', event.path, 'method:', event.httpMethod);
+  console.log('[video-access] env: SUPABASE_URL=', SUPABASE_URL ? 'SET(' + SUPABASE_URL.substring(0, 30) + '...)' : 'MISSING',
+    'SERVICE_KEY=', SUPABASE_SERVICE_ROLE_KEY ? 'SET' : 'MISSING',
+    'ANON_KEY=', SUPABASE_ANON_KEY ? 'SET' : 'MISSING');
   try {
     const ip = getClientIp(event);
     if (!rateCheck(ip)) return json(429, { error: 'rate_limited' });
@@ -63,30 +66,43 @@ exports.handler = async (event) => {
     const pathMatch = (event.path || '').match(/\/api\/videos\/([^/]+)\/access/);
     if (!pathMatch) return json(400, { error: 'missing_video_id' });
     const videoId = decodeURIComponent(pathMatch[1]);
+    console.log('[video-access] videoId:', videoId);
 
     if (!SUPABASE_URL) return json(500, { error: 'server_not_configured' });
 
     // Fetch video info (no sensitive URLs)
+    console.log('[video-access] fetching video from DB...');
     const videoRes = await sbQuery(
       `learning_videos?id=eq.${encodeURIComponent(videoId)}&select=id,title,access_type,price,cover_image,description,speaker,category,kind,bvid,specialty_id,product_id,aliyun_vid,is_paid,membership_accessible,is_published,deleted_at&limit=1`
     );
-    if (!videoRes.ok) return json(500, { error: 'db_error' });
+    console.log('[video-access] DB response status:', videoRes.status);
+    if (!videoRes.ok) {
+      const errBody = await videoRes.text().catch(() => '');
+      console.error('[video-access] DB error body:', errBody);
+      return json(500, { error: 'db_error', detail: errBody });
+    }
     const videos = await videoRes.json();
     const video = videos?.[0];
+    console.log('[video-access] video found:', video ? video.id : 'null', 'title:', video?.title);
 
     if (!video || video.deleted_at) return json(404, { error: 'video_not_found' });
     if (!video.is_published && video.is_published !== null) return json(404, { error: 'video_not_published' });
 
     const accessType = video.access_type || (video.is_paid ? 'paid_single' : 'registered_free');
+    console.log('[video-access] accessType:', accessType);
 
     // Check user auth
     const token = pickToken(event);
     let user = null;
     if (token) {
+      console.log('[video-access] verifying user token...');
       const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
         headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
       });
+      console.log('[video-access] user auth response:', userRes.status);
       if (userRes.ok) user = await userRes.json();
+    } else {
+      console.log('[video-access] no auth token provided');
     }
 
     let canPlay = false;
@@ -121,8 +137,13 @@ exports.handler = async (event) => {
           p_specialty_id: video.specialty_id || null,
         }),
       });
+      console.log('[video-access] RPC response status:', rpcRes.status);
       if (rpcRes.ok) {
         canPlay = await rpcRes.json();
+        console.log('[video-access] check_video_access result:', canPlay);
+      } else {
+        const rpcErr = await rpcRes.text().catch(() => '');
+        console.error('[video-access] RPC error:', rpcErr);
       }
       if (canPlay) {
         reason = 'entitled';
@@ -151,6 +172,7 @@ exports.handler = async (event) => {
       membershipAccessible: video.membership_accessible || false,
     };
 
+    console.log('[video-access] result: canPlay=', canPlay, 'needLogin=', needLogin, 'needPurchase=', needPurchase, 'reason=', reason);
     return json(200, {
       canPlay,
       needLogin,

@@ -2,6 +2,9 @@
   publish = "."
   edge_functions = "netlify/edge-functions"
 
+[build.environment]
+  NODE_VERSION = "18"
+
 [functions]
   directory = "netlify/functions"
 
