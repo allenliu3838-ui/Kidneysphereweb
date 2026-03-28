@@ -2,6 +2,10 @@
   publish = "."
   edge_functions = "netlify/edge-functions"
 
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "none"
+
 # Article SSR: inject article content into HTML response
 [[edge_functions]]
   path = "/article"
