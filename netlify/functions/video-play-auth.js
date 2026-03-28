@@ -220,6 +220,11 @@ async function aliyunGetVideoInfo(videoId) {
 
 // ── Main handler ──
 exports.handler = async (event) => {
+  console.log('[video-play-auth] invoked, path:', event.path, 'method:', event.httpMethod);
+  console.log('[video-play-auth] env: SUPABASE_URL=', SUPABASE_URL ? 'SET' : 'MISSING',
+    'ANON_KEY=', SUPABASE_ANON_KEY ? 'SET' : 'MISSING',
+    'ALIYUN_KEY_ID=', ALIYUN_VOD_ACCESS_KEY_ID ? 'SET' : 'MISSING',
+    'ALIYUN_SECRET=', ALIYUN_VOD_ACCESS_KEY_SECRET ? 'SET' : 'MISSING');
   try {
     const ip = getClientIp(event);
     if (!rateCheck(ip, 20)) {
