@@ -238,11 +238,16 @@
             titleEl.textContent = dbVideo.title || '（无标题）';
             metaEl.textContent = dbVideo.speaker ? ('主讲：' + dbVideo.speaker) : '';
             initUrlPlayer(dbVideo.mp4_url || dbVideo.source_url, 'mp4');
+          }else if(token){
+            // Paid video, API unavailable but user has token — try play-auth directly
+            titleEl.textContent = dbVideo.title || '（无标题）';
+            metaEl.textContent = dbVideo.speaker ? ('主讲：' + dbVideo.speaker) : '';
+            await requestAndPlay(id, token, { title: dbVideo.title, speaker: dbVideo.speaker });
           }else{
-            // Paid video but API unavailable — show error
+            // Paid video, no token — show login prompt
             titleEl.textContent = dbVideo.title || '未找到该视频';
             metaEl.textContent = dbVideo.speaker ? ('主讲：' + dbVideo.speaker) : '';
-            wrap.innerHTML = `<div class="note">该视频需要通过后端授权播放，请稍后重试。</div>`;
+            wrap.innerHTML = `<div class="note">该视频为付费内容，请<a href="login.html?next=${encodeURIComponent(location.href)}">登录</a>后观看。</div>`;
           }
         }else{
           titleEl.textContent = '未找到该视频';
