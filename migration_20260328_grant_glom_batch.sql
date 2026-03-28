@@ -27,7 +27,6 @@ declare
     '717402900@qq.com',
     '280046819@qq.com',
     '1552413759@qq.com',
-    'lidi@example.com',
     '18535536987@163.com',
     '2016439436@qq.com',
     'smallguai@sina.com',
