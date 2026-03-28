@@ -52,6 +52,7 @@ async function sbQuery(path) {
 }
 
 exports.handler = async (event) => {
+  console.log('[video-access] invoked, path:', event.path, 'method:', event.httpMethod);
   try {
     const ip = getClientIp(event);
     if (!rateCheck(ip)) return json(429, { error: 'rate_limited' });
