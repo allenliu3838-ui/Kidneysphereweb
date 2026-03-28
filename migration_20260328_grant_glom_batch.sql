@@ -237,7 +237,7 @@ begin
     select
       _uid, 'project_access', _glom_product_id,
       _glom_specialty_id, _glom_project_id,
-      now(), null, 'active',
+      now(), now() + interval '365 days', 'active',
       'batch_grant_20260328_glom_paid_students'
     where not exists (
       select 1 from public.user_entitlements
