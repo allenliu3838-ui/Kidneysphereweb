@@ -779,34 +779,40 @@ async function saveEdit(){
 }
 
 async function init(){
+  console.log('[LC] init() start');
   // Hot articles are public
   loadHotArticles();
 
   // Admin video panel
-  if(!els.videoAdminPanel) return;
+  if(!els.videoAdminPanel){ console.log('[LC] no videoAdminPanel element'); return; }
   fillVideoCategories();
 
-  if(!isConfigured()) return;
+  if(!isConfigured()){ console.log('[LC] not configured'); return; }
   await ensureSupabase();
+  console.log('[LC] supabase ready');
 
   // Wait for Supabase auth session to be restored from localStorage
   let user = await getCurrentUser();
+  console.log('[LC] getCurrentUser:', user?.email || 'null');
   if(!user){
+    console.log('[LC] waiting for auth state change...');
     // Session may not be restored yet; wait for auth state change
     user = await new Promise((resolve)=>{
       const { data:{ subscription } } = supabase.auth.onAuthStateChange((_event, session)=>{
+        console.log('[LC] auth event:', _event, session?.user?.email || 'no user');
         subscription.unsubscribe();
         resolve(session?.user || null);
       });
       // Timeout after 3 seconds if no auth event
-      setTimeout(()=>{ subscription.unsubscribe(); resolve(null); }, 3000);
+      setTimeout(()=>{ console.log('[LC] auth timeout'); subscription.unsubscribe(); resolve(null); }, 3000);
     });
   }
-  if(!user) return;
+  if(!user){ console.log('[LC] no user, abort'); return; }
   const profile = await getUserProfile(user);
   const role = normalizeRole(profile?.role);
   const isAdmin = isAdminRole(role);
-  if(!isAdmin) return;
+  console.log('[LC] role:', role, 'isAdmin:', isAdmin);
+  if(!isAdmin){ console.log('[LC] not admin, abort'); return; }
 
   // Dynamically inject admin video panel HTML only when admin is authenticated
   if(els.videoAdminPanel && !document.getElementById('videoAddForm')){
