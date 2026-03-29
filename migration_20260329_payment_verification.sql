@@ -222,9 +222,9 @@ begin
 
     elsif _product.product_type = 'project_registration' then
       insert into public.user_entitlements (user_id, entitlement_type, source_order_id, source_product_id,
-        project_id, start_at, end_at, status, granted_by, grant_reason)
+        project_id, specialty_id, start_at, end_at, status, granted_by, grant_reason)
       values (_order.user_id, 'project_access', p_order_id, _product.id,
-        _product.project_id, now(), now() + coalesce((_product.duration_days || ' days')::interval, interval '365 days'),
+        _product.project_id, _product.specialty_id, now(), now() + coalesce((_product.duration_days || ' days')::interval, interval '365 days'),
         'active', _admin_id, 'order_approved');
 
       -- Auto-create enrollment if project_id set
@@ -240,9 +240,9 @@ begin
       -- Grant both project access and specialty bundle
       if _product.project_id is not null then
         insert into public.user_entitlements (user_id, entitlement_type, source_order_id, source_product_id,
-          project_id, start_at, end_at, status, granted_by, grant_reason)
+          project_id, specialty_id, start_at, end_at, status, granted_by, grant_reason)
         values (_order.user_id, 'project_access', p_order_id, _product.id,
-          _product.project_id, now(), now() + coalesce((_product.duration_days || ' days')::interval, interval '365 days'),
+          _product.project_id, _product.specialty_id, now(), now() + coalesce((_product.duration_days || ' days')::interval, interval '365 days'),
           'active', _admin_id, 'order_approved');
 
         insert into public.project_enrollments (user_id, project_id, cohort_id, source_order_id,
