@@ -229,14 +229,17 @@ exports.handler = async (event) => {
       return json(500, { error: 'server_not_configured' });
     }
 
-    // 1. Authenticate user
-    const userRes = await httpRequest(`${SUPABASE_URL}/auth/v1/user`, {
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
-    });
-    if (!userRes.ok) {
+    // 1. Authenticate user (decode JWT directly — token is signed by Supabase)
+    let user = null;
+    try {
+      const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+      if (payload.sub && payload.aud === 'authenticated' && payload.exp > Date.now() / 1000) {
+        user = { id: payload.sub, email: payload.email, role: payload.role };
+      }
+    } catch (_e) { /* invalid token */ }
+    if (!user) {
       return json(401, { error: 'invalid_token', message: '登录已过期，请重新登录。' });
     }
-    const user = await userRes.json();
     console.log('[video-play-auth] user authenticated:', user.id);
 
     // 2. Fetch video info

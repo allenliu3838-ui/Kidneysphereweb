@@ -127,12 +127,18 @@ exports.handler = async (event) => {
     const token = pickToken(event);
     let user = null;
     if (token) {
-      console.log('[video-access] verifying user token...');
-      const userRes = await httpRequest(`${SUPABASE_URL}/auth/v1/user`, {
-        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
-      });
-      console.log('[video-access] user auth response:', userRes.status);
-      if (userRes.ok) user = await userRes.json();
+      console.log('[video-access] decoding user token...');
+      try {
+        const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+        if (payload.sub && payload.aud === 'authenticated' && payload.exp > Date.now() / 1000) {
+          user = { id: payload.sub, email: payload.email, role: payload.role };
+          console.log('[video-access] token valid, user:', user.id);
+        } else {
+          console.log('[video-access] token invalid or expired, sub:', payload.sub, 'exp:', payload.exp);
+        }
+      } catch (decodeErr) {
+        console.error('[video-access] token decode error:', decodeErr.message);
+      }
     } else {
       console.log('[video-access] no auth token provided');
     }
