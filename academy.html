@@ -187,9 +187,9 @@
       <div class="tier-card">
         <div class="tier-icon">🎯</div>
         <div class="tier-title">专科整套课</div>
-        <div class="tier-for">永久解锁，自主学习</div>
+        <div class="tier-for">1年有效，自主学习</div>
         <ul class="tier-features">
-          <li>一次购买，永久回放</li>
+          <li>一次购买，1年回放</li>
           <li>该专科所有课程视频</li>
           <li>适合无法跟班期的医生</li>
           <li>早鸟价限时优惠</li>
@@ -284,7 +284,7 @@
       <button class="btn" data-spec-tab="icu" type="button">重症肾内科</button>
       <button class="btn" data-spec-tab="tx" type="button">肾移植内科</button>
       <button class="btn" data-spec-tab="patho" type="button">肾脏病理</button>
-      <button class="btn" data-spec-tab="da" type="button">透析通路 <span style="font-size:10px;opacity:.6;margin-left:3px">筹备中</span></button>
+      <button class="btn" data-spec-tab="da" type="button">透析通路 <span style="font-size:10px;color:#4ade80;margin-left:3px">招生中</span></button>
     </div>
 
     <!-- 肾小球病 -->
@@ -338,7 +338,7 @@
       <div class="bundle-banner" id="bundle-glom">
         <div class="bb-text">
           <b>肾小球病 · 专科整套课</b><br/>
-          一次购买，永久解锁全部课程视频。适合无法跟班期或希望反复回顾的医生。
+          一次购买，解锁全部课程视频（1年有效）。适合无法跟班期或希望反复回顾的医生。
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
           <div><span class="bb-price">¥980</span><span class="bb-orig">¥1,200</span></div>
@@ -398,7 +398,7 @@
       <div class="bundle-banner" id="bundle-icu">
         <div class="bb-text">
           <b>重症肾内科 · 专科整套课</b><br/>
-          一次购买，永久解锁全部课程视频。适合无法跟班期或希望反复回顾的医生。
+          一次购买，解锁全部课程视频（1年有效）。适合无法跟班期或希望反复回顾的医生。
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
           <div><span class="bb-price">¥980</span><span class="bb-orig">¥1,200</span></div>
@@ -458,7 +458,7 @@
       <div class="bundle-banner" id="bundle-tx">
         <div class="bb-text">
           <b>肾移植内科 · 专科整套课</b><br/>
-          一次购买，永久解锁全部课程视频。适合无法跟班期或希望反复回顾的医生。
+          一次购买，解锁全部课程视频（1年有效）。适合无法跟班期或希望反复回顾的医生。
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
           <div><span class="bb-price">¥980</span><span class="bb-orig">¥1,200</span></div>
@@ -518,7 +518,7 @@
       <div class="bundle-banner" id="bundle-patho">
         <div class="bb-text">
           <b>肾脏病理 · 专科整套课</b><br/>
-          一次购买，永久解锁全部课程视频。适合无法跟班期或希望反复回顾的医生。
+          一次购买，解锁全部课程视频（1年有效）。适合无法跟班期或希望反复回顾的医生。
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
           <div><span class="bb-price">¥980</span><span class="bb-orig">¥1,200</span></div>
@@ -527,11 +527,11 @@
       </div>
     </div>
 
-    <!-- 透析通路（筹备中） -->
+    <!-- 透析通路 -->
     <div class="spec-panel" id="spec-da">
 
-      <!-- 筹备中提示横幅 -->
-      <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:rgba(234,179,8,.07);border:1px solid rgba(234,179,8,.3);border-radius:12px;margin-bottom:16px">
+      <!-- 筹备中提示横幅（JS 根据项目状态自动隐藏/显示） -->
+      <div id="planning-banner-da" hidden style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:rgba(234,179,8,.07);border:1px solid rgba(234,179,8,.3);border-radius:12px;margin-bottom:16px">
         <div style="font-size:24px">🚧</div>
         <div>
           <div style="font-weight:700;font-size:15px">课程筹备中，敬请期待</div>
@@ -546,44 +546,43 @@
             <div style="font-size:13px;opacity:.7;margin-top:4px">AVF/AVG/CVC 建立与维护 · 通路并发症处理 · 腹膜透析置管 · 真实病例讨论</div>
             <a href="training-da.html" style="font-size:12px;margin-top:5px;display:inline-block">查看课程内容 →</a>
           </div>
-          <span class="proj-status planning" id="proj-status-da">筹备中</span>
+          <span class="proj-status enrollment" id="proj-status-da">招生中</span>
         </div>
 
         <div class="proj-meta">
-          <span>📅 <span id="proj-date-da">开班时间待定</span></span>
+          <span>📅 <span id="proj-date-da">预计 2026年8月开班，可先报名锁定早鸟价</span></span>
           <span>🎯 适合：肾内科医生 / 透析室医护 / 介入科医生</span>
           <span>📺 直播 + 回放 + 学习群</span>
         </div>
 
-        <!-- 价格预告（不可购买） -->
-        <div class="proj-pricing">
-          <div class="price-option recommended" style="opacity:.6;pointer-events:none">
+        <div class="proj-pricing" id="proj-pricing-da">
+          <div class="price-option recommended">
             <div class="rec-tag">★ 推荐</div>
             <div class="p-label">报名版（完整版）</div>
             <div><span class="p-price">¥1,280</span><span class="p-orig">¥1,580</span></div>
             <div class="p-includes">含直播互动 + 学习群 + 全程回放</div>
-            <div class="p-btn"><span class="btn primary" style="cursor:default;opacity:.5">开放后可报名</span></div>
+            <div class="p-btn"><a class="btn primary" href="checkout.html?product=DA-REG-FULL-2026">立即报名</a></div>
           </div>
-          <div class="price-option" style="opacity:.6;pointer-events:none">
+          <div class="price-option">
             <div class="p-label">视频版（回放版）</div>
             <div><span class="p-price">¥780</span><span class="p-orig">¥980</span></div>
             <div class="p-includes">仅含视频回放，不含直播与学习群</div>
-            <div class="p-btn"><span class="btn" style="cursor:default;opacity:.5">开放后可购买</span></div>
+            <div class="p-btn"><a class="btn" href="checkout.html?product=DA-REG-VIDEO-2026">购买视频版</a></div>
           </div>
         </div>
 
-        <div style="font-size:12px;opacity:.55;margin-top:4px">价格为预估，正式开放报名时确认。</div>
+        <div style="font-size:12px;opacity:.55;margin-top:4px">早鸟价截止 <b>2026年5月30日</b>，逾期恢复正价。登录后购买。</div>
       </div>
 
-      <!-- DA Bundle 预告 -->
-      <div class="bundle-banner" style="opacity:.6">
+      <!-- DA Bundle -->
+      <div class="bundle-banner" id="bundle-da">
         <div class="bb-text">
-          <b>透析通路 · 专科整套课</b>（筹备中）<br/>
-          一次购买，永久解锁全部课程视频。正式开放后可购买。
+          <b>透析通路 · 专科整套课</b><br/>
+          一次购买，解锁全部课程视频（1年有效）。适合无法跟班期或希望反复回顾的医生。
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
           <div><span class="bb-price">¥980</span><span class="bb-orig">¥1,200</span></div>
-          <span class="btn" style="cursor:default;opacity:.5">敬请期待</span>
+          <a class="btn" href="checkout.html?product=DA-BUNDLE-2026">购买整套课</a>
         </div>
       </div>
     </div>
@@ -649,7 +648,7 @@
             <td style="text-align:center">长期</td>
             <td style="text-align:center;background:rgba(63,131,248,.05)">班期内</td>
             <td style="text-align:center">班期内</td>
-            <td style="text-align:center">永久</td>
+            <td style="text-align:center">1年</td>
           </tr>
         </tbody>
       </table>
@@ -723,7 +722,7 @@
 
     <div class="faq-item">
       <div class="faq-q">整套课和报名版有什么不同？<span class="chev">▾</span></div>
-      <div class="faq-a">整套课是「永久解锁该专科所有课程视频」，没有班期限制，适合自主学习。报名版/视频版是按班期制的结构化学习，含具体的开课时间和学习节奏。</div>
+      <div class="faq-a">整套课是「解锁该专科所有课程视频（1年有效）」，没有班期限制，适合自主学习。报名版/视频版是按班期制的结构化学习，含具体的开课时间和学习节奏。</div>
     </div>
 
     <div class="faq-item">

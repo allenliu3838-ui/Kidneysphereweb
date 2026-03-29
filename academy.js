@@ -19,11 +19,11 @@ function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 function fmtPrice(p){ return p != null ? `¥${Number(p).toLocaleString('zh-CN',{minimumFractionDigits:0})}` : null; }
 
 function cohortStatusLabel(s){
-  const MAP = { planning:'筹备中', enrollment:'招募中', live:'进行中', concluded:'已结束' };
+  const MAP = { planning:'筹备中', enrollment:'招募中', live:'进行中', concluded:'已结束', recruiting:'招生中' };
   return MAP[s] || s || '筹备中';
 }
 function cohortStatusClass(s){
-  const MAP = { enrollment:'enrollment', live:'live', planning:'planning', concluded:'concluded' };
+  const MAP = { enrollment:'enrollment', live:'live', planning:'planning', concluded:'concluded', recruiting:'enrollment' };
   return MAP[s] || 'planning';
 }
 
@@ -51,6 +51,7 @@ async function init(){
     const spec = code.startsWith('ICU') ? 'icu'
                : code.startsWith('TX')  ? 'tx'
                : code.startsWith('PATHO') ? 'patho'
+               : code.startsWith('DA-')  ? 'da'
                : code.startsWith('GLOM-BUNDLE') || code.startsWith('GLOM-REG') ? 'glom'
                : null;
     if(!spec) continue;
@@ -78,8 +79,8 @@ async function init(){
   const memberMonthly = products.find(p => p.product_code === 'MEMBERSHIP-MONTHLY');
   renderMembership(memberYearly, memberMonthly, purchasedIds);
 
-  // 按专科渲染（DA 产品未上线，跳过价格覆盖，保留静态骨架）
-  ['glom','icu','tx','patho'].forEach(spec => {
+  // 按专科渲染
+  ['glom','icu','tx','patho','da'].forEach(spec => {
     const ps = bySpec[spec];
     if(!ps) return;
     renderPricingCards(spec, ps, purchasedIds);
@@ -116,7 +117,7 @@ async function fetchProjects(){
   const { data, error } = await supabase
     .from('learning_projects')
     .select('id,project_code,title,intro,status,cohorts(id,title,start_date,enrollment_deadline,status)')
-    .eq('status','live');
+    .in('status', ['live','recruiting','draft','planning']);
   if(error){
     // table may not exist yet in some deployments
     if(/relation|does not exist/i.test(String(error.message||''))) return [];
@@ -249,6 +250,26 @@ function renderProjectMeta(spec, proj){
     statusEl.textContent = cohortStatusLabel(projStatus);
     statusEl.className = `proj-status ${cohortStatusClass(projStatus)}`;
   }
+
+  // Also update the tab label
+  const tabBtn = document.querySelector(`[data-spec-tab="${spec}"]`);
+  if(tabBtn){
+    const statusColors = { live:'#4ade80', enrollment:'#4ade80', recruiting:'#4ade80', planning:'inherit', concluded:'#9ca3af' };
+    const existingSpan = tabBtn.querySelector('span');
+    const label = cohortStatusLabel(projStatus);
+    const color = statusColors[projStatus] || 'inherit';
+    if(existingSpan){
+      existingSpan.textContent = label;
+      existingSpan.style.color = color;
+      existingSpan.style.opacity = projStatus === 'planning' ? '.6' : '1';
+    } else if(projStatus !== 'planning') {
+      tabBtn.insertAdjacentHTML('beforeend', ` <span style="font-size:10px;color:${color};margin-left:3px">${label}</span>`);
+    }
+  }
+
+  // Hide/show planning banner
+  const planningBanner = document.getElementById(`planning-banner-${spec}`);
+  if(planningBanner) planningBanner.hidden = (projStatus !== 'planning');
 
   // Start date
   const dateEl = document.getElementById(`proj-date-${spec}`);
