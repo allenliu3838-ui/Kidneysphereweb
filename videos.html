@@ -517,14 +517,15 @@
         .select('entitlement_type, video_id, specialty_id, end_at, status')
         .eq('user_id', _currentUser.id)
         .eq('status', 'active')
-        .in('entitlement_type', ['single_video','specialty_bundle','membership'])
+        .in('entitlement_type', ['single_video','specialty_bundle','membership','project_access'])
         .or(`end_at.is.null,end_at.gt.${new Date().toISOString()}`);
 
       for(const e of (ents || [])){
         if(e.entitlement_type === 'single_video' && e.video_id){
           _accessSet.add(String(e.video_id));
-        } else if(e.entitlement_type === 'specialty_bundle' && e.specialty_id){
+        } else if((e.entitlement_type === 'specialty_bundle' || e.entitlement_type === 'project_access') && e.specialty_id){
           _accessSet.add('sp_' + String(e.specialty_id));
+          if(e.entitlement_type === 'project_access') _accessSet.add('membership');
         } else if(e.entitlement_type === 'membership'){
           _accessSet.add('membership');
         }
