@@ -37,7 +37,6 @@ const CONFIG_SOURCE = CFG_SUPABASE_URL ? 'module' : 'window';
 const SUPABASE_JS_VERSION = '2.89.0';
 
 const SUPABASE_ESM_CANDIDATES = [
-  `https://registry.npmmirror.com/@supabase/supabase-js/${SUPABASE_JS_VERSION}/files/dist/module/index.js`,
   `https://unpkg.com/@supabase/supabase-js@${SUPABASE_JS_VERSION}/dist/module/index.js`,
   `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@${SUPABASE_JS_VERSION}/+esm`,
   `https://esm.sh/@supabase/supabase-js@${SUPABASE_JS_VERSION}`,
@@ -93,12 +92,13 @@ async function loadCreateClient() {
     return _createClient;
   }
 
-  // 1) Try ESM candidates
-  for (const url of SUPABASE_ESM_CANDIDATES) {
+  // 1) Try UMD first (npmmirror UMD works reliably in China)
+  for (const url of SUPABASE_UMD_CANDIDATES) {
     try {
-      const mod = await import(url);
-      if (mod && typeof mod.createClient === 'function') {
-        _createClient = mod.createClient;
+      await loadScript(url);
+      const cc = pickGlobalCreateClient();
+      if (typeof cc === 'function') {
+        _createClient = cc;
         _supabaseLibSource = url;
         return _createClient;
       }
@@ -107,13 +107,12 @@ async function loadCreateClient() {
     }
   }
 
-  // 2) Fallback: inject UMD script
-  for (const url of SUPABASE_UMD_CANDIDATES) {
+  // 2) Fallback: try ESM candidates
+  for (const url of SUPABASE_ESM_CANDIDATES) {
     try {
-      await loadScript(url);
-      const cc = pickGlobalCreateClient();
-      if (typeof cc === 'function') {
-        _createClient = cc;
+      const mod = await import(url);
+      if (mod && typeof mod.createClient === 'function') {
+        _createClient = mod.createClient;
         _supabaseLibSource = url;
         return _createClient;
       }
