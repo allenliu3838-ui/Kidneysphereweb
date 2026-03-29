@@ -189,22 +189,36 @@
 
     // ── Get current user (don't force redirect yet) ──
     let currentUser = null;
-    for(let attempt = 0; attempt < 2; attempt++){
-      try{
-        const timeout = attempt === 0 ? 10000 : 15000;
-        const authTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('auth_timeout')), timeout));
-        currentUser = await Promise.race([getCurrentUser(), authTimeout]);
-        if(currentUser) break;
-        // If null on first attempt, wait and retry (SDK may still be loading from CDN)
-        if(attempt === 0){ await new Promise(r => setTimeout(r, 2000)); continue; }
-      }catch(e){
-        if(e?.message !== 'auth_timeout') console.warn('[watch] auth check error:', e);
-        if(attempt === 0){ await new Promise(r => setTimeout(r, 2000)); continue; }
+    let token = null;
+    try{
+      await ensureSupabase();
+      if(supabase){
+        // Try getSession first
+        const { data } = await supabase.auth.getSession();
+        if(data?.session?.user){
+          currentUser = data.session.user;
+          token = data.session.access_token;
+        }else{
+          // Session may not be restored yet — wait for onAuthStateChange
+          const result = await new Promise((resolve) => {
+            const tmr = setTimeout(() => resolve(null), 12000);
+            const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+              if(session?.user){
+                clearTimeout(tmr);
+                subscription.unsubscribe();
+                resolve(session);
+              }
+            });
+          });
+          if(result){
+            currentUser = result.user;
+            token = result.access_token;
+          }
+        }
       }
+    }catch(e){
+      console.warn('[watch] auth check error:', e);
     }
-
-    // ── Check access via backend API ──
-    const token = currentUser ? (await supabase?.auth?.getSession())?.data?.session?.access_token : null;
     const headers = { Accept: 'application/json' };
     if(token) headers.Authorization = `Bearer ${token}`;
 
