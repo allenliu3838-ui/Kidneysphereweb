@@ -113,15 +113,27 @@ async function showOrderDetail(orderId) {
   const items = order.order_items || [];
   const proofs = order.payment_proofs || [];
 
-  let proofHtml = '<div class="muted">无凭证</div>';
+  // ★ Amount mismatch detection
+  const orderAmount = Number(order.total_amount_cny) || 0;
+
+  let proofHtml = '<div class="muted" style="color:#ef4444;font-weight:600">⚠ 无凭证 — 该订单尚未上传任何支付凭证！</div>';
   if (proofs.length) {
-    proofHtml = proofs.map(p => `
-      <div class="card soft" style="padding:12px;margin-bottom:8px">
-        <div>渠道: ${esc(p.channel || '—')} | 金额: ¥${esc(String(p.amount_cny ?? '—'))} | 付款人: ${esc(p.payer_name || '—')}</div>
+    proofHtml = proofs.map(p => {
+      const proofAmount = Number(p.amount_cny) || 0;
+      const mismatch = proofAmount !== orderAmount;
+      const mismatchStyle = mismatch ? 'color:#ef4444;font-weight:600' : 'color:#22c55e';
+      const mismatchIcon = mismatch ? '⚠' : '✓';
+      return `
+      <div class="card soft" style="padding:12px;margin-bottom:8px${mismatch ? ';border:2px solid #ef4444' : ''}">
+        <div>渠道: ${esc(p.channel || '—')} | 付款人: ${esc(p.payer_name || '—')}</div>
+        <div style="${mismatchStyle};margin:4px 0">
+          ${mismatchIcon} 凭证金额: ¥${esc(String(p.amount_cny ?? '—'))} vs 订单金额: ¥${esc(String(orderAmount))}
+          ${mismatch ? ' — 金额不一致！请仔细核对' : ' — 金额一致'}
+        </div>
         <div class="small muted">流水后4位: ${esc(p.transfer_ref_last4 || '—')} | 提交: ${esc(formatBeijingDateTime(p.submitted_at))}</div>
         ${p.proof_bucket && p.proof_path ? `<button class="btn tiny" data-view-proof="${p.id}" data-bucket="${esc(p.proof_bucket)}" data-path="${esc(p.proof_path)}" type="button" style="margin-top:6px">查看凭证图</button>` : ''}
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   }
 
   const body = `
@@ -150,12 +162,47 @@ async function showOrderDetail(orderId) {
     ${order.remark ? `<div class="hr"></div><div class="small muted">备注: ${esc(order.remark)}</div>` : ''}
   `;
 
-  const footer = (order.status === 'pending_review' || order.status === 'pending_payment') ? `
-    <button class="btn primary" id="modalApprove" type="button">通过</button>
+  // ★ Review checklist for pending orders
+  const isPending = (order.status === 'pending_review' || order.status === 'pending_payment');
+  const checklistHtml = isPending ? `
+    <div class="hr"></div>
+    <h4>审核清单</h4>
+    <div style="padding:10px 12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;margin-bottom:8px">
+      <label class="small" style="display:block;margin:4px 0;cursor:pointer">
+        <input type="checkbox" class="review-check" /> 已查看凭证截图，确认为真实支付记录
+      </label>
+      <label class="small" style="display:block;margin:4px 0;cursor:pointer">
+        <input type="checkbox" class="review-check" /> 凭证金额与订单金额一致 (¥${esc(String(orderAmount))})
+      </label>
+      <label class="small" style="display:block;margin:4px 0;cursor:pointer">
+        <input type="checkbox" class="review-check" /> 收款方为本平台账户
+      </label>
+      <label class="small" style="display:block;margin:4px 0;cursor:pointer">
+        <input type="checkbox" class="review-check" /> 付款时间合理（非过期截图）
+      </label>
+    </div>
+  ` : '';
+
+  const footer = isPending ? `
+    <button class="btn primary" id="modalApprove" type="button" disabled title="请先完成审核清单">通过</button>
     <button class="btn danger" id="modalReject" type="button">驳回</button>
   ` : '';
 
-  showModal(`订单详情 ${order.order_no}`, body, footer);
+  showModal(`订单详情 ${order.order_no}`, body + checklistHtml, footer);
+
+  // ★ Bind checklist: enable approve button only when all checked
+  if (isPending) {
+    const modalBody = document.getElementById('modalBody');
+    const approveBtn = document.getElementById('modalApprove');
+    if (modalBody && approveBtn) {
+      modalBody.addEventListener('change', () => {
+        const checks = modalBody.querySelectorAll('.review-check');
+        const allChecked = checks.length > 0 && [...checks].every(c => c.checked);
+        approveBtn.disabled = !allChecked;
+        approveBtn.title = allChecked ? '' : '请先完成审核清单';
+      });
+    }
+  }
 
   // Bind proof view
   document.getElementById('modalBody')?.addEventListener('click', async e => {
