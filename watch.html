@@ -191,18 +191,25 @@
     let currentUser = null;
     let token = null;
     try{
+      console.log('[watch] step1: calling ensureSupabase...');
       await ensureSupabase();
+      console.log('[watch] step2: supabase ready?', !!supabase);
       if(supabase){
         // Try getSession first
+        console.log('[watch] step3: calling getSession...');
         const { data } = await supabase.auth.getSession();
+        console.log('[watch] step4: getSession result:', data?.session ? 'HAS SESSION' : 'NO SESSION');
         if(data?.session?.user){
           currentUser = data.session.user;
           token = data.session.access_token;
+          console.log('[watch] step5a: got user from getSession');
         }else{
           // Session may not be restored yet — wait for onAuthStateChange
+          console.log('[watch] step5b: waiting for onAuthStateChange...');
           const result = await new Promise((resolve) => {
-            const tmr = setTimeout(() => resolve(null), 12000);
+            const tmr = setTimeout(() => { console.log('[watch] step6: onAuthStateChange TIMEOUT'); resolve(null); }, 12000);
             const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+              console.log('[watch] step6: onAuthStateChange event:', event, 'hasSession:', !!session);
               if(session?.user){
                 clearTimeout(tmr);
                 subscription.unsubscribe();
@@ -213,12 +220,16 @@
           if(result){
             currentUser = result.user;
             token = result.access_token;
+            console.log('[watch] step7: got user from onAuthStateChange');
+          }else{
+            console.log('[watch] step7: NO user after onAuthStateChange');
           }
         }
       }
     }catch(e){
       console.warn('[watch] auth check error:', e);
     }
+    console.log('[watch] FINAL: currentUser=', !!currentUser, 'token=', !!token);
     const headers = { Accept: 'application/json' };
     if(token) headers.Authorization = `Bearer ${token}`;
 
