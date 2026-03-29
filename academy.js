@@ -269,7 +269,7 @@ function renderProjectMeta(spec, proj){
 
   // Hide/show planning banner
   const planningBanner = document.getElementById(`planning-banner-${spec}`);
-  if(planningBanner) planningBanner.hidden = (projStatus !== 'planning');
+  if(planningBanner) planningBanner.style.display = (projStatus === 'planning') ? 'flex' : 'none';
 
   // Start date
   const dateEl = document.getElementById(`proj-date-${spec}`);
