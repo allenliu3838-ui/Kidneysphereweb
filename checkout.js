@@ -93,41 +93,17 @@ async function createOrder() {
   btn.textContent = '创建订单中…';
 
   try {
-    // Generate order number via RPC
-    const { data: orderNo, error: noErr } = await supabase.rpc('generate_order_no');
-    if (noErr) throw noErr;
+    // Use server-side RPC to create order (price is read from products table server-side, tamper-proof)
+    const { data, error } = await supabase.rpc('create_order_with_items', {
+      p_product_id: _product.id,
+      p_channel: _channel,
+    });
+    if (error) throw error;
+    if (!data?.ok) throw new Error(data?.message || '创建订单失败');
 
-    // Insert order
-    const { data: order, error: oErr } = await supabase
-      .from('orders')
-      .insert({
-        order_no: orderNo,
-        user_id: _user.id,
-        total_amount_cny: _product.price_cny,
-        status: 'pending_payment',
-        channel: _channel,
-      })
-      .select()
-      .single();
-    if (oErr) throw oErr;
-
-    // Insert order item
-    const { error: iErr } = await supabase
-      .from('order_items')
-      .insert({
-        order_id: order.id,
-        product_id: _product.id,
-        product_type: _product.product_type,
-        product_title: _product.title,
-        quantity: 1,
-        unit_price_cny: _product.price_cny,
-        amount_cny: _product.price_cny,
-      });
-    if (iErr) throw iErr;
-
-    _order = order;
-    document.getElementById('displayOrderNo').textContent = order.order_no;
-    toast('订单已创建', `订单号: ${order.order_no}`, 'ok');
+    _order = { id: data.order_id, order_no: data.order_no };
+    document.getElementById('displayOrderNo').textContent = data.order_no;
+    toast('订单已创建', `订单号: ${data.order_no}`, 'ok');
     showPayStep();
   } catch (err) {
     toast('创建订单失败', err.message, 'err');
@@ -177,6 +153,13 @@ function updatePayUI() {
   notice.textContent = _sysConfig.payment_notice || '请在付款备注中填写您的订单号。';
 }
 
+/* ── compute SHA-256 hash of a File ── */
+async function hashFile(file) {
+  const buf = await file.arrayBuffer();
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 /* ── upload proof (step 3) ── */
 async function submitProof(e) {
   e.preventDefault();
@@ -202,6 +185,20 @@ async function submitProof(e) {
   }
   if (contactHint) contactHint.style.display = 'none';
 
+  hint.textContent = '正在校验凭证…';
+
+  // Compute file hash and check for duplicate proofs
+  let fileHash = null;
+  try {
+    fileHash = await hashFile(file);
+    const { data: dupCheck } = await supabase.rpc('check_proof_duplicate', { p_file_hash: fileHash });
+    if (dupCheck?.duplicate) {
+      hint.textContent = dupCheck.message || '该凭证图片已被使用过，请上传新的凭证。';
+      toast('凭证重复', dupCheck.message, 'err');
+      return;
+    }
+  } catch { /* hash check is best-effort, continue if it fails */ }
+
   hint.textContent = '上传中…';
 
   const bucket = 'payment_proofs';
@@ -224,6 +221,7 @@ async function submitProof(e) {
         payer_name: fd.get('payer_name')?.trim() || null,
         transfer_ref_last4: fd.get('ref_last4')?.trim() || null,
         amount_cny: _product.price_cny,
+        proof_file_hash: fileHash,
         proof_bucket: bucket,
         proof_path: path,
         submitted_at: new Date().toISOString(),

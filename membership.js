@@ -17,6 +17,24 @@ import {
   ALIPAY_PAY_QR_IMAGE,
 } from './assets/config.js';
 
+// ★ Redirect to unified checkout if a membership product exists
+(async function redirectToCheckout() {
+  if (isConfigured() && !supabase) await ensureSupabase();
+  if (!isConfigured() || !supabase) return;
+  try {
+    const { data } = await supabase
+      .from('products')
+      .select('product_code')
+      .eq('product_type', 'membership_plan')
+      .eq('is_active', true)
+      .limit(1)
+      .single();
+    if (data?.product_code) {
+      window.location.replace(`checkout.html?product=${encodeURIComponent(data.product_code)}`);
+    }
+  } catch { /* If products table doesn't exist yet, fall through to legacy flow */ }
+})();
+
 const gate = document.getElementById('memberGate');
 const statusWrap = document.getElementById('memberStatus');
 
