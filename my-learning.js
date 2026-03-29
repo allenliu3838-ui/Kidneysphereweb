@@ -113,6 +113,9 @@ function renderEntitlements(list) {
       let cta = '';
       if ((type === 'specialty_bundle' || type === 'project_access') && e.specialty_id) {
         cta = `<a class="btn tiny" href="videos.html?specialty=${encodeURIComponent(e.specialty_id)}">进入视频库</a>`;
+      } else if (type === 'project_access' && e.project_id) {
+        // project_access without specialty_id — link to learning center with project context
+        cta = `<a class="btn tiny" href="videos.html">进入视频库</a>`;
       } else if (type === 'single_video' && e.video_id) {
         cta = `<a class="btn tiny" href="watch.html?id=${encodeURIComponent(e.video_id)}">立即观看</a>`;
       } else if (type === 'membership') {
