@@ -150,6 +150,24 @@ function parseBili(url){
 function biliEmbedHtml(url){
   const info = parseBili(url);
   if(!info) return '';
+
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  if(isMobile){
+    const biliUrl = info.type === 'bvid'
+      ? `https://www.bilibili.com/video/${info.id}/`
+      : `https://www.bilibili.com/video/av${info.id}/`;
+    return `
+      <div class="video-embed-wrap">
+        <div class="video-embed bili-mobile-card" style="position:relative">
+          <a href="${esc(biliUrl)}" target="_blank" rel="noopener" class="bili-mobile-link">
+            <div class="bili-mobile-icon"><svg width="40" height="40" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="24" fill="rgba(0,161,214,.85)"/><polygon points="19,15 19,33 35,24" fill="#fff"/></svg></div>
+            <div class="bili-mobile-text">点击前往B站观看</div>
+          </a>
+        </div>
+      </div>
+    `;
+  }
+
   const src = info.type === 'bvid'
     ? `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(info.id)}&page=1&high_quality=1&danmaku=0`
     : `https://player.bilibili.com/player.html?aid=${encodeURIComponent(info.id)}&page=1&high_quality=1&danmaku=0`;

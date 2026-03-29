@@ -108,8 +108,15 @@
     if(titleEl) titleEl.textContent = sv.title || '（无标题）';
     if(metaEl)  metaEl.textContent  = sv.speaker ? ('主讲：' + sv.speaker) : '';
 
-    var embedSrc = 'https://player.bilibili.com/player.html?bvid=' + encodeURIComponent(sv.bvid) + '&page=1&high_quality=1&danmaku=0';
-    if(wrap) wrap.innerHTML = '<div class="video-embed"><iframe src="' + embedSrc + '" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe></div>';
+    var isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    if(isMobile){
+      // On mobile, Bilibili iframe often freezes; show a tap-to-open card instead
+      var biliUrl = 'https://www.bilibili.com/video/' + sv.bvid + '/';
+      if(wrap) wrap.innerHTML = '<div class="video-embed bili-mobile-card"><a href="' + biliUrl + '" target="_blank" rel="noopener" class="bili-mobile-link"><div class="bili-mobile-icon"><svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="24" fill="rgba(0,161,214,.85)"/><polygon points="19,15 19,33 35,24" fill="#fff"/></svg></div><div class="bili-mobile-text">点击前往B站观看</div></a></div>';
+    }else{
+      var embedSrc = 'https://player.bilibili.com/player.html?bvid=' + encodeURIComponent(sv.bvid) + '&page=1&high_quality=1&danmaku=0';
+      if(wrap) wrap.innerHTML = '<div class="video-embed"><iframe src="' + embedSrc + '" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe></div>';
+    }
     if(openBtn){ openBtn.href = 'https://www.bilibili.com/video/' + sv.bvid + '/'; openBtn.textContent = '打开B站'; openBtn.hidden = false; }
   }
   // For DB/paid videos: do NOT render immediately. Wait for module script to check access.
@@ -450,8 +457,14 @@
     }
 
     if(bvid){
-      const src = `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(bvid)}&page=1&high_quality=1&danmaku=0`;
-      wrap.innerHTML = `<div class="video-embed"><iframe src="${src}" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe></div>`;
+      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+      if(isMobile){
+        const biliUrl = `https://www.bilibili.com/video/${bvid}/`;
+        wrap.innerHTML = `<div class="video-embed bili-mobile-card"><a href="${biliUrl}" target="_blank" rel="noopener" class="bili-mobile-link"><div class="bili-mobile-icon"><svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="24" fill="rgba(0,161,214,.85)"/><polygon points="19,15 19,33 35,24" fill="#fff"/></svg></div><div class="bili-mobile-text">点击前往B站观看</div></a></div>`;
+      }else{
+        const src = `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(bvid)}&page=1&high_quality=1&danmaku=0`;
+        wrap.innerHTML = `<div class="video-embed"><iframe src="${src}" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe></div>`;
+      }
       openBtn.href = `https://www.bilibili.com/video/${bvid}/`;
       openBtn.textContent = '打开B站';
       openBtn.hidden = false;
