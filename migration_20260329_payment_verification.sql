@@ -262,6 +262,31 @@ begin
     end if;
   end loop;
 
+  -- ★ Auto-grant 1-year GlomCon membership for training project purchasers
+  -- If any order item is project_registration or registration_plus_bundle,
+  -- and user doesn't already have an active membership, grant one.
+  if exists(
+    select 1 from public.order_items oi
+    join public.products p on p.id = oi.product_id
+    where oi.order_id = p_order_id
+      and p.product_type in ('project_registration', 'registration_plus_bundle')
+  ) then
+    if not exists(
+      select 1 from public.user_entitlements
+      where user_id = _order.user_id
+        and entitlement_type = 'membership'
+        and status = 'active'
+        and (end_at is null or end_at > now())
+    ) then
+      insert into public.user_entitlements (user_id, entitlement_type, source_order_id,
+        start_at, end_at, status, granted_by, grant_reason)
+      values (_order.user_id, 'membership', p_order_id,
+        now(), now() + interval '365 days', 'active', _admin_id, '培训项目赠送会员');
+
+      update public.profiles set membership_status = 'member' where id = _order.user_id;
+    end if;
+  end if;
+
   -- Write audit log
   insert into public.audit_logs (operator_id, action, target_type, target_id, after_json)
   values (_admin_id, 'order_approved', 'order', p_order_id::text,
