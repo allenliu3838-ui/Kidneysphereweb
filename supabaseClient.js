@@ -37,6 +37,7 @@ const CONFIG_SOURCE = CFG_SUPABASE_URL ? 'module' : 'window';
 const SUPABASE_JS_VERSION = '2.89.0';
 
 const SUPABASE_ESM_CANDIDATES = [
+  `https://registry.npmmirror.com/@supabase/supabase-js/${SUPABASE_JS_VERSION}/files/dist/module/index.js`,
   `https://unpkg.com/@supabase/supabase-js@${SUPABASE_JS_VERSION}/dist/module/index.js`,
   `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@${SUPABASE_JS_VERSION}/+esm`,
   `https://esm.sh/@supabase/supabase-js@${SUPABASE_JS_VERSION}`,
@@ -44,8 +45,8 @@ const SUPABASE_ESM_CANDIDATES = [
 ];
 
 const SUPABASE_UMD_CANDIDATES = [
-  `https://unpkg.com/@supabase/supabase-js@${SUPABASE_JS_VERSION}/dist/umd/supabase.min.js`,
   `https://registry.npmmirror.com/@supabase/supabase-js/${SUPABASE_JS_VERSION}/files/dist/umd/supabase.min.js`,
+  `https://unpkg.com/@supabase/supabase-js@${SUPABASE_JS_VERSION}/dist/umd/supabase.min.js`,
   `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@${SUPABASE_JS_VERSION}/dist/umd/supabase.min.js`,
 ];
 

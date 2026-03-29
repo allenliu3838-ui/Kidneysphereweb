@@ -189,11 +189,18 @@
 
     // ── Get current user (don't force redirect yet) ──
     let currentUser = null;
-    try{
-      const authTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('auth_timeout')), 10000));
-      currentUser = await Promise.race([getCurrentUser(), authTimeout]);
-    }catch(e){
-      if(e?.message !== 'auth_timeout') console.warn('[watch] auth check error:', e);
+    for(let attempt = 0; attempt < 2; attempt++){
+      try{
+        const timeout = attempt === 0 ? 10000 : 15000;
+        const authTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('auth_timeout')), timeout));
+        currentUser = await Promise.race([getCurrentUser(), authTimeout]);
+        if(currentUser) break;
+        // If null on first attempt, wait and retry (SDK may still be loading from CDN)
+        if(attempt === 0){ await new Promise(r => setTimeout(r, 2000)); continue; }
+      }catch(e){
+        if(e?.message !== 'auth_timeout') console.warn('[watch] auth check error:', e);
+        if(attempt === 0){ await new Promise(r => setTimeout(r, 2000)); continue; }
+      }
     }
 
     // ── Check access via backend API ──
