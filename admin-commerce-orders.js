@@ -39,7 +39,7 @@ async function loadOrders() {
     .limit(100);
 
   if (filter === 'approved_no_proof') {
-    q = q.eq('status', 'approved');
+    q = q.in('status', ['approved', 'rejected']);
   } else if (filter !== 'all') {
     q = q.eq('status', filter);
   }
@@ -58,7 +58,7 @@ async function loadOrders() {
       .order('created_at', { ascending: false })
       .limit(100);
     if (filter === 'approved_no_proof') {
-      q2 = q2.eq('status', 'approved');
+      q2 = q2.in('status', ['approved', 'rejected']);
     } else if (filter !== 'all') {
       q2 = q2.eq('status', filter);
     }
@@ -112,8 +112,8 @@ async function loadOrders() {
   const warningBanner = isNoProof ? `
     <div style="padding:12px 16px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;margin-bottom:12px;color:#ef4444;font-weight:600">
       ⚠ 以下 ${rows.length} 个订单已通过审核但未上传任何支付凭证！
-      <button class="btn tiny danger" id="batchRevokeBtn" type="button" style="margin-left:12px;vertical-align:middle">
-        批量撤销权益
+      <button class="btn tiny danger" id="batchRejectBtn" type="button" style="margin-left:12px;vertical-align:middle">
+        批量驳回订单
       </button>
     </div>` : '';
 
@@ -134,16 +134,16 @@ async function loadOrders() {
           const userName = prof ? esc(prof.full_name || '未设置姓名') : '';
           const entStatus = orderEntStatusMap[r.id];
           const allRevoked = entStatus && entStatus.active === 0 && entStatus.revoked > 0;
-          const hasActive = entStatus && entStatus.active > 0;
-          const noEntitlements = !entStatus || entStatus.total === 0;
+          const isRejected = r.status === 'rejected';
+          const isDone = isRejected || allRevoked;
           let entLabel = '';
           if (isNoProof) {
-            if (allRevoked) entLabel = `<span style="color:#ef4444;font-weight:600">✕ 已撤销(${entStatus.revoked})</span>`;
-            else if (hasActive) entLabel = `<span style="color:#22c55e">${entStatus.active}条活跃</span>`;
-            else if (noEntitlements) entLabel = `<span class="muted">无权益</span>`;
+            if (isRejected) entLabel = `<span style="color:#ef4444;font-weight:600">✕ 已驳回</span>`;
+            else if (allRevoked) entLabel = `<span style="color:#ef4444;font-weight:600">✕ 权益已撤销</span>`;
+            else entLabel = statusLabel(r.status);
           }
           return `
-          <tr${allRevoked ? ' style="opacity:0.5"' : ''}>
+          <tr${isDone ? ' style="opacity:0.5"' : ''}>
             <td><code>${esc(r.order_no)}</code></td>
             ${isNoProof ? `<td class="small">${userName}<br/><code class="small">${esc(r.user_id)}</code></td>` : ''}
             <td><b>¥${esc(String(r.total_amount_cny ?? 0))}</b></td>
@@ -153,7 +153,7 @@ async function loadOrders() {
             <td class="small">${esc(formatBeijingDateTime(r.created_at))}</td>
             <td>
               <button class="btn tiny" data-detail="${r.id}" type="button">详情</button>
-              ${isNoProof && hasActive ? `<button class="btn tiny danger" data-revoke-order="${r.id}" data-order-no="${esc(r.order_no)}" type="button">撤销权益</button>` : ''}
+              ${isNoProof && r.status === 'approved' ? `<button class="btn tiny danger" data-reject-noproof="${r.id}" data-order-no="${esc(r.order_no)}" type="button">驳回订单</button>` : ''}
               ${(r.status === 'pending_review' || r.status === 'pending_payment') ? `
                 <button class="btn tiny primary" data-approve="${r.id}" type="button">通过</button>
                 <button class="btn tiny danger" data-reject="${r.id}" type="button">驳回</button>
@@ -328,91 +328,105 @@ async function rejectOrder(orderId, note) {
   }
 }
 
-async function revokeSingleOrderEntitlements(orderId, orderNo) {
-  const { data: ents, error: entErr } = await supabase
+const NO_PROOF_REJECT_REASON = '未上传付款凭证';
+
+async function rejectNoProofOrder(orderId, orderNo) {
+  if (!confirm(`确定驳回订单 ${orderNo}？\n理由: ${NO_PROOF_REJECT_REASON}\n\n将同时撤销该订单关联的所有权益。`)) return;
+
+  // 1. Revoke active entitlements
+  const { data: ents } = await supabase
     .from('user_entitlements')
-    .select('id, entitlement_type')
+    .select('id')
     .eq('source_order_id', orderId)
     .eq('status', 'active');
 
-  if (entErr) {
-    toast('查询失败', entErr.message, 'err');
-    return;
+  if (ents && ents.length) {
+    const { error: revErr } = await supabase
+      .from('user_entitlements')
+      .update({ status: 'revoked' })
+      .in('id', ents.map(e => e.id));
+    if (revErr) {
+      toast('撤销权益失败', revErr.message, 'err');
+      return;
+    }
   }
-  if (!ents || !ents.length) {
-    toast('无权益', `订单 ${orderNo} 没有关联的活跃权益。`, 'warn');
+
+  // 2. Reject the order
+  try {
+    const { error } = await supabase.rpc('admin_reject_order', {
+      p_order_id: orderId,
+      p_note: NO_PROOF_REJECT_REASON,
+    });
+    if (error) throw error;
+  } catch (err) {
+    toast('驳回失败', err.message, 'err');
     return;
   }
 
-  if (!confirm(`确定撤销订单 ${orderNo} 的 ${ents.length} 条权益？`)) return;
-
-  const { error } = await supabase
-    .from('user_entitlements')
-    .update({ status: 'revoked' })
-    .in('id', ents.map(e => e.id));
-
-  if (error) {
-    toast('撤销失败', error.message, 'err');
-    return;
-  }
-  toast('已撤销', `订单 ${orderNo} 的 ${ents.length} 条权益已撤销。`, 'ok');
+  const entCount = ents?.length || 0;
+  toast('已驳回', `订单 ${orderNo} 已驳回，${entCount ? `撤销 ${entCount} 条权益。` : '无关联权益。'}`, 'ok');
   loadOrders();
 }
 
-async function batchRevokeUnpaidEntitlements() {
+async function batchRejectNoProofOrders() {
   const orders = window._noProofOrders;
   if (!orders || !orders.length) {
-    toast('无数据', '没有需要撤销的订单。', 'err');
+    toast('无数据', '没有需要驳回的订单。', 'err');
     return;
   }
 
-  const orderIds = orders.map(r => r.id);
-  const orderNos = orders.map(r => r.order_no);
+  // Only process orders still in approved status
+  const approvedOrders = orders.filter(r => r.status === 'approved');
+  if (!approvedOrders.length) {
+    toast('已完成', '所有订单均已驳回。', 'ok');
+    return;
+  }
 
-  // Look up entitlements linked to these orders
-  const { data: ents, error: entErr } = await supabase
+  const orderIds = approvedOrders.map(r => r.id);
+  const msg = `确定批量驳回 ${approvedOrders.length} 个无凭证订单？\n理由: ${NO_PROOF_REJECT_REASON}\n\n将同时撤销所有关联权益，此操作不可撤销！`;
+  if (!confirm(msg)) return;
+
+  // 1. Batch revoke entitlements
+  const { data: ents } = await supabase
     .from('user_entitlements')
-    .select('id, user_id, entitlement_type, status, source_order_id')
+    .select('id')
     .in('source_order_id', orderIds)
     .eq('status', 'active');
 
-  if (entErr) {
-    toast('查询失败', entErr.message, 'err');
-    return;
+  if (ents && ents.length) {
+    const { error: revErr } = await supabase
+      .from('user_entitlements')
+      .update({ status: 'revoked' })
+      .in('id', ents.map(e => e.id));
+    if (revErr) {
+      toast('撤销权益失败', revErr.message, 'err');
+      return;
+    }
   }
 
-  if (!ents || !ents.length) {
-    toast('无权益', '这些订单没有关联的活跃权益可撤销。', 'warn');
-    return;
+  // 2. Reject each order
+  let rejected = 0;
+  for (const r of approvedOrders) {
+    const { error } = await supabase.rpc('admin_reject_order', {
+      p_order_id: r.id,
+      p_note: NO_PROOF_REJECT_REASON,
+    });
+    if (!error) rejected++;
   }
 
-  const msg = `确定撤销以下 ${ents.length} 条权益？\n\n涉及订单: ${orderNos.join(', ')}\n\n此操作不可撤销！`;
-  if (!confirm(msg)) return;
-
-  // Batch revoke
-  const entIds = ents.map(e => e.id);
-  const { error: revErr } = await supabase
-    .from('user_entitlements')
-    .update({ status: 'revoked' })
-    .in('id', entIds);
-
-  if (revErr) {
-    toast('撤销失败', revErr.message, 'err');
-    return;
-  }
-
-  toast('批量撤销完成', `已撤销 ${ents.length} 条权益。`, 'ok');
+  const entCount = ents?.length || 0;
+  toast('批量驳回完成', `已驳回 ${rejected} 个订单，撤销 ${entCount} 条权益。`, 'ok');
   loadOrders();
 }
 
 function bindEvents() {
   const wrap = document.getElementById('ordersTableWrap');
   wrap?.addEventListener('click', e => {
-    const batchBtn = e.target.closest('#batchRevokeBtn');
-    if (batchBtn) { batchRevokeUnpaidEntitlements(); return; }
+    const batchBtn = e.target.closest('#batchRejectBtn');
+    if (batchBtn) { batchRejectNoProofOrders(); return; }
 
-    const revokeBtn = e.target.closest('button[data-revoke-order]');
-    if (revokeBtn) { revokeSingleOrderEntitlements(revokeBtn.dataset.revokeOrder, revokeBtn.dataset.orderNo); return; }
+    const rejectNP = e.target.closest('button[data-reject-noproof]');
+    if (rejectNP) { rejectNoProofOrder(rejectNP.dataset.rejectNoproof, rejectNP.dataset.orderNo); return; }
 
     const detail = e.target.closest('button[data-detail]');
     if (detail) { showOrderDetail(detail.dataset.detail); return; }
