@@ -124,6 +124,15 @@ function showGrantForm() {
   });
 }
 
+function parseEmails(raw) {
+  return raw.split(/\n/)
+    .map(l => l.replace(/^\d+[\.\)、]\s*/, '').trim())
+    .filter(e => e && (e.includes('@') || e.includes('.')));
+}
+
+// Store last check results for batch grant
+let _lastCheckResults = [];
+
 async function bulkCheckEmails() {
   const input = document.getElementById('bulkEmailInput');
   const wrap = document.getElementById('bulkEmailResultWrap');
@@ -132,11 +141,7 @@ async function bulkCheckEmails() {
   const raw = input.value.trim();
   if (!raw) { toast('请输入', '请输入至少一个邮箱。', 'err'); return; }
 
-  // Parse emails: one per line, strip numbering like "1. " or "2. "
-  const emails = raw.split(/\n/)
-    .map(l => l.replace(/^\d+[\.\)、]\s*/, '').trim())
-    .filter(e => e && e.includes('@') || e.includes('.'));
-
+  const emails = parseEmails(raw);
   if (!emails.length) { toast('无有效邮箱', '未检测到有效邮箱地址。', 'err'); return; }
 
   wrap.innerHTML = '<div class="muted">查询中…</div>';
@@ -148,13 +153,27 @@ async function bulkCheckEmails() {
     if (error) throw error;
 
     const results = data || [];
-    const notOk = results.filter(r => r.status !== 'active');
+    _lastCheckResults = results;
+
+    const active = results.filter(r => r.status === 'active').length;
+    const noEnt = results.filter(r => r.status === 'no_entitlements').length;
+    const notReg = results.filter(r => r.status === 'not_registered').length;
+
+    // Enable/disable batch grant button
+    const grantBtn = document.getElementById('bulkGrantBtn');
+    if (grantBtn) {
+      grantBtn.disabled = noEnt === 0;
+      grantBtn.textContent = noEnt > 0
+        ? `批量开通 ${noEnt} 个未激活用户`
+        : '批量开通未激活用户';
+    }
 
     wrap.innerHTML = `
       <div style="padding:10px 12px;background:rgba(59,130,246,.08);border-radius:8px;margin-bottom:12px">
-        <b>查询结果:</b> 共 ${results.length} 个邮箱，
-        <span style="color:#22c55e">${results.length - notOk.length} 个已开通</span>，
-        <span style="color:#ef4444">${notOk.length} 个未开通/未注册</span>
+        <b>查询结果:</b> 共 ${results.length} 个邮箱 —
+        <span style="color:#22c55e">${active} 个已开通</span>，
+        <span style="color:#ef4444">${noEnt} 个已注册未开通</span>，
+        <span style="color:#888">${notReg} 个未注册</span>
       </div>
       <table class="data-table">
         <thead><tr>
@@ -165,7 +184,7 @@ async function bulkCheckEmails() {
             const isOk = r.status === 'active';
             const statusHtml = {
               'active': '<span style="color:#22c55e;font-weight:600">✅ 已开通</span>',
-              'no_entitlements': '<span style="color:#ef4444;font-weight:600">❌ 未开通</span>',
+              'no_entitlements': '<span style="color:#f59e0b;font-weight:600">⚠ 已注册未开通</span>',
               'not_registered': '<span style="color:#ef4444;font-weight:600">❌ 未注册</span>',
             }[r.status] || `<span class="muted">${esc(r.status)}</span>`;
             const types = (r.entitlement_types || []).map(t => esc(ENT_LABELS[t] || t)).join(', ');
@@ -182,6 +201,58 @@ async function bulkCheckEmails() {
       </table>`;
   } catch (err) {
     wrap.innerHTML = `<div class="note">${esc(err.message)}</div>`;
+  }
+}
+
+async function bulkGrantProject() {
+  const projectSel = document.getElementById('bulkGrantProject');
+  const projectCode = projectSel?.value;
+  if (!projectCode) { toast('请选择项目', '请先选择要开通的项目。', 'err'); return; }
+
+  // Get emails of registered but no entitlements users
+  const toGrant = _lastCheckResults.filter(r => r.status === 'no_entitlements');
+  if (!toGrant.length) { toast('无需开通', '没有需要开通的用户。', 'ok'); return; }
+
+  const projectName = projectSel.options[projectSel.selectedIndex]?.text || projectCode;
+  const emails = toGrant.map(r => r.email);
+
+  if (!confirm(`确定为以下 ${emails.length} 个用户开通「${projectName}」项目权限？\n\n${emails.join('\n')}`)) return;
+
+  try {
+    const { data, error } = await supabase.rpc('admin_batch_grant_project', {
+      p_emails: emails,
+      p_project_code: projectCode,
+      p_grant_reason: 'admin_batch_grant_' + new Date().toISOString().slice(0, 10),
+    });
+    if (error) throw error;
+
+    const r = data;
+    toast('批量开通完成',
+      `成功 ${r.granted} 人，已开通跳过 ${r.already_active} 人，未注册 ${r.not_found} 人`,
+      'ok');
+
+    // Re-run check to refresh results
+    bulkCheckEmails();
+  } catch (err) {
+    toast('开通失败', err.message, 'err');
+  }
+}
+
+async function loadProjectOptions() {
+  const sel = document.getElementById('bulkGrantProject');
+  if (!sel) return;
+
+  const { data } = await supabase
+    .from('learning_projects')
+    .select('id, project_code, title')
+    .order('title');
+
+  if (data && data.length) {
+    sel.innerHTML = data.map(p =>
+      `<option value="${esc(p.project_code)}">${esc(p.title)}</option>`
+    ).join('');
+  } else {
+    sel.innerHTML = '<option value="">无项目</option>';
   }
 }
 
@@ -210,10 +281,12 @@ function bindEvents() {
   }
 
   document.getElementById('bulkEmailCheckBtn')?.addEventListener('click', bulkCheckEmails);
+  document.getElementById('bulkGrantBtn')?.addEventListener('click', bulkGrantProject);
 
   document.getElementById('panel-entitlements')?.addEventListener('panel:show', () => loadEntitlements());
 }
 
 export function init() {
   bindEvents();
+  loadProjectOptions();
 }
