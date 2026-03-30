@@ -131,6 +131,7 @@ async function loadOrders() {
             <td class="small">${esc(formatBeijingDateTime(r.created_at))}</td>
             <td>
               <button class="btn tiny" data-detail="${r.id}" type="button">详情</button>
+              ${isNoProof ? `<button class="btn tiny danger" data-revoke-order="${r.id}" data-order-no="${esc(r.order_no)}" type="button">撤销权益</button>` : ''}
               ${(r.status === 'pending_review' || r.status === 'pending_payment') ? `
                 <button class="btn tiny primary" data-approve="${r.id}" type="button">通过</button>
                 <button class="btn tiny danger" data-reject="${r.id}" type="button">驳回</button>
@@ -305,6 +306,37 @@ async function rejectOrder(orderId, note) {
   }
 }
 
+async function revokeSingleOrderEntitlements(orderId, orderNo) {
+  const { data: ents, error: entErr } = await supabase
+    .from('user_entitlements')
+    .select('id, entitlement_type')
+    .eq('source_order_id', orderId)
+    .eq('status', 'active');
+
+  if (entErr) {
+    toast('查询失败', entErr.message, 'err');
+    return;
+  }
+  if (!ents || !ents.length) {
+    toast('无权益', `订单 ${orderNo} 没有关联的活跃权益。`, 'warn');
+    return;
+  }
+
+  if (!confirm(`确定撤销订单 ${orderNo} 的 ${ents.length} 条权益？`)) return;
+
+  const { error } = await supabase
+    .from('user_entitlements')
+    .update({ status: 'revoked' })
+    .in('id', ents.map(e => e.id));
+
+  if (error) {
+    toast('撤销失败', error.message, 'err');
+    return;
+  }
+  toast('已撤销', `订单 ${orderNo} 的 ${ents.length} 条权益已撤销。`, 'ok');
+  loadOrders();
+}
+
 async function batchRevokeUnpaidEntitlements() {
   const orders = window._noProofOrders;
   if (!orders || !orders.length) {
@@ -356,6 +388,9 @@ function bindEvents() {
   wrap?.addEventListener('click', e => {
     const batchBtn = e.target.closest('#batchRevokeBtn');
     if (batchBtn) { batchRevokeUnpaidEntitlements(); return; }
+
+    const revokeBtn = e.target.closest('button[data-revoke-order]');
+    if (revokeBtn) { revokeSingleOrderEntitlements(revokeBtn.dataset.revokeOrder, revokeBtn.dataset.orderNo); return; }
 
     const detail = e.target.closest('button[data-detail]');
     if (detail) { showOrderDetail(detail.dataset.detail); return; }
