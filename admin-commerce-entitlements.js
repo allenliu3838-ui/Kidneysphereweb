@@ -124,6 +124,67 @@ function showGrantForm() {
   });
 }
 
+async function bulkCheckEmails() {
+  const input = document.getElementById('bulkEmailInput');
+  const wrap = document.getElementById('bulkEmailResultWrap');
+  if (!input || !wrap) return;
+
+  const raw = input.value.trim();
+  if (!raw) { toast('请输入', '请输入至少一个邮箱。', 'err'); return; }
+
+  // Parse emails: one per line, strip numbering like "1. " or "2. "
+  const emails = raw.split(/\n/)
+    .map(l => l.replace(/^\d+[\.\)、]\s*/, '').trim())
+    .filter(e => e && e.includes('@') || e.includes('.'));
+
+  if (!emails.length) { toast('无有效邮箱', '未检测到有效邮箱地址。', 'err'); return; }
+
+  wrap.innerHTML = '<div class="muted">查询中…</div>';
+
+  try {
+    const { data, error } = await supabase.rpc('admin_check_user_emails', {
+      p_emails: emails,
+    });
+    if (error) throw error;
+
+    const results = data || [];
+    const notOk = results.filter(r => r.status !== 'active');
+
+    wrap.innerHTML = `
+      <div style="padding:10px 12px;background:rgba(59,130,246,.08);border-radius:8px;margin-bottom:12px">
+        <b>查询结果:</b> 共 ${results.length} 个邮箱，
+        <span style="color:#22c55e">${results.length - notOk.length} 个已开通</span>，
+        <span style="color:#ef4444">${notOk.length} 个未开通/未注册</span>
+      </div>
+      <table class="data-table">
+        <thead><tr>
+          <th>#</th><th>邮箱</th><th>姓名</th><th>状态</th><th>权益类型</th>
+        </tr></thead>
+        <tbody>
+          ${results.map((r, i) => {
+            const isOk = r.status === 'active';
+            const statusHtml = {
+              'active': '<span style="color:#22c55e;font-weight:600">✅ 已开通</span>',
+              'no_entitlements': '<span style="color:#ef4444;font-weight:600">❌ 未开通</span>',
+              'not_registered': '<span style="color:#ef4444;font-weight:600">❌ 未注册</span>',
+            }[r.status] || `<span class="muted">${esc(r.status)}</span>`;
+            const types = (r.entitlement_types || []).map(t => esc(ENT_LABELS[t] || t)).join(', ');
+            return `
+              <tr${isOk ? ' style="opacity:0.5"' : ''}>
+                <td>${i + 1}</td>
+                <td><code class="small">${esc(r.email)}</code></td>
+                <td class="small">${esc(r.full_name || '—')}</td>
+                <td>${statusHtml}</td>
+                <td class="small">${types || '—'}</td>
+              </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+  } catch (err) {
+    wrap.innerHTML = `<div class="note">${esc(err.message)}</div>`;
+  }
+}
+
 function bindEvents() {
   document.getElementById('entitlementsTableWrap')?.addEventListener('click', e => {
     const btn = e.target.closest('button[data-revoke-ent]');
@@ -147,6 +208,8 @@ function bindEvents() {
     grantBtn.addEventListener('click', showGrantForm);
     refreshBtn.parentNode.insertBefore(grantBtn, refreshBtn);
   }
+
+  document.getElementById('bulkEmailCheckBtn')?.addEventListener('click', bulkCheckEmails);
 
   document.getElementById('panel-entitlements')?.addEventListener('panel:show', () => loadEntitlements());
 }
