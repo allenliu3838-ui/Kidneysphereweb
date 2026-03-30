@@ -83,16 +83,28 @@ async function loadOrders() {
     return;
   }
 
-  // For approved_no_proof filter, fetch user profiles to show names/emails
+  // For approved_no_proof filter, fetch user profiles and entitlement status
   let profileMap = {};
+  let orderEntStatusMap = {};  // orderId -> { total, active, revoked }
   if (filter === 'approved_no_proof' && rows.length) {
     const userIds = [...new Set(rows.map(r => r.user_id))];
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, full_name, role')
-      .in('id', userIds);
-    if (profiles) {
-      profiles.forEach(p => { profileMap[p.id] = p; });
+    const orderIds = rows.map(r => r.id);
+    const [profileRes, entRes] = await Promise.all([
+      supabase.from('profiles').select('id, full_name, role').in('id', userIds),
+      supabase.from('user_entitlements').select('id, source_order_id, status').in('source_order_id', orderIds),
+    ]);
+    if (profileRes.data) {
+      profileRes.data.forEach(p => { profileMap[p.id] = p; });
+    }
+    if (entRes.data) {
+      entRes.data.forEach(e => {
+        if (!orderEntStatusMap[e.source_order_id]) {
+          orderEntStatusMap[e.source_order_id] = { total: 0, active: 0, revoked: 0 };
+        }
+        orderEntStatusMap[e.source_order_id].total++;
+        if (e.status === 'active') orderEntStatusMap[e.source_order_id].active++;
+        if (e.status === 'revoked') orderEntStatusMap[e.source_order_id].revoked++;
+      });
     }
   }
 
@@ -120,18 +132,28 @@ async function loadOrders() {
         ${rows.map(r => {
           const prof = profileMap[r.user_id];
           const userName = prof ? esc(prof.full_name || '未设置姓名') : '';
+          const entStatus = orderEntStatusMap[r.id];
+          const allRevoked = entStatus && entStatus.active === 0 && entStatus.revoked > 0;
+          const hasActive = entStatus && entStatus.active > 0;
+          const noEntitlements = !entStatus || entStatus.total === 0;
+          let entLabel = '';
+          if (isNoProof) {
+            if (allRevoked) entLabel = `<span style="color:#ef4444;font-weight:600">✕ 已撤销(${entStatus.revoked})</span>`;
+            else if (hasActive) entLabel = `<span style="color:#22c55e">${entStatus.active}条活跃</span>`;
+            else if (noEntitlements) entLabel = `<span class="muted">无权益</span>`;
+          }
           return `
-          <tr>
+          <tr${allRevoked ? ' style="opacity:0.5"' : ''}>
             <td><code>${esc(r.order_no)}</code></td>
             ${isNoProof ? `<td class="small">${userName}<br/><code class="small">${esc(r.user_id)}</code></td>` : ''}
             <td><b>¥${esc(String(r.total_amount_cny ?? 0))}</b></td>
             <td>${esc(r.channel || '—')}</td>
             <td class="small">${esc(r.contact_wechat || r.contact_phone || r.contact_email || '—')}</td>
-            <td>${statusLabel(r.status)}</td>
+            <td>${isNoProof ? entLabel : statusLabel(r.status)}</td>
             <td class="small">${esc(formatBeijingDateTime(r.created_at))}</td>
             <td>
               <button class="btn tiny" data-detail="${r.id}" type="button">详情</button>
-              ${isNoProof ? `<button class="btn tiny danger" data-revoke-order="${r.id}" data-order-no="${esc(r.order_no)}" type="button">撤销权益</button>` : ''}
+              ${isNoProof && hasActive ? `<button class="btn tiny danger" data-revoke-order="${r.id}" data-order-no="${esc(r.order_no)}" type="button">撤销权益</button>` : ''}
               ${(r.status === 'pending_review' || r.status === 'pending_payment') ? `
                 <button class="btn tiny primary" data-approve="${r.id}" type="button">通过</button>
                 <button class="btn tiny danger" data-reject="${r.id}" type="button">驳回</button>
