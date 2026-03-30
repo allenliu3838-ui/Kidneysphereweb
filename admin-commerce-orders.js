@@ -38,7 +38,11 @@ async function loadOrders() {
     .order('created_at', { ascending: false })
     .limit(100);
 
-  if (filter !== 'all') q = q.eq('status', filter);
+  if (filter === 'approved_no_proof') {
+    q = q.eq('status', 'approved');
+  } else if (filter !== 'all') {
+    q = q.eq('status', filter);
+  }
 
   let { data, error } = await q;
   // Backward compat: retry without contact columns if they don't exist yet
@@ -53,7 +57,11 @@ async function loadOrders() {
       `)
       .order('created_at', { ascending: false })
       .limit(100);
-    if (filter !== 'all') q2 = q2.eq('status', filter);
+    if (filter === 'approved_no_proof') {
+      q2 = q2.eq('status', 'approved');
+    } else if (filter !== 'all') {
+      q2 = q2.eq('status', filter);
+    }
     const r2 = await q2;
     data = r2.data;
     error = r2.error;
@@ -63,21 +71,59 @@ async function loadOrders() {
     return;
   }
 
-  const rows = data || [];
+  let rows = data || [];
+
+  // Client-side filter: approved orders with zero payment proofs
+  if (filter === 'approved_no_proof') {
+    rows = rows.filter(r => !r.payment_proofs || r.payment_proofs.length === 0);
+  }
+
   if (!rows.length) {
     wrap.innerHTML = '<div class="muted">没有符合条件的订单。</div>';
     return;
   }
 
+  // For approved_no_proof filter, fetch user profiles to show names/emails
+  let profileMap = {};
+  if (filter === 'approved_no_proof' && rows.length) {
+    const userIds = [...new Set(rows.map(r => r.user_id))];
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, full_name, role')
+      .in('id', userIds);
+    if (profiles) {
+      profiles.forEach(p => { profileMap[p.id] = p; });
+    }
+  }
+
+  const isNoProof = filter === 'approved_no_proof';
+  const warningBanner = isNoProof ? `
+    <div style="padding:12px 16px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;margin-bottom:12px;color:#ef4444;font-weight:600">
+      ⚠ 以下 ${rows.length} 个订单已通过审核但未上传任何支付凭证！
+      <button class="btn tiny danger" id="batchRevokeBtn" type="button" style="margin-left:12px;vertical-align:middle">
+        批量撤销权益
+      </button>
+    </div>` : '';
+
+  // Store rows for batch revoke
+  if (isNoProof) {
+    window._noProofOrders = rows;
+  }
+
   wrap.innerHTML = `
+    ${warningBanner}
     <table class="data-table">
       <thead><tr>
-        <th>订单号</th><th>金额</th><th>渠道</th><th>联系方式</th><th>状态</th><th>创建时间</th><th>操作</th>
+        <th>订单号</th>${isNoProof ? '<th>用户</th>' : ''}<th>金额</th><th>渠道</th><th>联系方式</th><th>状态</th><th>创建时间</th><th>操作</th>
       </tr></thead>
       <tbody>
-        ${rows.map(r => `
+        ${rows.map(r => {
+          const prof = profileMap[r.user_id];
+          const userName = prof ? esc(prof.full_name || '未设置姓名') : '';
+          return `
           <tr>
             <td><code>${esc(r.order_no)}</code></td>
+            ${isNoProof ? `<td class="small">${userName}<br/><code class="small">${esc(r.user_id)}</code></td>` : ''}
             <td><b>¥${esc(String(r.total_amount_cny ?? 0))}</b></td>
             <td>${esc(r.channel || '—')}</td>
             <td class="small">${esc(r.contact_wechat || r.contact_phone || r.contact_email || '—')}</td>
@@ -90,8 +136,8 @@ async function loadOrders() {
                 <button class="btn tiny danger" data-reject="${r.id}" type="button">驳回</button>
               ` : ''}
             </td>
-          </tr>
-        `).join('')}
+          </tr>`;
+        }).join('')}
       </tbody>
     </table>`;
 }
@@ -259,9 +305,58 @@ async function rejectOrder(orderId, note) {
   }
 }
 
+async function batchRevokeUnpaidEntitlements() {
+  const orders = window._noProofOrders;
+  if (!orders || !orders.length) {
+    toast('无数据', '没有需要撤销的订单。', 'err');
+    return;
+  }
+
+  const orderIds = orders.map(r => r.id);
+  const orderNos = orders.map(r => r.order_no);
+
+  // Look up entitlements linked to these orders
+  const { data: ents, error: entErr } = await supabase
+    .from('user_entitlements')
+    .select('id, user_id, entitlement_type, status, source_order_id')
+    .in('source_order_id', orderIds)
+    .eq('status', 'active');
+
+  if (entErr) {
+    toast('查询失败', entErr.message, 'err');
+    return;
+  }
+
+  if (!ents || !ents.length) {
+    toast('无权益', '这些订单没有关联的活跃权益可撤销。', 'warn');
+    return;
+  }
+
+  const msg = `确定撤销以下 ${ents.length} 条权益？\n\n涉及订单: ${orderNos.join(', ')}\n\n此操作不可撤销！`;
+  if (!confirm(msg)) return;
+
+  // Batch revoke
+  const entIds = ents.map(e => e.id);
+  const { error: revErr } = await supabase
+    .from('user_entitlements')
+    .update({ status: 'revoked' })
+    .in('id', entIds);
+
+  if (revErr) {
+    toast('撤销失败', revErr.message, 'err');
+    return;
+  }
+
+  toast('批量撤销完成', `已撤销 ${ents.length} 条权益。`, 'ok');
+  loadOrders();
+}
+
 function bindEvents() {
   const wrap = document.getElementById('ordersTableWrap');
   wrap?.addEventListener('click', e => {
+    const batchBtn = e.target.closest('#batchRevokeBtn');
+    if (batchBtn) { batchRevokeUnpaidEntitlements(); return; }
+
     const detail = e.target.closest('button[data-detail]');
     if (detail) { showOrderDetail(detail.dataset.detail); return; }
 

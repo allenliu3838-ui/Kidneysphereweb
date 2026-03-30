@@ -97,7 +97,7 @@ function injectCommerceContent() {
           </div>
         </div>
 
-        <div class="tab-panel active" id="panel-orders"><div class="card soft"><div class="section-title"><h3>订单核销中心</h3><div style="display:flex;gap:8px"><select class="input" id="orderFilterStatus" style="width:auto"><option value="pending_review">待审核</option><option value="pending_payment">待付款</option><option value="all">全部</option><option value="approved">已通过</option><option value="rejected">已驳回</option><option value="cancelled">已取消</option></select><button class="btn" id="refreshOrders" type="button">刷新</button></div></div><div id="ordersTableWrap" style="overflow-x:auto;margin-top:12px"><div class="muted">加载中…</div></div></div></div>
+        <div class="tab-panel active" id="panel-orders"><div class="card soft"><div class="section-title"><h3>订单核销中心</h3><div style="display:flex;gap:8px"><select class="input" id="orderFilterStatus" style="width:auto"><option value="pending_review">待审核</option><option value="pending_payment">待付款</option><option value="all">全部</option><option value="approved">已通过</option><option value="approved_no_proof">⚠ 已通过无凭证</option><option value="rejected">已驳回</option><option value="cancelled">已取消</option></select><button class="btn" id="refreshOrders" type="button">刷新</button></div></div><div id="ordersTableWrap" style="overflow-x:auto;margin-top:12px"><div class="muted">加载中…</div></div></div></div>
 
         <div class="tab-panel" id="panel-products"><div class="card soft"><div class="section-title"><h3>商品中心</h3><button class="btn primary" id="btnAddProduct" type="button">新建商品</button></div><div id="productsTableWrap" style="overflow-x:auto;margin-top:12px"><div class="muted">加载中…</div></div></div></div>
 
