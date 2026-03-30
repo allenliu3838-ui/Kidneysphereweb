@@ -105,10 +105,10 @@ begin
     raise exception 'Project not found: %', p_project_code;
   end if;
 
-  _specialty_id := _project.specialty_id;
+  _specialty_id := null;
 
-  -- Find a matching product for source reference
-  select id into _product_id from public.products
+  -- Find a matching product for source reference and specialty
+  select id, specialty_id into _product_id, _specialty_id from public.products
     where project_id = _project.id and product_type = 'project_registration' and is_active = true
     limit 1;
 
