@@ -24,7 +24,7 @@ async function loadOrders() {
   const wrap = document.getElementById('ordersTableWrap');
   if (!wrap) return;
 
-  const filter = document.getElementById('orderFilterStatus')?.value || 'pending_review';
+  const filter = document.getElementById('orderFilterStatus')?.value || 'pending_all';
 
   let q = supabase
     .from('orders')
@@ -40,6 +40,8 @@ async function loadOrders() {
 
   if (filter === 'approved_no_proof') {
     q = q.in('status', ['approved', 'rejected']);
+  } else if (filter === 'pending_all') {
+    q = q.in('status', ['pending_payment', 'pending_review']);
   } else if (filter !== 'all') {
     q = q.eq('status', filter);
   }
@@ -59,6 +61,8 @@ async function loadOrders() {
       .limit(100);
     if (filter === 'approved_no_proof') {
       q2 = q2.in('status', ['approved', 'rejected']);
+    } else if (filter === 'pending_all') {
+      q2 = q2.in('status', ['pending_payment', 'pending_review']);
     } else if (filter !== 'all') {
       q2 = q2.eq('status', filter);
     }
