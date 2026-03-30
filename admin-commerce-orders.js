@@ -100,7 +100,15 @@ async function loadOrders() {
   const warningBanner = isNoProof ? `
     <div style="padding:12px 16px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;margin-bottom:12px;color:#ef4444;font-weight:600">
       ⚠ 以下 ${rows.length} 个订单已通过审核但未上传任何支付凭证！
+      <button class="btn tiny danger" id="batchRevokeBtn" type="button" style="margin-left:12px;vertical-align:middle">
+        批量撤销权益
+      </button>
     </div>` : '';
+
+  // Store rows for batch revoke
+  if (isNoProof) {
+    window._noProofOrders = rows;
+  }
 
   wrap.innerHTML = `
     ${warningBanner}
@@ -297,9 +305,58 @@ async function rejectOrder(orderId, note) {
   }
 }
 
+async function batchRevokeUnpaidEntitlements() {
+  const orders = window._noProofOrders;
+  if (!orders || !orders.length) {
+    toast('无数据', '没有需要撤销的订单。', 'err');
+    return;
+  }
+
+  const orderIds = orders.map(r => r.id);
+  const orderNos = orders.map(r => r.order_no);
+
+  // Look up entitlements linked to these orders
+  const { data: ents, error: entErr } = await supabase
+    .from('user_entitlements')
+    .select('id, user_id, entitlement_type, status, source_order_id')
+    .in('source_order_id', orderIds)
+    .eq('status', 'active');
+
+  if (entErr) {
+    toast('查询失败', entErr.message, 'err');
+    return;
+  }
+
+  if (!ents || !ents.length) {
+    toast('无权益', '这些订单没有关联的活跃权益可撤销。', 'warn');
+    return;
+  }
+
+  const msg = `确定撤销以下 ${ents.length} 条权益？\n\n涉及订单: ${orderNos.join(', ')}\n\n此操作不可撤销！`;
+  if (!confirm(msg)) return;
+
+  // Batch revoke
+  const entIds = ents.map(e => e.id);
+  const { error: revErr } = await supabase
+    .from('user_entitlements')
+    .update({ status: 'revoked' })
+    .in('id', entIds);
+
+  if (revErr) {
+    toast('撤销失败', revErr.message, 'err');
+    return;
+  }
+
+  toast('批量撤销完成', `已撤销 ${ents.length} 条权益。`, 'ok');
+  loadOrders();
+}
+
 function bindEvents() {
   const wrap = document.getElementById('ordersTableWrap');
   wrap?.addEventListener('click', e => {
+    const batchBtn = e.target.closest('#batchRevokeBtn');
+    if (batchBtn) { batchRevokeUnpaidEntitlements(); return; }
+
     const detail = e.target.closest('button[data-detail]');
     if (detail) { showOrderDetail(detail.dataset.detail); return; }
 
