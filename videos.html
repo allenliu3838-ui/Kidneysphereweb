@@ -514,11 +514,14 @@
     try{
       const { data: ents } = await supabase
         .from('user_entitlements')
-        .select('entitlement_type, video_id, specialty_id, end_at, status')
+        .select('entitlement_type, video_id, specialty_id, project_id, end_at, status')
         .eq('user_id', _currentUser.id)
         .eq('status', 'active')
         .in('entitlement_type', ['single_video','specialty_bundle','membership','project_access'])
         .or(`end_at.is.null,end_at.gt.${new Date().toISOString()}`);
+
+      // Collect project_ids that need specialty lookup
+      const projectIdsNeedLookup = [];
 
       for(const e of (ents || [])){
         if(e.entitlement_type === 'single_video' && e.video_id){
@@ -526,9 +529,28 @@
         } else if((e.entitlement_type === 'specialty_bundle' || e.entitlement_type === 'project_access') && e.specialty_id){
           _accessSet.add('sp_' + String(e.specialty_id));
           if(e.entitlement_type === 'project_access') _accessSet.add('membership');
+        } else if(e.entitlement_type === 'project_access' && !e.specialty_id && e.project_id){
+          // project_access without specialty_id — need to look up from products table
+          projectIdsNeedLookup.push(e.project_id);
+          _accessSet.add('membership');
         } else if(e.entitlement_type === 'membership'){
           _accessSet.add('membership');
         }
+      }
+
+      // Look up specialty_id from products for project_access entitlements missing it
+      if(projectIdsNeedLookup.length){
+        try{
+          const { data: prods } = await supabase
+            .from('products')
+            .select('project_id, specialty_id')
+            .in('project_id', projectIdsNeedLookup)
+            .eq('is_active', true)
+            .not('specialty_id', 'is', null);
+          for(const p of (prods || [])){
+            if(p.specialty_id) _accessSet.add('sp_' + String(p.specialty_id));
+          }
+        }catch(_e){}
       }
     }catch(err){
       console.warn('loadUserAccess error:', err);
