@@ -192,8 +192,10 @@
   // Check if user has access to a paid video
   function hasVideoAccess(v){
     if(!v.is_paid) return true;
+    // Resolve specialty_id: use video's specialty_id, or fall back to category→specialty mapping
+    const spId = v.specialty_id || _categoryToSpecialtyId[v.category] || null;
     return _accessSet.has(v.id)
-      || (v.specialty_id && _accessSet.has('sp_' + v.specialty_id))
+      || (spId && _accessSet.has('sp_' + spId))
       || (v.membership_accessible && _accessSet.has('membership'));
   }
 
@@ -236,7 +238,8 @@
       if(v.product_id){
         btns += `<a class="btn primary" href="checkout.html?product_id=${encodeURIComponent(v.product_id)}">购买单集</a>`;
       }
-      const bundleId = v.specialty_id && _specialtyBundles[v.specialty_id];
+      const spId = v.specialty_id || _categoryToSpecialtyId[v.category] || null;
+      const bundleId = spId && _specialtyBundles[spId];
       if(bundleId){
         btns += `<a class="btn" href="checkout.html?product_id=${encodeURIComponent(bundleId)}">购买整套课</a>`;
       }
@@ -557,12 +560,16 @@
     }
   }
 
+  // Map specialty code → specialty id (for fallback when video has category but no specialty_id)
+  let _categoryToSpecialtyId = {};
+
   async function loadSpecialtyBundles(){
     if(!supabase) return;
     try{
-      const { data } = await supabase.from('specialties').select('id, bundle_product_id').eq('is_active', true);
+      const { data } = await supabase.from('specialties').select('id, code, bundle_product_id').eq('is_active', true);
       for(const s of (data || [])){
         if(s.bundle_product_id) _specialtyBundles[s.id] = s.bundle_product_id;
+        if(s.code) _categoryToSpecialtyId[s.code] = s.id;
       }
     }catch(_e){}
   }

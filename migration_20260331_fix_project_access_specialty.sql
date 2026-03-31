@@ -25,8 +25,24 @@ where ue.entitlement_type = 'project_access'
       and pr.is_active = true
   );
 
--- 2. Enhanced check_video_access: handle project_access with null specialty_id
+-- 2. Backfill: update learning_videos that have category matching a specialty code
+--    but no specialty_id set
+update public.learning_videos lv
+set specialty_id = (
+  select s.id from public.specialties s
+  where s.code = lv.category and s.is_active = true
+  limit 1
+)
+where lv.specialty_id is null
+  and lv.is_paid = true
+  and exists (
+    select 1 from public.specialties s
+    where s.code = lv.category and s.is_active = true
+  );
+
+-- 3. Enhanced check_video_access: handle project_access with null specialty_id
 --    by looking up specialty via project_id → products
+--    Also handles videos without specialty_id by falling back to category → specialties
 create or replace function public.check_video_access(
   p_user_id uuid,
   p_video_id uuid,
@@ -54,9 +70,15 @@ begin
   -- registered_free: always allowed for authenticated users
   if v_access_type = 'registered_free' then return true; end if;
 
-  -- Use p_specialty_id from param or from video record
+  -- Use p_specialty_id from param, from video record, or from category→specialty mapping
   if p_specialty_id is null then
     p_specialty_id := v_specialty_id;
+  end if;
+  if p_specialty_id is null then
+    select s.id into p_specialty_id from public.specialties s
+    join public.learning_videos lv on lv.id = p_video_id and s.code = lv.category
+    where s.is_active = true
+    limit 1;
   end if;
 
   -- Check single video entitlement
