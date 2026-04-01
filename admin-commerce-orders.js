@@ -256,9 +256,12 @@ async function showOrderDetail(orderId) {
     </div>
   ` : '';
 
+  const isRejected = order.status === 'rejected';
   const footer = isPending ? `
     <button class="btn primary" id="modalApprove" type="button" disabled title="请先完成审核清单">通过</button>
     <button class="btn danger" id="modalReject" type="button">驳回</button>
+  ` : isRejected ? `
+    <button class="btn primary" id="modalRevertReject" type="button">撤回驳回（恢复待审核）</button>
   ` : '';
 
   showModal(`订单详情 ${order.order_no}`, body + checklistHtml, footer);
@@ -302,6 +305,12 @@ async function showOrderDetail(orderId) {
     await rejectOrder(orderId, note);
     closeModal();
   });
+
+  document.getElementById('modalRevertReject')?.addEventListener('click', async () => {
+    if (!confirm('确定撤回驳回？订单将恢复为「待审核」状态。')) return;
+    await revertRejection(orderId);
+    closeModal();
+  });
 }
 
 async function approveOrder(orderId) {
@@ -329,6 +338,20 @@ async function rejectOrder(orderId, note) {
     loadOrders();
   } catch (err) {
     toast('驳回失败', err.message, 'err');
+  }
+}
+
+async function revertRejection(orderId) {
+  try {
+    const { data, error } = await supabase.rpc('admin_revert_rejection', {
+      p_order_id: orderId,
+      p_note: null,
+    });
+    if (error) throw error;
+    toast('已撤回', '订单已恢复为待审核状态。', 'ok');
+    loadOrders();
+  } catch (err) {
+    toast('撤回失败', err.message, 'err');
   }
 }
 
