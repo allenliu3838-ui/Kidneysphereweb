@@ -1,4 +1,4 @@
-import { getSupabase, isConfigured, toast } from './supabaseClient.js?v=20260128_030';
+import { getSupabase, isConfigured, toast } from './supabaseClient.js?v=20260401_fix';
 
 const listEl = document.getElementById('expertsList');
 const emptyEl = document.getElementById('expertsEmpty');

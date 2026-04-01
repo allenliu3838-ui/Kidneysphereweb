@@ -9,7 +9,7 @@ import {
   levelLabelFromPoints,
   formatBeijingDateTime,
   formatBeijingDate,
-} from './supabaseClient.js?v=20260309_001';
+} from './supabaseClient.js?v=20260401_fix';
 
 // DOM references — latest content section
 const momentsRoot = document.querySelector('[data-home-moments]');

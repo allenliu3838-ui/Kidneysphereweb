@@ -7,7 +7,7 @@
 //   const p = await pickDoctor({ title: '@医生', placeholder: '搜索姓名…' });
 //   if(p) insertAtCursor(textarea, formatMention(p));
 
-import { supabase, ensureSupabase, isConfigured, toast } from './supabaseClient.js?v=20260128_030';
+import { supabase, ensureSupabase, isConfigured, toast } from './supabaseClient.js?v=20260401_fix';
 
 function esc(str){
   return String(str ?? '').replace(/[&<>"']/g, s => ({

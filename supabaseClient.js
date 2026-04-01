@@ -331,7 +331,7 @@ export async function ensureSupabase() {
 }
 
 // Backward-compatible alias used by some page modules.
-// Several pages import { getSupabase } from './supabaseClient.js?v=20260128_030'.
+// Several pages import { getSupabase } from './supabaseClient.js?v=20260401_fix'.
 // Keep this wrapper to avoid breaking those imports.
 export async function getSupabase() {
   return await ensureSupabase();

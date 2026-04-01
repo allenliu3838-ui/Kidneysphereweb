@@ -1,4 +1,4 @@
-import { supabase, ensureSupabase, isConfigured, toast, getCurrentUser, getUserProfile, isAdminRole, normalizeRole } from './supabaseClient.js?v=20260309_001';
+import { supabase, ensureSupabase, isConfigured, toast, getCurrentUser, getUserProfile, isAdminRole, normalizeRole } from './supabaseClient.js?v=20260401_fix';
 
     // ── Auth guard: only admin users can access this page ──
     // Public visitors are redirected to the public research pilot page.

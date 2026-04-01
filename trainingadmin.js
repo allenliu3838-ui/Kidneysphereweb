@@ -10,7 +10,7 @@ import {
   getUserProfile,
   normalizeRole,
   isAdminRole,
-} from './supabaseClient.js?v=20260128_030';
+} from './supabaseClient.js?v=20260401_fix';
 
 const wrap = document.getElementById('trainingAdmin');
 const need = document.getElementById('trainingNeedAdmin');

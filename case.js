@@ -1,4 +1,4 @@
-import { supabase, isConfigured, toast, ensureAuthed, getCurrentUser, getUserProfile, isAdminRole, normalizeRole, formatBeijingDateTime } from './supabaseClient.js?v=20260128_030';
+import { supabase, isConfigured, toast, ensureAuthed, getCurrentUser, getUserProfile, isAdminRole, normalizeRole, formatBeijingDateTime } from './supabaseClient.js?v=20260401_fix';
 import { pickDoctor, formatMention, insertAtCursor } from './mentionPicker.js?v=20260130_001';
 import { mountKSEditor } from './ks_editor.js?v=20260213_001';
 import { renderSafeHtml } from './ks_richtext.js?v=20260213_001';

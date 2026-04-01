@@ -11,7 +11,7 @@ import {
   isConfigured,
   formatBeijingDateTime,
   toast,
-} from './supabaseClient.js?v=20260128_030';
+} from './supabaseClient.js?v=20260401_fix';
 
 const homeListEl = document.getElementById('homeTrainingList');
 const gridEl = document.getElementById('trainingProgramsGrid');

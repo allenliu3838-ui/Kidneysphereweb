@@ -6,7 +6,7 @@ import {
   isAdminRole,
   toast,
   formatBeijingDateTime,
-} from './supabaseClient.js?v=20260128_030';
+} from './supabaseClient.js?v=20260401_fix';
 
 // Expert PPT module:
 // - Members: browse + search

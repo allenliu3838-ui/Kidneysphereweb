@@ -3,7 +3,7 @@
  */
 import {
   supabase, toast, formatBeijingDateTime,
-} from './supabaseClient.js?v=20260325_002';
+} from './supabaseClient.js?v=20260401_fix';
 import { esc, statusDot, badge, showModal, closeModal } from './admin-commerce.js?v=20260325_002';
 
 const STATUS_MAP = {

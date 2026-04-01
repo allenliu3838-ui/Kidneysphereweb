@@ -2,7 +2,7 @@
  * admin-commerce-projects.js — 项目中心 + 班期管理模块
  * Handles: learning_projects CRUD + cohorts CRUD + enrollment list
  */
-import { supabase, toast } from './supabaseClient.js?v=20260325_001';
+import { supabase, toast } from './supabaseClient.js?v=20260401_fix';
 import { esc, fmtDate, showModal, closeModal } from './admin-commerce.js?v=20260325_001';
 
 const STATUS_LABELS = {

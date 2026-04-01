@@ -1,4 +1,4 @@
-import { supabase, ensureSupabase, getCurrentUser } from './supabaseClient.js?v=20260128_030';
+import { supabase, ensureSupabase, getCurrentUser } from './supabaseClient.js?v=20260401_fix';
 
 async function getAuthToken(){
   await ensureSupabase();

@@ -2,7 +2,7 @@ import {
   getSupabase,
   getCurrentUser,
   getUserProfile,
-} from './supabaseClient.js?v=20260128_030';
+} from './supabaseClient.js?v=20260401_fix';
 
 const input = document.getElementById('roleSearchInput');
 const searchBtn = document.getElementById('roleSearchBtn');

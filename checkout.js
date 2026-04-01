@@ -5,7 +5,7 @@
 import {
   supabase, ensureSupabase, isConfigured,
   getCurrentUser, getUserProfile, toast, formatBeijingDateTime,
-} from './supabaseClient.js?v=20260322_001';
+} from './supabaseClient.js?v=20260401_fix';
 
 /* ── helpers ── */
 function esc(s) {

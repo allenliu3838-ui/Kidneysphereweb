@@ -6,7 +6,7 @@
 import {
   supabase, ensureSupabase, isConfigured,
   getCurrentUser, getUserProfile, isAdminRole, toast,
-} from './supabaseClient.js?v=20260325_001';
+} from './supabaseClient.js?v=20260401_fix';
 
 /* ── helpers ── */
 export function esc(s) {

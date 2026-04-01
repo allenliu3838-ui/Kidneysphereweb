@@ -11,7 +11,7 @@ import {
   ensureSupabase,
   isConfigured,
   getSession,
-} from './supabaseClient.js?v=20260128_030';
+} from './supabaseClient.js?v=20260401_fix';
 
 // ── 工具函数 ──────────────────────────────────────────────────
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }

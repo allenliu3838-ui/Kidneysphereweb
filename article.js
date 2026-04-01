@@ -7,7 +7,7 @@ import {
   getCurrentUser,
   getUserProfile,
   isAdminRole,
-} from './supabaseClient.js?v=20260128_030';
+} from './supabaseClient.js?v=20260401_fix';
 
 import { applyShareMeta, copyToClipboard, buildStableUrl } from './share.js?v=20260118_001';
 

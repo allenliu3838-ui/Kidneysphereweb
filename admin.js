@@ -7,7 +7,7 @@ import {
   normalizeRole,
   isAdminRole,
   toast,
-} from './supabaseClient.js?v=20260128_030';
+} from './supabaseClient.js?v=20260401_fix';
 
 const gate = document.getElementById('adminGate');
 const root = document.getElementById('adminRoot');

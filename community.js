@@ -1,4 +1,4 @@
-import { supabase, ensureSupabase, isConfigured, toast, getCurrentUser, getUserProfile, isAdminRole, normalizeRole } from './supabaseClient.js?v=20260128_030';
+import { supabase, ensureSupabase, isConfigured, toast, getCurrentUser, getUserProfile, isAdminRole, normalizeRole } from './supabaseClient.js?v=20260401_fix';
 
 // Admin UI view mode (frontend-only)
 // Why: admin/super-admin accounts may want to browse as a normal member.
