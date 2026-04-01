@@ -44,6 +44,7 @@ const SUPABASE_ESM_CANDIDATES = [
 ];
 
 const SUPABASE_UMD_CANDIDATES = [
+  `/assets/lib/supabase.min.js`,
   `https://registry.npmmirror.com/@supabase/supabase-js/${SUPABASE_JS_VERSION}/files/dist/umd/supabase.min.js`,
   `https://unpkg.com/@supabase/supabase-js@${SUPABASE_JS_VERSION}/dist/umd/supabase.min.js`,
   `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@${SUPABASE_JS_VERSION}/dist/umd/supabase.min.js`,
