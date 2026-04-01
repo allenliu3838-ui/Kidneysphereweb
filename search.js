@@ -1,4 +1,4 @@
-import { ensureSupabase, getSession, isConfigured, toast, formatBeijingDateTime } from './supabaseClient.js?v=20260211_001';
+import { ensureSupabase, getSession, isConfigured, toast, formatBeijingDateTime } from './supabaseClient.js?v=20260401_fix';
 
 const els = {
   q: document.getElementById('siteSearchInput'),

@@ -1,4 +1,4 @@
-import { supabase, ensureSupabase, getSession, getUserProfile, ensureAuthed, signOut, toast, isConfigured, isAdminRole, normalizeRole, computeLevelFromPoints, levelName } from './supabaseClient.js?v=20260128_030';
+import { supabase, ensureSupabase, getSession, getUserProfile, ensureAuthed, signOut, toast, isConfigured, isAdminRole, normalizeRole, computeLevelFromPoints, levelName } from './supabaseClient.js?v=20260401_fix';
 
 // ------------------------------------------------------------
 // Password recovery guard (Supabase)

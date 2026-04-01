@@ -1,7 +1,7 @@
 /**
  * admin-commerce-products.js — 商品管理模块
  */
-import { supabase, toast } from './supabaseClient.js?v=20260325_001';
+import { supabase, toast } from './supabaseClient.js?v=20260401_fix';
 import { esc, fmtDate, showModal, closeModal } from './admin-commerce.js?v=20260325_001';
 
 const TYPE_LABELS = {

@@ -1,4 +1,4 @@
-import { supabase, ensureSupabase, isConfigured, ensureAuthed, toast, getCurrentUser, formatBeijingDate } from './supabaseClient.js?v=20260128_030';
+import { supabase, ensureSupabase, isConfigured, ensureAuthed, toast, getCurrentUser, formatBeijingDate } from './supabaseClient.js?v=20260401_fix';
 
 const els = {
   casesList: document.getElementById('casesList'),

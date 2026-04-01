@@ -1,4 +1,4 @@
-import { getSupabase, isConfigured, toast } from './supabaseClient.js?v=20260128_030';
+import { getSupabase, isConfigured, toast } from './supabaseClient.js?v=20260401_fix';
 
 const singleListEl = document.getElementById('showcaseList');
 const singleEmptyEl = document.getElementById('showcaseEmpty');

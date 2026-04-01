@@ -1,4 +1,4 @@
-import { supabase, ensureSupabase, isConfigured, toast } from './supabaseClient.js?v=20260128_030';
+import { supabase, ensureSupabase, isConfigured, toast } from './supabaseClient.js?v=20260401_fix';
 
 const root = document.getElementById('sponsorsList');
 

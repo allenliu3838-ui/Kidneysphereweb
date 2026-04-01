@@ -9,7 +9,7 @@ import {
   isAdminRole,
   normalizeRole,
   formatBeijingDateTime,
-} from './supabaseClient.js?v=20260128_030';
+} from './supabaseClient.js?v=20260401_fix';
 
 import { pickDoctor, formatMention, insertAtCursor } from './mentionPicker.js?v=20260130_001';
 

@@ -1,7 +1,7 @@
 /**
  * admin-commerce-config.js — 系统配置模块（含收款码图片上传）
  */
-import { supabase, toast } from './supabaseClient.js?v=20260325_001';
+import { supabase, toast } from './supabaseClient.js?v=20260401_fix';
 import { esc } from './admin-commerce.js?v=20260325_001';
 
 /* keys that should render as image-upload fields */

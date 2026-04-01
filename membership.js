@@ -7,7 +7,7 @@ import {
   normalizeRole,
   toast,
   formatBeijingDateTime,
-} from './supabaseClient.js?v=20260122_001';
+} from './supabaseClient.js?v=20260401_fix';
 
 import {
   MEMBERSHIP_ENABLED,

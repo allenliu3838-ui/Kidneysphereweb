@@ -8,7 +8,7 @@ import {
   isAdminRole,
   toast,
   formatBeijingDateTime,
-} from './supabaseClient.js?v=20260122_001';
+} from './supabaseClient.js?v=20260401_fix';
 
 const wrap = document.getElementById('membershipOrders');
 const hint = document.getElementById('membershipOrdersHint');

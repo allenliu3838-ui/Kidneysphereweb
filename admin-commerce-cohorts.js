@@ -1,7 +1,7 @@
 /**
  * admin-commerce-cohorts.js — 班期管理模块
  */
-import { supabase, toast, formatBeijingDateTime } from './supabaseClient.js?v=20260325_001';
+import { supabase, toast, formatBeijingDateTime } from './supabaseClient.js?v=20260401_fix';
 import { esc, fmtDate, statusDot, showModal, closeModal } from './admin-commerce.js?v=20260325_001';
 
 const STATUS_MAP = {

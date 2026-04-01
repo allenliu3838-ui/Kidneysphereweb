@@ -3,7 +3,7 @@ import {
   isConfigured,
   toast,
   formatBeijingDateTime,
-} from './supabaseClient.js?v=20260128_030';
+} from './supabaseClient.js?v=20260401_fix';
 
 function escapeHtml(str) {
   return String(str ?? '').replace(/[&<>'"]/g, (c) => ({

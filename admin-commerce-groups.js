@@ -1,7 +1,7 @@
 /**
  * admin-commerce-groups.js — 学习群中心模块
  */
-import { supabase, toast, formatBeijingDateTime } from './supabaseClient.js?v=20260325_001';
+import { supabase, toast, formatBeijingDateTime } from './supabaseClient.js?v=20260401_fix';
 import { esc, fmtDate, statusDot, showModal, closeModal } from './admin-commerce.js?v=20260325_001';
 
 const INVITE_STATUS = {

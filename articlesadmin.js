@@ -3,7 +3,7 @@ import {
   getCurrentUser,
   getUserProfile,
   isAdminRole,
-} from './supabaseClient.js?v=20260128_030';
+} from './supabaseClient.js?v=20260401_fix';
 
 const root = document.getElementById('adminArticlesList');
 

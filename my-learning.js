@@ -5,7 +5,7 @@
 import {
   supabase, ensureSupabase, isConfigured,
   getCurrentUser, toast,
-} from './supabaseClient.js?v=20260323_001';
+} from './supabaseClient.js?v=20260401_fix';
 
 /* ── helpers ── */
 function esc(s) {

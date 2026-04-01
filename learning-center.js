@@ -12,7 +12,7 @@ import {
   normalizeRole,
   isAdminRole,
   formatBeijingDate,
-} from './supabaseClient.js?v=20260128_030';
+} from './supabaseClient.js?v=20260401_fix';
 
 import { VIDEO_CATEGORIES } from './assets/videos.js?v=20260118_001';
 
