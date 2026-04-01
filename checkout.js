@@ -228,18 +228,17 @@ async function submitProof(e) {
       });
     if (ppErr) throw ppErr;
 
-    // Update order status and save contact info
-    await supabase
-      .from('orders')
-      .update({
-        status: 'pending_review',
-        paid_at: new Date().toISOString(),
-        channel: _channel,
-        contact_wechat: contactWechat || null,
-        contact_phone: contactPhone || null,
-        contact_email: contactEmail || null,
-      })
-      .eq('id', _order.id);
+    // Update order status via RPC (server-side validates proof exists)
+    const { error: reviewErr } = await supabase.rpc('submit_order_for_review', {
+      p_order_id: _order.id,
+      p_contact_wechat: contactWechat || null,
+      p_contact_phone: contactPhone || null,
+      p_contact_email: contactEmail || null,
+    });
+    if (reviewErr) throw reviewErr;
+
+    // Also save channel on order (best-effort)
+    await supabase.from('orders').update({ channel: _channel }).eq('id', _order.id).then(() => {});
 
     // Show done
     document.getElementById('step3').hidden = true;
