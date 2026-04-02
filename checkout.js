@@ -165,8 +165,11 @@ async function hashFile(file) {
 }
 
 /* ── upload proof (step 3) ── */
+let _submittingProof = false;
 async function submitProof(e) {
   e.preventDefault();
+  if (_submittingProof) return;
+  _submittingProof = true;
   const form = document.getElementById('proofForm');
   const hint = document.getElementById('proofHint');
   const fd = new FormData(form);
@@ -255,6 +258,7 @@ async function submitProof(e) {
   } catch (err) {
     hint.textContent = `上传失败: ${err.message}`;
     toast('上传失败', err.message, 'err');
+    _submittingProof = false;
   }
 }
 

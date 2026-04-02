@@ -33,7 +33,7 @@ async function loadOrders() {
       contact_wechat, contact_phone, contact_email,
       remark, created_at, paid_at, approved_at,
       order_items ( id, product_title, quantity, unit_price_cny, amount_cny ),
-      payment_proofs ( id, channel, amount_cny, proof_image_url, proof_bucket, proof_path, submitted_at, payer_name, transfer_ref_last4 )
+      payment_proofs ( id, channel, amount_cny, proof_bucket, proof_path, submitted_at, payer_name, transfer_ref_last4 )
     `)
     .order('created_at', { ascending: false })
     .limit(100);
@@ -55,7 +55,7 @@ async function loadOrders() {
         id, order_no, user_id, total_amount_cny, status, channel,
         remark, created_at, paid_at, approved_at,
         order_items ( id, product_title, quantity, unit_price_cny, amount_cny ),
-        payment_proofs ( id, channel, amount_cny, proof_image_url, proof_bucket, proof_path, submitted_at, payer_name, transfer_ref_last4 )
+        payment_proofs ( id, channel, amount_cny, proof_bucket, proof_path, submitted_at, payer_name, transfer_ref_last4 )
       `)
       .order('created_at', { ascending: false })
       .limit(100);
@@ -83,7 +83,7 @@ async function loadOrders() {
   }
 
   if (!rows.length) {
-    wrap.innerHTML = '<div class="muted">没有符合条件的订单。</div>';
+    wrap.innerHTML = '<div class="muted">没有符合条件的订单。(筛选: ' + esc(filter) + ')</div>';
     return;
   }
 
@@ -112,6 +112,14 @@ async function loadOrders() {
     }
   }
 
+  // Count by status
+  const pendingReviewCount = rows.filter(r => r.status === 'pending_review').length;
+  const pendingPaymentCount = rows.filter(r => r.status === 'pending_payment').length;
+  const countSummary = (filter === 'pending_all') ? `
+    <div class="small muted" style="margin-bottom:8px">
+      共 ${rows.length} 个待处理订单：待审核 ${pendingReviewCount} 个，待付款 ${pendingPaymentCount} 个
+    </div>` : '';
+
   const isNoProof = filter === 'approved_no_proof';
   const warningBanner = isNoProof ? `
     <div style="padding:12px 16px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;margin-bottom:12px;color:#ef4444;font-weight:600">
@@ -127,6 +135,7 @@ async function loadOrders() {
   }
 
   wrap.innerHTML = `
+    ${countSummary}
     ${warningBanner}
     <table class="data-table">
       <thead><tr>
