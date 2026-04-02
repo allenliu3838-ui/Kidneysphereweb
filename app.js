@@ -1316,6 +1316,7 @@ async function initAboutShowcase(){
   // Toggle admin panels
   document.querySelectorAll('[data-admin-panel]').forEach(el=>{
     el.hidden = !isAdminUi;
+    if(isAdminUi) el.style.removeProperty('display');
   });
 
   // Load + render
