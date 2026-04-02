@@ -43,6 +43,25 @@ begin
     p_channel := 'wechat';
   end if;
 
+  -- Prevent duplicate: return existing pending order for same user + product
+  select o.id, o.order_no into _order_id, _order_no
+    from public.orders o
+    join public.order_items oi on oi.order_id = o.id
+   where o.user_id = _user_id
+     and oi.product_id = p_product_id
+     and o.status = 'pending_payment'
+   limit 1;
+
+  if _order_id is not null then
+    return jsonb_build_object(
+      'ok', true,
+      'order_id', _order_id,
+      'order_no', _order_no,
+      'total_amount_cny', _product.price_cny,
+      'product_title', _product.title
+    );
+  end if;
+
   -- Generate unique order number
   loop
     _order_no := 'KS' || to_char(now() at time zone 'Asia/Shanghai', 'YYYYMMDD') ||

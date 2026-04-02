@@ -87,7 +87,10 @@ function renderSummary() {
 }
 
 /* ── create order (step 1 → step 2) ── */
+let _creatingOrder = false;
 async function createOrder() {
+  if (_creatingOrder) return;
+  _creatingOrder = true;
   const btn = document.getElementById('btnConfirmOrder');
   btn.disabled = true;
   btn.textContent = '创建订单中…';
@@ -109,6 +112,7 @@ async function createOrder() {
     toast('创建订单失败', err.message, 'err');
     btn.disabled = false;
     btn.textContent = '确认并生成订单';
+    _creatingOrder = false;
   }
 }
 
