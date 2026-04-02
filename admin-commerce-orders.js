@@ -172,6 +172,7 @@ async function loadOrders() {
                 <button class="btn tiny danger" data-reject="${r.id}" type="button">驳回</button>
               ` : ''}
               ${r.status === 'pending_payment' ? `
+                ${(r.payment_proofs && r.payment_proofs.length > 0) ? `<button class="btn tiny primary" data-approve="${r.id}" type="button">通过</button>` : ''}
                 <button class="btn tiny danger" data-reject="${r.id}" type="button">驳回</button>
               ` : ''}
             </td>
