@@ -158,8 +158,11 @@ async function loadOrders() {
             <td>
               <button class="btn tiny" data-detail="${r.id}" type="button">详情</button>
               ${isNoProof && r.status === 'approved' ? `<button class="btn tiny danger" data-reject-noproof="${r.id}" data-order-no="${esc(r.order_no)}" type="button">驳回订单</button>` : ''}
-              ${(r.status === 'pending_review' || r.status === 'pending_payment') ? `
+              ${r.status === 'pending_review' ? `
                 <button class="btn tiny primary" data-approve="${r.id}" type="button">通过</button>
+                <button class="btn tiny danger" data-reject="${r.id}" type="button">驳回</button>
+              ` : ''}
+              ${r.status === 'pending_payment' ? `
                 <button class="btn tiny danger" data-reject="${r.id}" type="button">驳回</button>
               ` : ''}
             </td>
