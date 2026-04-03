@@ -270,11 +270,14 @@ async function showOrderDetail(orderId) {
   ` : '';
 
   const isRejected = order.status === 'rejected';
+  const isApproved = order.status === 'approved';
   const footer = isPending ? `
     <button class="btn primary" id="modalApprove" type="button" disabled title="请先完成审核清单">通过</button>
     <button class="btn danger" id="modalReject" type="button">驳回</button>
   ` : isRejected ? `
     <button class="btn primary" id="modalRevertReject" type="button">撤回驳回（恢复待审核）</button>
+  ` : isApproved ? `
+    <button class="btn danger" id="modalRevokeApproval" type="button">撤销通过（恢复待审核）</button>
   ` : '';
 
   showModal(`订单详情 ${order.order_no}`, body + checklistHtml, footer);
@@ -324,6 +327,13 @@ async function showOrderDetail(orderId) {
     await revertRejection(orderId);
     closeModal();
   });
+
+  document.getElementById('modalRevokeApproval')?.addEventListener('click', async () => {
+    const note = prompt('撤销原因（可选）:');
+    if (note === null) return; // user cancelled prompt
+    await revokeApproval(orderId, note);
+    closeModal();
+  });
 }
 
 async function approveOrder(orderId) {
@@ -365,6 +375,47 @@ async function revertRejection(orderId) {
     loadOrders();
   } catch (err) {
     toast('撤回失败', err.message, 'err');
+  }
+}
+
+async function revokeApproval(orderId, note) {
+  if (!confirm('确定撤销通过？将撤销关联权益，订单恢复为「待审核」状态。')) return;
+  try {
+    // 1. Revoke active entitlements
+    const { data: ents } = await supabase
+      .from('user_entitlements')
+      .select('id')
+      .eq('source_order_id', orderId)
+      .eq('status', 'active');
+
+    if (ents && ents.length) {
+      const { error: revErr } = await supabase
+        .from('user_entitlements')
+        .update({ status: 'revoked' })
+        .in('id', ents.map(e => e.id));
+      if (revErr) {
+        toast('撤销权益失败', revErr.message, 'err');
+        return;
+      }
+    }
+
+    // 2. Revert order to pending_review
+    const { error } = await supabase
+      .from('orders')
+      .update({
+        status: 'pending_review',
+        approved_at: null,
+        approved_by: null,
+        remark: note || '管理员撤销审核通过',
+      })
+      .eq('id', orderId);
+    if (error) throw error;
+
+    const entCount = ents?.length || 0;
+    toast('已撤销', `订单已恢复待审核，${entCount ? `撤销 ${entCount} 条权益。` : '无关联权益。'}`, 'ok');
+    loadOrders();
+  } catch (err) {
+    toast('撤销失败', err.message, 'err');
   }
 }
 

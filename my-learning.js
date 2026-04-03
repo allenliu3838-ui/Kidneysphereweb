@@ -213,7 +213,8 @@ function renderOrders(list) {
     } else if (o.status === 'pending_review') {
       action = `<span class="small muted">等待管理员审核（通常1工作日内）</span>`;
     } else if (o.status === 'rejected') {
-      action = `<span class="small" style="color:#f87171">请联系客服或重新购买</span>`;
+      const reason = o.remark ? `<span class="small" style="color:#f87171">驳回原因：${esc(o.remark)}</span><br/>` : '';
+      action = `${reason}<span class="small" style="color:#f87171">请联系客服或重新购买</span>`;
     } else if (o.status === 'approved') {
       action = `<a class="btn tiny primary" href="videos.html">进入视频库</a>`;
     }
