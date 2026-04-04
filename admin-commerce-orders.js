@@ -139,7 +139,7 @@ async function loadOrders() {
     ${warningBanner}
     <table class="data-table">
       <thead><tr>
-        <th>订单号</th>${isNoProof ? '<th>用户</th>' : ''}<th>金额</th><th>渠道</th><th>联系方式</th><th>状态</th><th>创建时间</th><th>操作</th>
+        <th>订单号</th><th>培训项目</th>${isNoProof ? '<th>用户</th>' : ''}<th>金额</th><th>渠道</th><th>联系方式</th><th>状态</th><th>创建时间</th><th>操作</th>
       </tr></thead>
       <tbody>
         ${rows.map(r => {
@@ -155,9 +155,11 @@ async function loadOrders() {
             else if (allRevoked) entLabel = `<span style="color:#ef4444;font-weight:600">✕ 权益已撤销</span>`;
             else entLabel = statusLabel(r.status);
           }
+          const productNames = (r.order_items || []).map(i => i.product_title).filter(Boolean).join('、') || '—';
           return `
           <tr${isDone ? ' style="opacity:0.5"' : ''}>
             <td><code>${esc(r.order_no)}</code></td>
+            <td class="small">${esc(productNames)}</td>
             ${isNoProof ? `<td class="small">${userName}<br/><code class="small">${esc(r.user_id)}</code></td>` : ''}
             <td><b>¥${esc(String(r.total_amount_cny ?? 0))}</b></td>
             <td>${esc(r.channel || '—')}</td>
