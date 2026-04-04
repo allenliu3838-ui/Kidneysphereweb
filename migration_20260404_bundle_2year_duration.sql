@@ -1,20 +1,13 @@
 -- ============================================================
--- Migration: Change bundle products from 1 year to 2 years
--- Updates: product duration_days + existing user entitlements
+-- Migration: Change ALL products to 2-year duration
+-- Updates: all product duration_days + all existing user entitlements
 -- Safe to re-run (idempotent).
 -- ============================================================
 
--- 1. Update all bundle products: duration_days = 730 (2 years)
+-- 1. Update ALL products: duration_days = 730 (2 years)
 UPDATE public.products
-SET duration_days = 730
-WHERE product_type = 'specialty_bundle';
+SET duration_days = 730;
 
--- 2. Extend existing entitlements for bundle purchases to 2 years from start
---    Only extend if the entitlement was granted via a bundle product
---    and the current end_at is less than start + 2 years
-UPDATE public.user_entitlements ue
-SET end_at = ue.start_at + interval '730 days'
-WHERE ue.source_product_id IN (
-  SELECT id FROM public.products WHERE product_type = 'specialty_bundle'
-)
-AND (ue.end_at IS NULL OR ue.end_at < ue.start_at + interval '730 days');
+-- 2. Update ALL existing user entitlements to 2 years from start
+UPDATE public.user_entitlements
+SET end_at = start_at + interval '730 days';
