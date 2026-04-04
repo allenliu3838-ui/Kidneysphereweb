@@ -36,6 +36,44 @@ function setStep(n) {
   });
 }
 
+/* ── load existing order (for rejected / pending_payment resubmission) ── */
+async function loadExistingOrder() {
+  const params = new URLSearchParams(location.search);
+  const orderId = params.get('order_id');
+  if (!orderId) return false;
+
+  const { data: order, error } = await supabase
+    .from('orders')
+    .select('id, order_no, total_amount_cny, status, channel, order_items(product_id, product_title, amount_cny, quantity)')
+    .eq('id', orderId)
+    .eq('user_id', _user.id)
+    .single();
+
+  if (error || !order) {
+    gate.innerHTML = `<b>订单未找到。</b>${error ? esc(error.message) : '该订单不存在或不属于您。'}`;
+    return false;
+  }
+
+  if (order.status !== 'pending_payment' && order.status !== 'rejected') {
+    gate.innerHTML = `<b>该订单状态为「${esc(order.status)}」，无法重新提交。</b>`;
+    return false;
+  }
+
+  // Build a product-like object from the order for display
+  const items = Array.isArray(order.order_items) ? order.order_items : [];
+  const title = items.map(i => i.product_title).filter(Boolean).join('、') || '订单商品';
+  _product = {
+    id: items[0]?.product_id || null,
+    title,
+    price_cny: order.total_amount_cny,
+    subtitle: order.status === 'rejected' ? '重新提交付款凭证' : null,
+  };
+  _order = { id: order.id, order_no: order.order_no };
+  if (order.channel) _channel = order.channel;
+
+  return true;
+}
+
 /* ── load product ── */
 async function loadProduct() {
   const params = new URLSearchParams(location.search);
@@ -330,17 +368,36 @@ async function init() {
     return;
   }
 
-  // Load product and config in parallel
-  const [productOk] = await Promise.all([loadProduct(), loadSysConfig()]);
-  if (!productOk) return;
+  // Check if resuming an existing order (rejected / pending_payment)
+  const params = new URLSearchParams(location.search);
+  const hasOrderId = !!params.get('order_id');
 
-  gate.hidden = true;
-  main.hidden = false;
-  const trustInfo = document.getElementById('checkoutTrustInfo');
-  if (trustInfo) trustInfo.hidden = true;
+  if (hasOrderId) {
+    const [orderOk] = await Promise.all([loadExistingOrder(), loadSysConfig()]);
+    if (!orderOk) return;
 
-  renderSummary();
-  setStep(1);
+    gate.hidden = true;
+    main.hidden = false;
+    const trustInfo = document.getElementById('checkoutTrustInfo');
+    if (trustInfo) trustInfo.hidden = true;
+
+    renderSummary();
+    // Skip step 1 (create order) — go directly to payment step
+    document.getElementById('displayOrderNo').textContent = _order.order_no;
+    showPayStep();
+  } else {
+    // Normal flow: load product and create new order
+    const [productOk] = await Promise.all([loadProduct(), loadSysConfig()]);
+    if (!productOk) return;
+
+    gate.hidden = true;
+    main.hidden = false;
+    const trustInfo = document.getElementById('checkoutTrustInfo');
+    if (trustInfo) trustInfo.hidden = true;
+
+    renderSummary();
+    setStep(1);
+  }
 
   // Bind events
   document.getElementById('btnConfirmOrder').addEventListener('click', createOrder);
