@@ -337,6 +337,8 @@ async function loadMyOrders() {
     const productName = items.map(i => i.product_title).filter(Boolean).join('、') || '—';
     const rejectReason = (r.status === 'rejected' && r.remark)
       ? `<div class="small" style="color:#f87171;margin-top:4px">驳回原因：${esc(r.remark)}</div>` : '';
+    const resubmitBtn = (r.status === 'rejected')
+      ? `<a class="btn tiny primary" href="checkout.html?order_id=${r.id}" style="margin-top:6px">重新提交凭证</a>` : '';
     return `
     <div class="card soft" style="padding:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
       <div>
@@ -344,6 +346,7 @@ async function loadMyOrders() {
         <code class="small muted">${esc(r.order_no)}</code>
         <span class="small muted" style="margin-left:8px">${esc(formatBeijingDateTime(r.created_at))}</span>
         ${rejectReason}
+        ${resubmitBtn}
       </div>
       <div>
         <b>¥${esc(String(r.total_amount_cny))}</b>
