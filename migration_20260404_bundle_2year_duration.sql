@@ -11,10 +11,10 @@ WHERE product_type = 'specialty_bundle';
 
 -- 2. Extend existing entitlements for bundle purchases to 2 years from start
 --    Only extend if the entitlement was granted via a bundle product
---    and the current expires_at is less than start + 2 years
+--    and the current end_at is less than start + 2 years
 UPDATE public.user_entitlements ue
-SET expires_at = ue.granted_at + interval '730 days'
-WHERE ue.product_id IN (
+SET end_at = ue.start_at + interval '730 days'
+WHERE ue.source_product_id IN (
   SELECT id FROM public.products WHERE product_type = 'specialty_bundle'
 )
-AND ue.expires_at < ue.granted_at + interval '730 days';
+AND (ue.end_at IS NULL OR ue.end_at < ue.start_at + interval '730 days');
