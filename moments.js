@@ -15,6 +15,60 @@ import { pickDoctor, formatMention, insertAtCursor } from './mentionPicker.js?v=
 
 import { applyShareMeta, copyToClipboard, buildStableUrl } from './share.js?v=20260118_001';
 
+/* ── PDF.js lazy loader + thumbnail renderer ── */
+let _pdfjsLoaded = false;
+async function ensurePdfJs(){
+  if(_pdfjsLoaded) return;
+  if(window.pdfjsLib){ _pdfjsLoaded = true; return; }
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs';
+    s.type = 'module';
+    // pdf.js 4.x exports to globalThis via module; use classic build instead
+    s.remove();
+    const s2 = document.createElement('script');
+    s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s2.onload = () => {
+      if(window.pdfjsLib){
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        _pdfjsLoaded = true;
+      }
+      resolve();
+    };
+    s2.onerror = () => resolve(); // fail silently
+    document.head.appendChild(s2);
+  });
+}
+
+async function renderPdfThumbnails(container){
+  const canvases = (container || document).querySelectorAll('canvas.pdf-thumb[data-pdf-url]');
+  if(!canvases.length) return;
+  await ensurePdfJs();
+  if(!window.pdfjsLib) return;
+
+  for(const cv of canvases){
+    if(cv.dataset.rendered) continue;
+    cv.dataset.rendered = '1';
+    const url = cv.dataset.pdfUrl;
+    if(!url) continue;
+    try{
+      const pdf = await window.pdfjsLib.getDocument({ url, withCredentials: false }).promise;
+      const page = await pdf.getPage(1);
+      const scale = Math.min(300 / page.getViewport({scale:1}).width, 2);
+      const vp = page.getViewport({ scale });
+      cv.width = vp.width;
+      cv.height = vp.height;
+      await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+    }catch(_e){
+      // If rendering fails, show fallback text
+      cv.style.display = 'none';
+      const fallback = cv.parentElement?.querySelector('.pdf-name');
+      if(fallback) fallback.style.padding = '20px 0';
+    }
+  }
+}
+
 // ------------------------------
 // Moments (Phase 1):
 // - Text + images (paste / drag & drop / file picker)
@@ -444,22 +498,38 @@ function renderAttachmentsBlock(attaches){
   }
 
   const imgs = a.filter(x => String(x.kind || '') === 'image');
-  const files = a.filter(x => String(x.kind || '') !== 'image');
+  const pdfs = a.filter(x => String(x.kind || '') === 'pdf');
+  const otherFiles = a.filter(x => String(x.kind || '') !== 'image' && String(x.kind || '') !== 'pdf');
   const imgHtml = imgs.length ? `
     <div class="attach-grid">
       ${imgs.map(x=>`<a class="attach-img" href="${esc(x.public_url || '')}" target="_blank" rel="noopener"><img alt="img" src="${esc(x.public_url || '')}"/></a>`).join('')}
     </div>
   ` : '';
-  const fileHtml = files.length ? `
+  const pdfHtml = pdfs.length ? `
+    <div class="attach-pdf-list">
+      ${pdfs.map(x=>{
+        const nm = x.original_name || x.path || '附件.pdf';
+        const uid = 'pdf_' + Math.random().toString(36).slice(2, 10);
+        return `
+          <div class="pdf-preview-card">
+            <a href="${esc(x.public_url || '')}" target="_blank" rel="noopener">
+              <canvas class="pdf-thumb" data-pdf-url="${esc(x.public_url || '')}" id="${uid}" width="300" height="400"></canvas>
+              <div class="pdf-name">📄 ${esc(nm)}</div>
+            </a>
+          </div>`;
+      }).join('')}
+    </div>
+  ` : '';
+  const fileHtml = otherFiles.length ? `
     <div class="attach-list">
-      ${files.map(x=>{
-        const icon = String(x.kind || '') === 'pdf' ? '📄' : (String(x.kind || '') === 'doc' ? '📝' : '📎');
+      ${otherFiles.map(x=>{
+        const icon = String(x.kind || '') === 'doc' ? '📝' : '📎';
         const nm = x.original_name || x.path || '附件';
         return `<a class="file-chip" href="${esc(x.public_url || '')}" target="_blank" rel="noopener">${icon} ${esc(nm)}</a>`;
       }).join('')}
     </div>
   ` : '';
-  return imgHtml + fileHtml;
+  return imgHtml + pdfHtml + fileHtml;
 }
 
 
@@ -2294,6 +2364,7 @@ async function loadFeed(opts={}){
   const attachmentsById = await getMomentAttachmentsMap(rows);
 
   els.feed.innerHTML = rows.map(m => momentCard(m, likedSet.has(m.id), favedSet.has(m.id), { highlightId, attachmentsById })).join('');
+  renderPdfThumbnails(els.feed);
 
   const loadedCount = feedRows.length;
   _setFeedHint(feedReachedEnd
@@ -2367,6 +2438,7 @@ async function loadMoreFeed(){
     }
 
     els.feed.insertAdjacentHTML('beforeend', baseRows.map(m => momentCard(m, likedSet.has(m.id), favedSet.has(m.id), { attachmentsById })).join(''));
+    renderPdfThumbnails(els.feed);
 
     _setFeedHint(feedReachedEnd
       ? `已加载 ${feedRows.length} 条（已到底）`
@@ -2674,6 +2746,7 @@ function renderCommentsToDom(momentId, rows, attachmentsById=new Map(), likedSet
   }).join('');
 
   listEl.innerHTML = html;
+  renderPdfThumbnails(listEl);
 }
 
 async function postComment(momentId, parentId=null){
