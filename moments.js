@@ -15,8 +15,6 @@ import { pickDoctor, formatMention, insertAtCursor } from './mentionPicker.js?v=
 
 import { applyShareMeta, copyToClipboard, buildStableUrl } from './share.js?v=20260118_001';
 
-/* ── PDF preview (browser-native iframe) ── */
-// No external library needed — uses the browser's built-in PDF renderer.
 
 // ------------------------------
 // Moments (Phase 1):
@@ -459,12 +457,15 @@ function renderAttachmentsBlock(attaches){
       ${pdfs.map(x=>{
         const nm = x.original_name || x.path || '附件.pdf';
         return `
-          <div class="pdf-preview-card">
-            <div class="pdf-iframe-wrap">
-              <iframe src="${esc(x.public_url || '')}" class="pdf-iframe" loading="lazy"></iframe>
+          <a class="pdf-card" href="${esc(x.public_url || '')}" target="_blank" rel="noopener">
+            <div class="pdf-card-icon">
+              <svg width="40" height="48" viewBox="0 0 40 48" fill="none"><rect x="0.5" y="0.5" width="39" height="47" rx="4.5" fill="#fff" stroke="#d1d5db"/><path d="M10 28h20M10 33h14" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"/><text x="20" y="20" text-anchor="middle" fill="#ef4444" font-size="11" font-weight="700" font-family="system-ui">PDF</text></svg>
             </div>
-            <a class="pdf-name" href="${esc(x.public_url || '')}" target="_blank" rel="noopener">📄 ${esc(nm)}</a>
-          </div>`;
+            <div class="pdf-card-info">
+              <div class="pdf-card-name">${esc(nm)}</div>
+              <div class="pdf-card-hint">点击查看 PDF</div>
+            </div>
+          </a>`;
       }).join('')}
     </div>
   ` : '';
