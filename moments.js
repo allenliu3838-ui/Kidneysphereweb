@@ -53,9 +53,13 @@ async function renderPdfThumbnails(container){
     const url = cv.dataset.pdfUrl;
     if(!url) continue;
     try{
+      // Fetch PDF as ArrayBuffer first to avoid CORS issues with signed URLs
+      const resp = await fetch(url);
+      if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.arrayBuffer();
+
       const pdf = await window.pdfjsLib.getDocument({
-        url,
-        withCredentials: false,
+        data,
         cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
         cMapPacked: true,
       }).promise;
