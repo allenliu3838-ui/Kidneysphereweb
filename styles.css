@@ -1460,6 +1460,36 @@ label{display:block; font-size:13px; color: rgba(233,241,255,.88); margin: 10px 
 }
 .file-chip:hover{background: rgba(255,255,255,.06)}
 
+/* --- PDF preview thumbnails --- */
+.attach-pdf-list{
+  margin-top: 8px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
+.pdf-preview-card{
+  max-width: 300px;
+  border-radius: 14px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  overflow:hidden;
+}
+.pdf-preview-card a{display:block;text-decoration:none !important}
+.pdf-preview-card:hover{background: rgba(255,255,255,.06)}
+canvas.pdf-thumb{
+  display:block;
+  width:100%;
+  height:auto;
+  background: #fff;
+}
+.pdf-name{
+  padding:8px 10px;
+  font-size:13px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
 /* --- Thread-style list (case comments overview) --- */
 .thread-item{
   cursor:pointer;
