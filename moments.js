@@ -53,7 +53,12 @@ async function renderPdfThumbnails(container){
     const url = cv.dataset.pdfUrl;
     if(!url) continue;
     try{
-      const pdf = await window.pdfjsLib.getDocument({ url, withCredentials: false }).promise;
+      const pdf = await window.pdfjsLib.getDocument({
+        url,
+        withCredentials: false,
+        cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+        cMapPacked: true,
+      }).promise;
       const page = await pdf.getPage(1);
       const scale = Math.min(300 / page.getViewport({scale:1}).width, 2);
       const vp = page.getViewport({ scale });
