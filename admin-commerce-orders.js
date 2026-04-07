@@ -41,7 +41,7 @@ async function loadOrders() {
   if (filter === 'approved_no_proof') {
     q = q.in('status', ['approved', 'rejected']);
   } else if (filter === 'pending_all') {
-    q = q.in('status', ['pending_payment', 'pending_review']);
+    q = q.eq('status', 'pending_review');
   } else if (filter !== 'all') {
     q = q.eq('status', filter);
   }
@@ -62,7 +62,7 @@ async function loadOrders() {
     if (filter === 'approved_no_proof') {
       q2 = q2.in('status', ['approved', 'rejected']);
     } else if (filter === 'pending_all') {
-      q2 = q2.in('status', ['pending_payment', 'pending_review']);
+      q2 = q2.eq('status', 'pending_review');
     } else if (filter !== 'all') {
       q2 = q2.eq('status', filter);
     }
@@ -114,10 +114,9 @@ async function loadOrders() {
 
   // Count by status
   const pendingReviewCount = rows.filter(r => r.status === 'pending_review').length;
-  const pendingPaymentCount = rows.filter(r => r.status === 'pending_payment').length;
   const countSummary = (filter === 'pending_all') ? `
     <div class="small muted" style="margin-bottom:8px">
-      共 ${rows.length} 个待处理订单：待审核 ${pendingReviewCount} 个，待付款 ${pendingPaymentCount} 个
+      共 ${pendingReviewCount} 个待审核订单
     </div>` : '';
 
   const isNoProof = filter === 'approved_no_proof';
