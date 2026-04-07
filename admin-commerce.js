@@ -142,7 +142,7 @@ function initTabs() {
 async function loadStats() {
   try {
     const [orders, products, ents, enrolls] = await Promise.all([
-      supabase.from('orders').select('id', { count: 'exact', head: true }).in('status', ['pending_payment', 'pending_review']),
+      supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending_review'),
       supabase.from('products').select('id', { count: 'exact', head: true }).eq('is_active', true),
       supabase.from('user_entitlements').select('id', { count: 'exact', head: true }).eq('status', 'active'),
       supabase.from('project_enrollments').select('id', { count: 'exact', head: true }),
