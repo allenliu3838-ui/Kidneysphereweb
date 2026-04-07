@@ -3316,51 +3316,8 @@ async function deleteMoment(btn){
 // Realtime (optional)
 // ------------------------------
 
-let _rtChannel = null;
-
-async function initRealtime(){
-  if(!isConfigured()) return;
-  if(!supabase) await ensureSupabase();
-  if(!supabase) return;
-  if(_rtChannel) return;
-
-  try{
-    _rtChannel = supabase
-      .channel('moments-feed')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'moments' }, (payload) => {
-        // If the page is open on another device, auto-refresh the feed.
-        // Keep it lightweight: only refresh when not publishing right now.
-        const row = payload?.new;
-        if(row && row.deleted_at) return;
-        // debounce a little
-        clearTimeout(window.__ks_rt_moments);
-        window.__ks_rt_moments = setTimeout(()=>{
-          loadFeed({ reset:true });
-        }, 350);
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'moments' }, (payload) => {
-        const row = payload?.new;
-        // If a moment was deleted or like_count changed, refresh.
-        if(row){
-          clearTimeout(window.__ks_rt_moments);
-          window.__ks_rt_moments = setTimeout(()=>{
-            loadFeed({ reset:true });
-          }, 450);
-        }
-      })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'moments' }, () => {
-        clearTimeout(window.__ks_rt_moments);
-        window.__ks_rt_moments = setTimeout(()=>{
-          loadFeed({ reset:true });
-        }, 450);
-      });
-
-    await _rtChannel.subscribe();
-  }catch(_e){
-    // Realtime is optional. Ignore failures.
-    _rtChannel = null;
-  }
-}
+// Realtime disabled to reduce Supabase costs.
+// Users can refresh the feed manually via the "刷新" button.
 
 // boot
 (async function revealComposerIfAuthed(){
@@ -3386,4 +3343,3 @@ if(els.refreshFeedBtn){
 }
 
 loadFeed({ reset:true });
-initRealtime();
