@@ -2983,9 +2983,32 @@ textarea.prose-input{
   border-color:#f59e0b !important;
 }
 
+/* ── Bank cards ── */
+.qb-bank-card{
+  cursor:pointer;
+  transition:border-color .2s, background .2s, transform .15s;
+  text-align:center;
+  padding:24px 16px;
+}
+.qb-bank-card:hover{
+  border-color:rgba(var(--brand-rgb),.5);
+  background:rgba(var(--brand-rgb),.08);
+  transform:translateY(-2px);
+}
+.qb-bank-selected, .qb-bank-selected:hover{
+  border-color:var(--brand) !important;
+  background:rgba(var(--brand-rgb),.15) !important;
+  box-shadow:0 0 0 2px rgba(var(--brand-rgb),.3);
+}
+.qb-bank-stat{
+  margin-top:10px;
+  font-weight:600;
+}
+
 /* ── Mobile adjustments ── */
 @media(max-width:640px){
   .qb-dot{width:24px;height:24px;font-size:10px}
   .qb-choice{padding:10px 12px}
   .qb-choice-icon{width:24px;height:24px;font-size:12px}
+  .grid.cols-3{grid-template-columns:1fr}
 }

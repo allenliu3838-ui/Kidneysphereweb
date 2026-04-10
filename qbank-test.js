@@ -27,11 +27,12 @@ async function init() {
   if (!_user) { location.replace('login.html?next=' + encodeURIComponent(location.pathname + location.search)); return; }
 
   const params = new URLSearchParams(location.search);
+  const bank = params.get('bank') || '';
   const subjects = params.get('subjects') ? params.get('subjects').split(',').map(s => s.trim()).filter(Boolean) : [];
   const count = Math.min(100, Math.max(1, parseInt(params.get('count') || '20', 10)));
   const filter = params.get('filter') || 'all';
 
-  await loadQuestions(subjects, count, filter);
+  await loadQuestions(bank, subjects, count, filter);
   await loadBookmarks();
 
   if (_questions.length === 0) {
@@ -49,11 +50,15 @@ async function init() {
   bindEvents();
 }
 
-async function loadQuestions(subjects, count, filter) {
+async function loadQuestions(bank, subjects, count, filter) {
   let query = supabase
     .from('qbank_questions')
     .select('*')
     .eq('status', 'published');
+
+  if (bank) {
+    query = query.eq('bank', bank);
+  }
 
   if (subjects.length > 0) {
     query = query.in('subject', subjects);

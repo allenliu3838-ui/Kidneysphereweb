@@ -35,7 +35,7 @@ async function loadStats() {
 
   const { data, error } = await supabase
     .from('qbank_questions')
-    .select('subject, question_number')
+    .select('bank, subject, question_number')
     .eq('status', 'published')
     .order('question_number', { ascending: true });
 
@@ -45,12 +45,19 @@ async function loadStats() {
   }
 
   const total = data?.length || 0;
+  const byBank = {};
   const bySubject = {};
   let maxNum = 0;
   for (const q of (data || [])) {
+    byBank[q.bank] = (byBank[q.bank] || 0) + 1;
     bySubject[q.subject] = (bySubject[q.subject] || 0) + 1;
     if (q.question_number > maxNum) maxNum = q.question_number;
   }
+
+  const bankHtml = Object.entries(byBank)
+    .sort((a, b) => b[1] - a[1])
+    .map(([b, c]) => `<span class="badge" style="margin:3px;border-color:var(--brand)">${esc(b)} ${c}</span>`)
+    .join('');
 
   const subjectHtml = Object.entries(bySubject)
     .sort((a, b) => b[1] - a[1])
@@ -62,7 +69,8 @@ async function loadStats() {
       <div><b style="font-size:24px">${total}</b> <span class="muted">道题目</span></div>
       <div class="muted">最大编号：第${maxNum}题</div>
     </div>
-    <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:4px">${subjectHtml || '<span class="muted small">暂无题目</span>'}</div>
+    <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">${bankHtml}</div>
+    <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">${subjectHtml || '<span class="muted small">暂无题目</span>'}</div>
   `;
 }
 
@@ -72,7 +80,7 @@ async function loadQuestionList() {
 
   const { data, error } = await supabase
     .from('qbank_questions')
-    .select('id, question_number, subject, stem, question_text, choices, status')
+    .select('id, question_number, bank, subject, stem, question_text, choices, status')
     .order('question_number', { ascending: true });
 
   if (error) {
@@ -93,7 +101,8 @@ async function loadQuestionList() {
         <div style="flex:1;min-width:0">
           <div>
             <b>第${q.question_number}题</b>
-            <span class="badge" style="margin-left:6px;font-size:11px">${esc(q.subject)}</span>
+            <span class="badge" style="margin-left:6px;font-size:11px;border-color:var(--brand)">${esc(q.bank || '肾内科')}</span>
+            <span class="badge" style="margin-left:4px;font-size:11px">${esc(q.subject)}</span>
             ${q.status !== 'published' ? `<span class="badge" style="margin-left:4px;border-color:var(--danger);color:var(--danger);font-size:11px">${esc(q.status)}</span>` : ''}
           </div>
           <div class="small muted" style="margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(stemPreview)}…</div>
@@ -221,12 +230,14 @@ async function saveQuestions() {
   btn.textContent = '入库中…';
 
   const user = await getCurrentUser();
+  const selectedBank = document.querySelector('input[name="bank"]:checked')?.value || '肾内科';
   let successCount = 0;
   const errors = [];
 
   for (const q of _parsedQuestions) {
     const row = {
       question_number: q.question_number,
+      bank: selectedBank,
       subject: q.subject,
       difficulty: q.difficulty,
       stem: q.stem,
