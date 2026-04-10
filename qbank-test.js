@@ -14,6 +14,13 @@ function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 }
 
+/** Render text with line breaks and markdown images ![alt](url) */
+function renderText(s) {
+  return esc(s)
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="qb-img" />')
+    .replace(/\n/g, '<br>');
+}
+
 // ── State ──
 let _user = null;
 let _questions = [];    // loaded question objects
@@ -160,11 +167,11 @@ function renderQuestion() {
   </div>`;
 
   // Stem
-  html += `<div class="qb-stem">${esc(q.stem).replace(/\n/g, '<br>')}</div>`;
+  html += `<div class="qb-stem">${renderText(q.stem)}</div>`;
 
   // Question text
   if (q.question_text) {
-    html += `<div class="qb-question-text">${esc(q.question_text).replace(/\n/g, '<br>')}</div>`;
+    html += `<div class="qb-question-text">${renderText(q.question_text)}</div>`;
   }
 
   // Choices
@@ -214,7 +221,7 @@ function renderQuestion() {
     if (q.explanation) {
       html += `<div class="qb-explanation">
         <div class="qb-explanation-title">解析</div>
-        <div>${esc(q.explanation).replace(/\n/g, '<br>')}</div>
+        <div>${renderText(q.explanation)}</div>
       </div>`;
     }
 
@@ -236,7 +243,7 @@ function renderQuestion() {
     if (q.references) {
       html += `<div class="qb-references">
         <div class="qb-explanation-title">参考文献</div>
-        <div class="small">${esc(q.references).replace(/\n/g, '<br>')}</div>
+        <div class="small">${renderText(q.references)}</div>
       </div>`;
     }
   }
