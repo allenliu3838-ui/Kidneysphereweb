@@ -250,7 +250,7 @@ async function saveQuestions() {
       author_id: user?.id || null,
     };
 
-    const { error } = await supabase.from('qbank_questions').insert(row);
+    const { error } = await supabase.from('qbank_questions').upsert(row, { onConflict: 'question_number' });
     if (error) {
       errors.push(`第${q.question_number}题：${error.message}`);
     } else {
@@ -262,7 +262,10 @@ async function saveQuestions() {
   btn.textContent = '确认入库';
 
   if (errors.length > 0) {
-    toast('部分失败', `成功 ${successCount} 道，失败 ${errors.length} 道：${errors[0]}`, 'err');
+    // Show real error (bypass toast sanitization)
+    const errMsg = `成功 ${successCount} 道，失败 ${errors.length} 道。\n${errors.join('\n')}`;
+    alert(errMsg);
+    toast('部分失败', errors[0], 'err');
   } else {
     toast('入库成功', `${successCount} 道题目已入库！`);
     document.getElementById('pasteArea').value = '';
