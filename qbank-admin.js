@@ -195,6 +195,10 @@ function bindEvents() {
     const qnum = btn.dataset.qnum;
     if (!confirm(`确定删除第${qnum}题？此操作不可撤销。`)) return;
 
+    // Delete related records first (foreign key constraints)
+    await supabase.from('qbank_user_answers').delete().eq('question_id', id);
+    await supabase.from('qbank_bookmarks').delete().eq('question_id', id);
+
     const { error } = await supabase.from('qbank_questions').delete().eq('id', id);
     if (error) {
       toast('删除失败', error.message, 'err');
