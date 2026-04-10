@@ -29,7 +29,7 @@ async function init() {
   const params = new URLSearchParams(location.search);
   const bank = params.get('bank') || '';
   const subjects = params.get('subjects') ? params.get('subjects').split(',').map(s => s.trim()).filter(Boolean) : [];
-  const count = Math.min(100, Math.max(1, parseInt(params.get('count') || '20', 10)));
+  const count = Math.min(200, Math.max(1, parseInt(params.get('count') || '20', 10)));
   const filter = params.get('filter') || 'all';
 
   await loadQuestions(bank, subjects, count, filter);
@@ -154,8 +154,8 @@ function renderQuestion() {
   // Question number + subject badge
   html += `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px">
     <div>
-      <span class="badge">第${q.question_number}题</span>
-      <span class="badge" style="margin-left:6px">${esc(q.subject)}</span>
+      <code style="font-size:12px;color:var(--brand);margin-right:8px">${esc(q.qid || '')}</code>
+      <span class="badge">${esc(q.subject)}</span>
     </div>
   </div>`;
 
@@ -340,11 +340,11 @@ function bindEvents() {
     if (_bookmarks.has(q.id)) {
       await supabase.from('qbank_bookmarks').delete().eq('user_id', _user.id).eq('question_id', q.id);
       _bookmarks.delete(q.id);
-      toast('取消收藏', `第${q.question_number}题`);
+      toast('取消收藏', q.qid || '');
     } else {
       await supabase.from('qbank_bookmarks').insert({ user_id: _user.id, question_id: q.id });
       _bookmarks.add(q.id);
-      toast('已收藏', `第${q.question_number}题`);
+      toast('已收藏', q.qid || '');
     }
     renderQuestion();
   });
