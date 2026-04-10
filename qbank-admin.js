@@ -250,7 +250,7 @@ async function saveQuestions() {
       author_id: user?.id || null,
     };
 
-    const { error } = await supabase.from('qbank_questions').upsert(row, { onConflict: 'question_number' });
+    const { error } = await supabase.from('qbank_questions').upsert(row, { onConflict: 'bank,question_number' });
     if (error) {
       errors.push(`第${q.question_number}题：${error.message}`);
     } else {
