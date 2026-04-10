@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS qbank_questions (
   choices       JSONB NOT NULL DEFAULT '[]',      -- [{label:"A", text:"…", correct:false}, …]
   explanation   TEXT NOT NULL DEFAULT '',         -- overall explanation
   choice_explanations JSONB NOT NULL DEFAULT '[]', -- [{label:"A", text:"…"}, …]
-  references    TEXT NOT NULL DEFAULT '',         -- 参考文献
+  "references"  TEXT NOT NULL DEFAULT '',         -- 参考文献
   status        TEXT NOT NULL DEFAULT 'published' CHECK (status IN ('draft','published','retired')),
   author_id     UUID REFERENCES profiles(id),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
