@@ -126,6 +126,7 @@ function injectNav(){
         <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
         <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
         <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
+        <a data-nav href="qbank.html"><span class="zh">题库</span><span class="en">Q-Bank</span></a>
         <a data-nav href="academy.html"><span class="zh">培训与定价</span><span class="en">Academy</span></a>
         <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
         <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>

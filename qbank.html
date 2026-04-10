@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>题库 · 肾域</title>
+  <meta name="description" content="肾域题库 — 肾脏病学练习与自测">
+  <link rel="canonical" href="https://kidneysphere.com/qbank" />
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260409_qbank" />
+</head>
+<body>
+  <header class="nav"></header>
+  <div data-toast></div>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="card">
+          <span class="badge">Q-Bank</span>
+          <h2 style="margin-top:10px">肾域题库</h2>
+          <p class="small muted">肾脏病学练习与自测 — UWorld 风格答题体验</p>
+
+          <!-- My progress -->
+          <div id="myProgress" style="margin-top:20px">
+            <div class="muted small">加载中…</div>
+          </div>
+
+          <div class="hr"></div>
+
+          <!-- Start practice -->
+          <div class="section-title">
+            <h3>开始练习</h3>
+          </div>
+
+          <!-- Subject filter -->
+          <div style="margin-top:12px">
+            <label class="small muted">科目（点击选择，不选 = 全部）</label>
+            <div id="subjectPills" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">
+              <div class="muted small">加载中…</div>
+            </div>
+          </div>
+
+          <!-- Filter mode -->
+          <div style="margin-top:16px">
+            <label class="small muted">题目范围</label>
+            <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:10px">
+              <label class="qb-radio"><input type="radio" name="qfilter" value="all" checked> 全部</label>
+              <label class="qb-radio"><input type="radio" name="qfilter" value="unused"> 未做过的</label>
+              <label class="qb-radio"><input type="radio" name="qfilter" value="incorrect"> 做错的</label>
+              <label class="qb-radio"><input type="radio" name="qfilter" value="bookmarked"> 收藏的</label>
+            </div>
+          </div>
+
+          <!-- Question count -->
+          <div style="margin-top:16px">
+            <label class="small muted">题目数量</label>
+            <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn tiny qb-count-btn" data-count="10">10</button>
+              <button class="btn tiny qb-count-btn qb-count-active" data-count="20">20</button>
+              <button class="btn tiny qb-count-btn" data-count="40">40</button>
+              <button class="btn tiny qb-count-btn" data-count="0">全部</button>
+            </div>
+          </div>
+
+          <!-- Start button -->
+          <div style="margin-top:24px">
+            <button class="btn primary" id="btnStart" style="font-size:16px;padding:12px 36px">开始答题</button>
+          </div>
+
+          <div class="hr"></div>
+
+          <!-- Per-subject stats -->
+          <div class="section-title">
+            <h3>各科目统计</h3>
+          </div>
+          <div id="subjectStats" style="margin-top:12px">
+            <div class="muted small">加载中…</div>
+          </div>
+
+          <!-- Admin link -->
+          <div id="adminLink" hidden style="margin-top:20px">
+            <div class="hr"></div>
+            <a href="qbank-admin.html" class="btn tiny">管理员：题目管理 →</a>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer" data-blurb="面向肾脏专科的学术教育与持续培训平台。"></footer>
+  <script type="module" src="app.js?v=20260409_qbank"></script>
+  <script type="module" src="qbank.js?v=20260409_qbank"></script>
+</body>
+</html>

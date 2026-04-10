@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>答题 · 肾域题库</title>
+  <meta name="description" content="肾域题库 — UWorld 风格答题">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260409_qbank" />
+</head>
+<body>
+  <header class="nav"></header>
+  <div data-toast></div>
+
+  <main>
+    <section class="hero" style="padding-top:20px">
+      <div class="container" style="max-width:860px">
+
+        <!-- Top bar -->
+        <div class="qb-topbar" id="topbar">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <a href="qbank.html" class="btn tiny">← 返回题库</a>
+            <span id="progressText" class="small muted"></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button class="btn tiny" id="btnBookmark" title="收藏此题">☆ 收藏</button>
+            <button class="btn tiny" id="btnEndTest">结束练习</button>
+          </div>
+        </div>
+
+        <!-- Question card -->
+        <div class="card" id="questionCard" style="margin-top:14px;min-height:400px">
+          <div class="muted" style="text-align:center;padding:60px 0">加载中…</div>
+        </div>
+
+        <!-- Navigation bar -->
+        <div class="qb-navbar" id="navbar" style="margin-top:14px">
+          <button class="btn tiny" id="btnPrev" disabled>◀ 上一题</button>
+          <div id="dotNav" class="qb-dots"></div>
+          <button class="btn tiny" id="btnNext">下一题 ▶</button>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer" data-blurb="面向肾脏专科的学术教育与持续培训平台。"></footer>
+  <script type="module" src="app.js?v=20260409_qbank"></script>
+  <script type="module" src="qbank-test.js?v=20260409_qbank"></script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>题库管理 · 肾域</title>
+  <meta name="description" content="肾域题库管理后台 — 批量录入题目">
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=20260409_qbank" />
+</head>
+<body>
+  <header class="nav"></header>
+  <div data-toast></div>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="card">
+          <span class="badge">管理员</span>
+          <h2 style="margin-top:10px">题库管理</h2>
+          <p class="small muted">批量粘贴题目，预览后一键入库。</p>
+
+          <!-- Stats -->
+          <div id="qbankStats" style="margin-top:16px">
+            <div class="muted small">加载中…</div>
+          </div>
+
+          <div class="hr"></div>
+
+          <!-- Existing questions list -->
+          <div class="section-title">
+            <h3>已有题目</h3>
+            <button class="btn tiny" id="btnToggleList">展开列表</button>
+          </div>
+          <div id="qbankList" hidden style="margin-top:12px"></div>
+
+          <div class="hr"></div>
+
+          <!-- Paste input -->
+          <div class="section-title">
+            <h3>批量录入</h3>
+            <span class="badge">粘贴即用</span>
+          </div>
+
+          <div class="note" style="margin-top:12px">
+            <b>格式说明：</b>每道题以「第X题（科目）」开头，选项用 A. B. C. D. E.，
+            正确答案写「正确答案：X。」，解析写「解析：」，文献写「参考文献：」。
+            可以一次粘贴多道题。
+          </div>
+
+          <textarea id="pasteArea" class="input" rows="18"
+            placeholder="在此粘贴题目…
+
+第1题（心血管）
+
+一名 73 岁男性因心悸、呼吸困难来急诊...
+
+A. 先做经食道超声排除左心耳血栓
+B. 静脉给予地尔硫卓控制心室率
+C. 立即同步电复律
+D. 先用肝素抗凝 24 小时后再复律
+E. 静脉胺碘酮后观察
+
+正确答案：C。
+
+解析：
+这道题的关键不是&quot;房颤持续多久&quot;...
+
+参考文献：
+Chyou JY, et al. ..."
+            style="margin-top:12px;font-size:14px;line-height:1.7;font-family:var(--font)"></textarea>
+
+          <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+            <button class="btn primary" id="btnPreview">预览解析</button>
+            <button class="btn" id="btnClear">清空</button>
+          </div>
+
+          <!-- Preview area -->
+          <div id="previewArea" hidden style="margin-top:20px">
+            <div class="hr"></div>
+            <div class="section-title">
+              <h3>预览</h3>
+              <span class="badge" id="previewCount"></span>
+            </div>
+            <div id="previewErrors" style="margin-top:8px"></div>
+            <div id="previewList" style="margin-top:12px"></div>
+            <div style="margin-top:16px">
+              <button class="btn primary" id="btnSave" hidden>确认入库</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer" data-blurb="面向肾脏专科的学术教育与持续培训平台。"></footer>
+  <script type="module" src="app.js?v=20260409_qbank"></script>
+  <script type="module" src="qbank-admin.js?v=20260409_qbank"></script>
+</body>
+</html>
