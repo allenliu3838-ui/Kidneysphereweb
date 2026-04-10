@@ -4,10 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>题库 · 肾域</title>
-  <meta name="description" content="肾域题库 — 肾脏病学练习与自测">
+  <meta name="description" content="肾域题库 — 大内科 · 肾内科 · 考研">
   <link rel="canonical" href="https://kidneysphere.com/qbank" />
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=20260409_qbank" />
+  <link rel="stylesheet" href="styles.css?v=20260410_qbank2" />
 </head>
 <body>
   <header class="nav"></header>
@@ -16,13 +16,47 @@
   <main>
     <section class="hero">
       <div class="container">
+
+        <!-- Bank selector (top level) -->
         <div class="card">
           <span class="badge">Q-Bank</span>
           <h2 style="margin-top:10px">肾域题库</h2>
-          <p class="small muted">肾脏病学练习与自测 — UWorld 风格答题体验</p>
+          <p class="small muted">选择题库开始练习 — UWorld 风格答题体验</p>
+
+          <div class="grid cols-3" style="margin-top:20px" id="bankCards">
+            <div class="card soft qb-bank-card" data-bank="大内科" role="button" tabindex="0">
+              <div style="font-size:28px;margin-bottom:8px">🏥</div>
+              <h3 style="margin:0">大内科</h3>
+              <p class="small muted" style="margin-top:6px">心血管、呼吸、消化、内分泌、血液、风湿、感染等</p>
+              <div class="small muted qb-bank-stat" data-bank-stat="大内科">--</div>
+            </div>
+            <div class="card soft qb-bank-card" data-bank="肾内科" role="button" tabindex="0">
+              <div style="font-size:28px;margin-bottom:8px">🫘</div>
+              <h3 style="margin:0">肾内科</h3>
+              <p class="small muted" style="margin-top:6px">肾小球疾病、CKD、AKI、电解质、透析、移植等</p>
+              <div class="small muted qb-bank-stat" data-bank-stat="肾内科">--</div>
+            </div>
+            <div class="card soft qb-bank-card" data-bank="考研" role="button" tabindex="0">
+              <div style="font-size:28px;margin-bottom:8px">📝</div>
+              <h3 style="margin:0">考研题库</h3>
+              <p class="small muted" style="margin-top:6px">内科学考研真题与模拟题</p>
+              <div class="small muted qb-bank-stat" data-bank-stat="考研">--</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Practice panel (shown after selecting a bank) -->
+        <div class="card" id="practicePanel" hidden style="margin-top:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <div>
+              <span class="badge" id="currentBankBadge"></span>
+              <span style="font-weight:700;font-size:18px;margin-left:8px" id="currentBankTitle"></span>
+            </div>
+            <button class="btn tiny" id="btnChangeBank">← 切换题库</button>
+          </div>
 
           <!-- My progress -->
-          <div id="myProgress" style="margin-top:20px">
+          <div id="myProgress" style="margin-top:16px">
             <div class="muted small">加载中…</div>
           </div>
 
@@ -77,20 +111,19 @@
           <div id="subjectStats" style="margin-top:12px">
             <div class="muted small">加载中…</div>
           </div>
-
-          <!-- Admin link -->
-          <div id="adminLink" hidden style="margin-top:20px">
-            <div class="hr"></div>
-            <a href="qbank-admin.html" class="btn tiny">管理员：题目管理 →</a>
-          </div>
-
         </div>
+
+        <!-- Admin link -->
+        <div id="adminLink" hidden style="margin-top:16px">
+          <a href="qbank-admin.html" class="btn tiny">管理员：题目管理 →</a>
+        </div>
+
       </div>
     </section>
   </main>
 
   <footer class="footer" data-blurb="面向肾脏专科的学术教育与持续培训平台。"></footer>
-  <script type="module" src="app.js?v=20260409_qbank"></script>
-  <script type="module" src="qbank.js?v=20260409_qbank"></script>
+  <script type="module" src="app.js?v=20260410_qbank2"></script>
+  <script type="module" src="qbank.js?v=20260410_qbank2"></script>
 </body>
 </html>

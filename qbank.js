@@ -1,6 +1,6 @@
 /**
  * qbank.js
- * Landing page: personal stats, subject selection, start practice.
+ * Landing page: 3 bank cards → select bank → practice panel.
  */
 
 import { ensureSupabase, supabase, getCurrentUser, getUserProfile, isAdminRole, normalizeRole, toast } from './supabaseClient.js';
@@ -9,36 +9,87 @@ function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 }
 
+const BANKS = ['大内科', '肾内科', '考研'];
+let _currentBank = '';
 let _selectedSubjects = new Set();
 let _selectedCount = 20;
 let _allSubjects = [];
+let _user = null;
 
 async function init() {
   await ensureSupabase();
-  const user = await getCurrentUser();
+  _user = await getCurrentUser();
 
   // Show admin link
-  if (user) {
-    const profile = await getUserProfile(user);
+  if (_user) {
+    const profile = await getUserProfile(_user);
     if (isAdminRole(normalizeRole(profile?.role))) {
       document.getElementById('adminLink').hidden = false;
     }
   }
 
-  await Promise.all([
-    loadSubjects(),
-    user ? loadMyProgress(user) : showLoginPrompt(),
-    loadSubjectStats(user),
-  ]);
-
+  await loadBankStats();
   bindEvents();
+
+  // Check URL for pre-selected bank
+  const params = new URLSearchParams(location.search);
+  const urlBank = params.get('bank');
+  if (urlBank && BANKS.includes(urlBank)) {
+    selectBank(urlBank);
+  }
 }
 
-async function loadSubjects() {
+async function loadBankStats() {
+  const { data } = await supabase
+    .from('qbank_questions')
+    .select('bank')
+    .eq('status', 'published');
+
+  const counts = {};
+  for (const q of (data || [])) {
+    counts[q.bank] = (counts[q.bank] || 0) + 1;
+  }
+
+  for (const bank of BANKS) {
+    const el = document.querySelector(`[data-bank-stat="${bank}"]`);
+    if (el) {
+      const c = counts[bank] || 0;
+      el.textContent = c > 0 ? `${c} 道题` : '即将上线';
+    }
+  }
+}
+
+async function selectBank(bank) {
+  _currentBank = bank;
+  _selectedSubjects.clear();
+
+  // Update UI
+  document.getElementById('practicePanel').hidden = false;
+  document.getElementById('currentBankBadge').textContent = bank;
+  document.getElementById('currentBankTitle').textContent = bank + '题库';
+
+  // Highlight selected bank card
+  document.querySelectorAll('.qb-bank-card').forEach(c => {
+    c.classList.toggle('qb-bank-selected', c.dataset.bank === bank);
+  });
+
+  // Update URL
+  history.replaceState(null, '', `qbank.html?bank=${encodeURIComponent(bank)}`);
+
+  // Load data for this bank
+  await Promise.all([
+    loadSubjects(bank),
+    _user ? loadMyProgress(_user, bank) : showLoginPrompt(),
+    loadSubjectStats(_user, bank),
+  ]);
+}
+
+async function loadSubjects(bank) {
   const { data } = await supabase
     .from('qbank_questions')
     .select('subject')
-    .eq('status', 'published');
+    .eq('status', 'published')
+    .eq('bank', bank);
 
   const set = new Set();
   for (const q of (data || [])) set.add(q.subject);
@@ -55,25 +106,35 @@ async function loadSubjects() {
   ).join('');
 }
 
-async function loadMyProgress(user) {
+async function loadMyProgress(user, bank) {
   const el = document.getElementById('myProgress');
 
-  const [{ count: totalQ }, { data: myAnswers }] = await Promise.all([
-    supabase.from('qbank_questions').select('*', { count: 'exact', head: true }).eq('status', 'published'),
-    supabase.from('qbank_user_answers').select('question_id, is_correct').eq('user_id', user.id),
-  ]);
+  // Get question IDs for this bank
+  const { data: bankQuestions } = await supabase
+    .from('qbank_questions')
+    .select('id')
+    .eq('status', 'published')
+    .eq('bank', bank);
 
-  const total = totalQ || 0;
+  const bankQIds = new Set((bankQuestions || []).map(q => q.id));
+  const total = bankQIds.size;
+
+  // Get user answers
+  const { data: myAnswers } = await supabase
+    .from('qbank_user_answers')
+    .select('question_id, is_correct')
+    .eq('user_id', user.id);
+
   const answeredSet = new Set();
   let correctCount = 0;
   const latestByQ = {};
 
   for (const a of (myAnswers || [])) {
+    if (!bankQIds.has(a.question_id)) continue;
     answeredSet.add(a.question_id);
     latestByQ[a.question_id] = a;
   }
 
-  // Count correct from latest attempt per question
   for (const a of Object.values(latestByQ)) {
     if (a.is_correct) correctCount++;
   }
@@ -107,20 +168,20 @@ function showLoginPrompt() {
     </div>`;
 }
 
-async function loadSubjectStats(user) {
+async function loadSubjectStats(user, bank) {
   const el = document.getElementById('subjectStats');
 
   const { data: questions } = await supabase
     .from('qbank_questions')
     .select('id, subject')
-    .eq('status', 'published');
+    .eq('status', 'published')
+    .eq('bank', bank);
 
   if (!questions || questions.length === 0) {
     el.innerHTML = '<div class="muted small">暂无题目</div>';
     return;
   }
 
-  // Count per subject
   const subjectMap = {};
   for (const q of questions) {
     if (!subjectMap[q.subject]) subjectMap[q.subject] = { total: 0, ids: [] };
@@ -128,7 +189,6 @@ async function loadSubjectStats(user) {
     subjectMap[q.subject].ids.push(q.id);
   }
 
-  // If logged in, get user stats
   let userStats = {};
   if (user) {
     const { data: ans } = await supabase
@@ -136,7 +196,6 @@ async function loadSubjectStats(user) {
       .select('question_id, is_correct')
       .eq('user_id', user.id);
 
-    // Latest answer per question
     const latest = {};
     for (const a of (ans || [])) {
       latest[a.question_id] = a;
@@ -176,6 +235,21 @@ async function loadSubjectStats(user) {
 }
 
 function bindEvents() {
+  // Bank card click
+  document.getElementById('bankCards').addEventListener('click', (e) => {
+    const card = e.target.closest('.qb-bank-card');
+    if (!card) return;
+    selectBank(card.dataset.bank);
+  });
+
+  // Change bank button
+  document.getElementById('btnChangeBank').addEventListener('click', () => {
+    document.getElementById('practicePanel').hidden = true;
+    document.querySelectorAll('.qb-bank-card').forEach(c => c.classList.remove('qb-bank-selected'));
+    _currentBank = '';
+    history.replaceState(null, '', 'qbank.html');
+  });
+
   // Subject pill toggle
   document.getElementById('subjectPills').addEventListener('click', (e) => {
     const pill = e.target.closest('.qb-pill');
@@ -201,7 +275,10 @@ function bindEvents() {
 
   // Start button
   document.getElementById('btnStart').addEventListener('click', () => {
+    if (!_currentBank) { toast('请先选择题库', '', 'err'); return; }
+
     const params = new URLSearchParams();
+    params.set('bank', _currentBank);
     if (_selectedSubjects.size > 0) {
       params.set('subjects', [..._selectedSubjects].join(','));
     }

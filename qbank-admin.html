@@ -6,7 +6,7 @@
   <title>题库管理 · 肾域</title>
   <meta name="description" content="肾域题库管理后台 — 批量录入题目">
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=20260409_qbank" />
+  <link rel="stylesheet" href="styles.css?v=20260410_qbank2" />
 </head>
 <body>
   <header class="nav"></header>
@@ -46,6 +46,16 @@
             <b>格式说明：</b>每道题以「第X题（科目）」开头，选项用 A. B. C. D. E.，
             正确答案写「正确答案：X。」，解析写「解析：」，文献写「参考文献：」。
             可以一次粘贴多道题。
+          </div>
+
+          <!-- Bank selector -->
+          <div style="margin-top:14px">
+            <label class="small muted">选择目标题库</label>
+            <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+              <label class="qb-radio"><input type="radio" name="bank" value="大内科"> 大内科</label>
+              <label class="qb-radio"><input type="radio" name="bank" value="肾内科" checked> 肾内科</label>
+              <label class="qb-radio"><input type="radio" name="bank" value="考研"> 考研</label>
+            </div>
           </div>
 
           <textarea id="pasteArea" class="input" rows="18"
@@ -95,7 +105,7 @@ Chyou JY, et al. ..."
   </main>
 
   <footer class="footer" data-blurb="面向肾脏专科的学术教育与持续培训平台。"></footer>
-  <script type="module" src="app.js?v=20260409_qbank"></script>
-  <script type="module" src="qbank-admin.js?v=20260409_qbank"></script>
+  <script type="module" src="app.js?v=20260410_qbank2"></script>
+  <script type="module" src="qbank-admin.js?v=20260410_qbank2"></script>
 </body>
 </html>
