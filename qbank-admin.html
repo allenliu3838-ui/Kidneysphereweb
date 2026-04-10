@@ -45,7 +45,22 @@
           <div class="note" style="margin-top:12px">
             <b>格式说明：</b>每道题以「第X题（科目）」开头，选项用 A. B. C. D. E.，
             正确答案写「正确答案：X。」，解析写「解析：」，文献写「参考文献：」。
-            可以一次粘贴多道题。
+            可以一次粘贴多道题。插入图片用 <code>![描述](图片URL)</code>。
+          </div>
+
+          <!-- Image upload -->
+          <div class="card soft" style="margin-top:14px;padding:16px">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+              <div>
+                <b>上传图片</b>
+                <span class="small muted" style="margin-left:8px">上传后复制链接，粘贴到题目中</span>
+              </div>
+              <label class="btn tiny primary" style="cursor:pointer">
+                选择图片
+                <input type="file" id="imageInput" accept="image/*" multiple hidden>
+              </label>
+            </div>
+            <div id="uploadedImages" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:10px"></div>
           </div>
 
           <!-- Bank selector -->

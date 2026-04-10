@@ -35,6 +35,7 @@ async function init() {
 
   loadStats();
   bindEvents();
+  bindImageUpload();
 }
 
 async function loadStats() {
@@ -272,6 +273,56 @@ async function saveQuestions() {
     _parsedQuestions = [];
     loadStats();
   }
+}
+
+function bindImageUpload() {
+  const input = document.getElementById('imageInput');
+  const container = document.getElementById('uploadedImages');
+
+  input.addEventListener('change', async () => {
+    const files = [...input.files];
+    if (files.length === 0) return;
+    input.value = '';
+
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) continue;
+      if (file.size > 5 * 1024 * 1024) {
+        toast('文件过大', `${file.name} 超过 5MB`, 'err');
+        continue;
+      }
+
+      // Show uploading placeholder
+      const card = document.createElement('div');
+      card.className = 'qb-img-card';
+      card.innerHTML = '<div class="small muted">上传中…</div>';
+      container.appendChild(card);
+
+      // Upload to Supabase Storage
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `qbank/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+      const { data, error } = await supabase.storage
+        .from('qbank-images')
+        .upload(path, file, { contentType: file.type, upsert: false });
+
+      if (error) {
+        card.innerHTML = `<div class="small" style="color:var(--danger)">失败: ${esc(error.message)}</div>`;
+        continue;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage.from('qbank-images').getPublicUrl(path);
+      const url = urlData?.publicUrl || '';
+
+      card.innerHTML = `
+        <img src="${esc(url)}" style="max-width:120px;max-height:80px;border-radius:8px;object-fit:cover" />
+        <div style="margin-top:6px;display:flex;gap:4px;align-items:center">
+          <input class="input" value="![图片](${esc(url)})" readonly style="font-size:11px;padding:4px 6px;flex:1" />
+          <button class="btn tiny" onclick="navigator.clipboard.writeText('![图片](${esc(url)})');this.textContent='已复制';setTimeout(()=>this.textContent='复制',1500)">复制</button>
+        </div>
+      `;
+    }
+  });
 }
 
 init();
