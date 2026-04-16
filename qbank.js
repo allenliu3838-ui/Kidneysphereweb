@@ -84,6 +84,33 @@ async function selectBank(bank) {
   ]);
 }
 
+function groupSubjects(subjects) {
+  const groups = new Map();
+  for (const s of subjects) {
+    const idx = s.indexOf('-');
+    const key = idx === -1 ? s : s.slice(0, idx);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(s);
+  }
+  return groups;
+}
+
+function renderSubjectGroup(group, subs) {
+  const pills = subs.map(s => {
+    const label = s === group ? '综合' : s.slice(group.length + 1);
+    return `<button class="btn tiny qb-pill" data-subject="${esc(s)}">${esc(label)}</button>`;
+  }).join('');
+  return `<div class="qb-subject-group" data-group="${esc(group)}">
+    <button class="qb-subject-header" type="button" aria-expanded="false">
+      <span class="qb-subject-chevron" aria-hidden="true">▸</span>
+      <span class="qb-subject-name">${esc(group)}</span>
+      <span class="qb-subject-count">${subs.length}</span>
+      <span class="qb-subject-selected" hidden>已选 <b data-count>0</b></span>
+    </button>
+    <div class="qb-subject-body" hidden>${pills}</div>
+  </div>`;
+}
+
 async function loadSubjects(bank) {
   const { data } = await supabase
     .from('qbank_questions')
@@ -101,9 +128,96 @@ async function loadSubjects(bank) {
     return;
   }
 
-  container.innerHTML = _allSubjects.map(s =>
-    `<button class="btn tiny qb-pill" data-subject="${esc(s)}">${esc(s)}</button>`
-  ).join('');
+  const groups = groupSubjects(_allSubjects);
+  const solos = [];
+  const multiGroups = [];
+  for (const [g, subs] of groups.entries()) {
+    if (subs.length === 1 && subs[0] === g) solos.push(g);
+    else multiGroups.push([g, subs]);
+  }
+  const solosHtml = solos.length
+    ? `<div class="qb-subject-solos">${solos
+        .map(g => `<button class="btn tiny qb-pill qb-pill-solo" data-subject="${esc(g)}">${esc(g)}</button>`)
+        .join('')}</div>`
+    : '';
+  const groupsHtml = multiGroups
+    .map(([g, subs]) => renderSubjectGroup(g, subs))
+    .join('');
+
+  container.innerHTML = `
+    <div class="qb-subject-toolbar">
+      <input type="search" id="qbSubjectSearch" class="qb-subject-search" placeholder="搜索科目（如：ADPKD、HRS、FSGS…）" autocomplete="off" />
+      <button type="button" class="btn tiny qb-subject-clear" id="qbSubjectClear" hidden>清除选择</button>
+    </div>
+    ${solosHtml}
+    <div class="qb-subject-groups">${groupsHtml}</div>
+  `;
+}
+
+function updateGroupSelectedBadge(groupEl) {
+  if (!groupEl) return;
+  const count = groupEl.querySelectorAll('.qb-pill.qb-pill-active').length;
+  const badge = groupEl.querySelector('.qb-subject-selected');
+  const countEl = badge?.querySelector('[data-count]');
+  if (!badge || !countEl) return;
+  if (count > 0) {
+    badge.hidden = false;
+    countEl.textContent = String(count);
+  } else {
+    badge.hidden = true;
+    countEl.textContent = '0';
+  }
+}
+
+function updateSubjectClearVisibility() {
+  const btn = document.getElementById('qbSubjectClear');
+  if (btn) btn.hidden = _selectedSubjects.size === 0;
+}
+
+function filterSubjectGroups(query) {
+  const q = (query || '').trim().toLowerCase();
+  const container = document.getElementById('subjectPills');
+  if (!container) return;
+  const groups = container.querySelectorAll('.qb-subject-group');
+  const solos = container.querySelectorAll('.qb-pill-solo');
+
+  if (!q) {
+    groups.forEach(g => {
+      g.hidden = false;
+      const body = g.querySelector('.qb-subject-body');
+      const header = g.querySelector('.qb-subject-header');
+      // Collapse unless it has an active selection
+      const hasSelection = g.querySelectorAll('.qb-pill.qb-pill-active').length > 0;
+      if (body) body.hidden = !hasSelection;
+      if (header) header.setAttribute('aria-expanded', hasSelection ? 'true' : 'false');
+      g.querySelectorAll('.qb-pill').forEach(p => p.hidden = false);
+    });
+    solos.forEach(s => s.hidden = false);
+    return;
+  }
+
+  groups.forEach(g => {
+    const groupName = (g.dataset.group || '').toLowerCase();
+    const pills = g.querySelectorAll('.qb-pill');
+    let anyMatch = false;
+    const groupNameMatches = groupName.includes(q);
+    pills.forEach(p => {
+      const subject = (p.dataset.subject || '').toLowerCase();
+      const label = (p.textContent || '').toLowerCase();
+      const match = groupNameMatches || subject.includes(q) || label.includes(q);
+      p.hidden = !match;
+      if (match) anyMatch = true;
+    });
+    g.hidden = !anyMatch;
+    const body = g.querySelector('.qb-subject-body');
+    const header = g.querySelector('.qb-subject-header');
+    if (body) body.hidden = !anyMatch;
+    if (header) header.setAttribute('aria-expanded', anyMatch ? 'true' : 'false');
+  });
+  solos.forEach(s => {
+    const subject = (s.dataset.subject || '').toLowerCase();
+    s.hidden = !subject.includes(q);
+  });
 }
 
 async function loadMyProgress(user, bank) {
@@ -250,8 +364,20 @@ function bindEvents() {
     history.replaceState(null, '', 'qbank.html');
   });
 
-  // Subject pill toggle
-  document.getElementById('subjectPills').addEventListener('click', (e) => {
+  // Subject group header toggle + pill toggle (delegated)
+  const subjectContainer = document.getElementById('subjectPills');
+  subjectContainer.addEventListener('click', (e) => {
+    const header = e.target.closest('.qb-subject-header');
+    if (header) {
+      const group = header.closest('.qb-subject-group');
+      const body = group?.querySelector('.qb-subject-body');
+      if (body) {
+        const nowHidden = !body.hidden;
+        body.hidden = nowHidden;
+        header.setAttribute('aria-expanded', nowHidden ? 'false' : 'true');
+      }
+      return;
+    }
     const pill = e.target.closest('.qb-pill');
     if (!pill) return;
     const subj = pill.dataset.subject;
@@ -261,6 +387,25 @@ function bindEvents() {
     } else {
       _selectedSubjects.add(subj);
       pill.classList.add('qb-pill-active');
+    }
+    updateGroupSelectedBadge(pill.closest('.qb-subject-group'));
+    updateSubjectClearVisibility();
+  });
+
+  // Subject search + clear (delegated so it works after loadSubjects re-renders)
+  subjectContainer.addEventListener('input', (e) => {
+    if (e.target && e.target.id === 'qbSubjectSearch') {
+      filterSubjectGroups(e.target.value);
+    }
+  });
+  subjectContainer.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'qbSubjectClear') {
+      _selectedSubjects.clear();
+      subjectContainer.querySelectorAll('.qb-pill.qb-pill-active').forEach(p => p.classList.remove('qb-pill-active'));
+      subjectContainer.querySelectorAll('.qb-subject-group').forEach(updateGroupSelectedBadge);
+      updateSubjectClearVisibility();
+      const search = document.getElementById('qbSubjectSearch');
+      if (search) { search.value = ''; filterSubjectGroups(''); }
     }
   });
 
