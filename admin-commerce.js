@@ -190,7 +190,7 @@ async function init() {
     import('./admin-commerce-orders.js?v=20260325_001'),
     import('./admin-commerce-products.js?v=20260325_001'),
     import('./admin-commerce-config.js?v=20260325_001'),
-    import('./admin-commerce-entitlements.js?v=20260325_001'),
+    import('./admin-commerce-entitlements.js?v=20260416_manage'),
     import('./admin-commerce-projects.js?v=20260325_001'),
     import('./admin-commerce-cohorts.js?v=20260325_001'),
     import('./admin-commerce-groups.js?v=20260325_001'),

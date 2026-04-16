@@ -177,7 +177,7 @@ async function bulkCheckEmails() {
       </div>
       <table class="data-table">
         <thead><tr>
-          <th>#</th><th>邮箱</th><th>姓名</th><th>状态</th><th>权益类型</th>
+          <th>#</th><th>邮箱</th><th>姓名</th><th>状态</th><th>权益类型</th><th>操作</th>
         </tr></thead>
         <tbody>
           ${results.map((r, i) => {
@@ -188,13 +188,17 @@ async function bulkCheckEmails() {
               'not_registered': '<span style="color:#ef4444;font-weight:600">❌ 未注册</span>',
             }[r.status] || `<span class="muted">${esc(r.status)}</span>`;
             const types = (r.entitlement_types || []).map(t => esc(ENT_LABELS[t] || t)).join(', ');
+            const action = isOk && r.user_id
+              ? `<button class="btn tiny" type="button" data-manage-user="${esc(r.user_id)}" data-manage-email="${esc(r.email)}" data-manage-name="${esc(r.full_name || '')}">管理权益</button>`
+              : '<span class="muted small">—</span>';
             return `
-              <tr${isOk ? ' style="opacity:0.5"' : ''}>
+              <tr>
                 <td>${i + 1}</td>
                 <td><code class="small">${esc(r.email)}</code></td>
                 <td class="small">${esc(r.full_name || '—')}</td>
                 <td>${statusHtml}</td>
                 <td class="small">${types || '—'}</td>
+                <td>${action}</td>
               </tr>`;
           }).join('')}
         </tbody>
@@ -238,6 +242,138 @@ async function bulkGrantProject() {
   }
 }
 
+let _projectsCache = null;
+async function getProjectsCached() {
+  if (_projectsCache) return _projectsCache;
+  const { data } = await supabase
+    .from('learning_projects')
+    .select('id, project_code, title')
+    .order('title');
+  _projectsCache = data || [];
+  return _projectsCache;
+}
+
+async function showManageUserModal(userId, email, fullName) {
+  const title = `管理用户权益 · ${esc(email)}${fullName ? ` (${esc(fullName)})` : ''}`;
+  showModal(title, '<div class="muted">加载中…</div>',
+    `<button class="btn" type="button" id="manageCloseBtn">关闭</button>`);
+  document.getElementById('manageCloseBtn')?.addEventListener('click', closeModal);
+
+  const body = document.getElementById('modalBody');
+  body.addEventListener('click', async (e) => {
+    const revokeBtn = e.target.closest('button[data-revoke-user-ent]');
+    if (revokeBtn) {
+      const id = revokeBtn.dataset.revokeUserEnt;
+      if (!confirm('确定撤销此权益？用户将立即失去对应访问权。')) return;
+      revokeBtn.disabled = true;
+      const { error: revErr } = await supabase.from('user_entitlements').update({ status: 'revoked' }).eq('id', id);
+      if (revErr) { toast('撤销失败', revErr.message, 'err'); revokeBtn.disabled = false; return; }
+      toast('已撤销', '', 'ok');
+      await renderManageUserBody(userId, email, fullName);
+      bulkCheckEmails();
+      return;
+    }
+    const changeBtn = e.target.closest('button[data-change-project]');
+    if (changeBtn) {
+      const id = changeBtn.dataset.changeProject;
+      const sel = body.querySelector(`[data-change-project-sel="${CSS.escape(id)}"]`);
+      const newCode = sel?.value;
+      if (!newCode) { toast('请选择项目', '', 'err'); return; }
+      const newTitle = sel.options[sel.selectedIndex]?.text || newCode;
+      if (!confirm(`确定将此权益切换为「${newTitle}」？当前权益会被撤销，并为新项目发放 365 天访问权。`)) return;
+      changeBtn.disabled = true;
+      try {
+        const { error: revErr } = await supabase.from('user_entitlements').update({ status: 'revoked' }).eq('id', id);
+        if (revErr) throw revErr;
+        const { error: grantErr } = await supabase.rpc('admin_batch_grant_project', {
+          p_emails: [email],
+          p_project_code: newCode,
+          p_grant_reason: 'admin_change_project_' + new Date().toISOString().slice(0, 10),
+        });
+        if (grantErr) throw grantErr;
+        toast('已切换项目', newTitle, 'ok');
+        await renderManageUserBody(userId, email, fullName);
+        bulkCheckEmails();
+      } catch (err) {
+        toast('切换失败', err.message, 'err');
+        changeBtn.disabled = false;
+      }
+    }
+  });
+
+  await renderManageUserBody(userId, email, fullName);
+}
+
+async function renderManageUserBody(userId, email, fullName) {
+  const body = document.getElementById('modalBody');
+  if (!body) return;
+
+  const [{ data: ents, error }, projects] = await Promise.all([
+    supabase.from('user_entitlements')
+      .select('id, entitlement_type, project_id, specialty_id, end_at, status, grant_reason, created_at')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false }),
+    getProjectsCached(),
+  ]);
+
+  if (error) { body.innerHTML = `<div class="note">${esc(error.message)}</div>`; return; }
+
+  const projectById = new Map(projects.map(p => [p.id, p]));
+  const projectOptions = projects
+    .map(p => `<option value="${esc(p.project_code)}">${esc(p.title)}</option>`)
+    .join('');
+
+  const rows = ents || [];
+  if (!rows.length) {
+    body.innerHTML = '<div class="muted">该用户当前没有活跃权益。</div>';
+    return;
+  }
+
+  body.innerHTML = `
+    <div class="small muted" style="margin-bottom:8px">用户ID: <code>${esc(userId)}</code></div>
+    <table class="data-table">
+      <thead><tr>
+        <th>类型</th><th>关联项目</th><th>到期</th><th>操作</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(r => {
+          const typeLabel = esc(ENT_LABELS[r.entitlement_type] || r.entitlement_type);
+          const proj = r.project_id ? projectById.get(r.project_id) : null;
+          const projLabel = proj ? esc(proj.title) : (r.project_id ? `<code class="small">${esc(r.project_id.slice(0,8))}…</code>` : '—');
+          const expires = r.end_at ? esc(formatBeijingDateTime(r.end_at)) : '永久';
+          const canChangeProject = r.entitlement_type === 'project_access' || r.entitlement_type === 'cohort_access';
+          const changeHtml = canChangeProject ? `
+            <div style="display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap">
+              <select class="input" data-change-project-sel="${esc(r.id)}" style="min-width:180px">${projectOptions}</select>
+              <button class="btn tiny" type="button" data-change-project="${esc(r.id)}">切换项目</button>
+            </div>` : '';
+          return `
+            <tr data-ent-row="${esc(r.id)}">
+              <td>${typeLabel}</td>
+              <td class="small">${projLabel}</td>
+              <td class="small">${expires}</td>
+              <td>
+                <button class="btn tiny danger" type="button" data-revoke-user-ent="${esc(r.id)}">撤销资格</button>
+                ${changeHtml}
+              </td>
+            </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    <div class="small muted" style="margin-top:10px">撤销后此权益立即失效；切换项目会撤销当前项目并为新项目发放 365 天访问权。</div>
+  `;
+
+  // Preselect the current project in the dropdown when possible
+  rows.forEach(r => {
+    if (r.project_id) {
+      const sel = body.querySelector(`[data-change-project-sel="${CSS.escape(r.id)}"]`);
+      const proj = projectById.get(r.project_id);
+      if (sel && proj) sel.value = proj.project_code;
+    }
+  });
+}
+
 async function loadProjectOptions() {
   const sel = document.getElementById('bulkGrantProject');
   if (!sel) return;
@@ -262,9 +398,27 @@ function bindEvents() {
     if (btn) revokeEntitlement(btn.dataset.revokeEnt);
   });
 
-  document.getElementById('entSearchBtn')?.addEventListener('click', () => {
-    const val = document.getElementById('entSearchInput')?.value?.trim();
-    loadEntitlements(val || undefined);
+  document.getElementById('entSearchBtn')?.addEventListener('click', async () => {
+    const raw = document.getElementById('entSearchInput')?.value?.trim();
+    if (!raw) { loadEntitlements(); return; }
+    // Accept email or UUID. If it looks like an email, resolve via RPC first.
+    if (raw.includes('@')) {
+      try {
+        const { data, error } = await supabase.rpc('admin_check_user_emails', { p_emails: [raw] });
+        if (error) throw error;
+        const hit = (data || [])[0];
+        if (!hit || !hit.user_id) {
+          const wrap = document.getElementById('entitlementsTableWrap');
+          if (wrap) wrap.innerHTML = `<div class="note">该邮箱未注册：${esc(raw)}</div>`;
+          return;
+        }
+        loadEntitlements(hit.user_id);
+      } catch (err) {
+        toast('搜索失败', err.message, 'err');
+      }
+      return;
+    }
+    loadEntitlements(raw);
   });
 
   document.getElementById('refreshEntitlements')?.addEventListener('click', () => loadEntitlements());
@@ -282,6 +436,12 @@ function bindEvents() {
 
   document.getElementById('bulkEmailCheckBtn')?.addEventListener('click', bulkCheckEmails);
   document.getElementById('bulkGrantBtn')?.addEventListener('click', bulkGrantProject);
+
+  document.getElementById('bulkEmailResultWrap')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-manage-user]');
+    if (!btn) return;
+    showManageUserModal(btn.dataset.manageUser, btn.dataset.manageEmail, btn.dataset.manageName);
+  });
 
   document.getElementById('panel-entitlements')?.addEventListener('panel:show', () => loadEntitlements());
 }
