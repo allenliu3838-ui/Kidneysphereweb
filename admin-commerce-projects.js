@@ -6,10 +6,11 @@ import { supabase, toast } from './supabaseClient.js?v=20260401_fix';
 import { esc, fmtDate, showModal, closeModal } from './admin-commerce.js?v=20260325_001';
 
 const STATUS_LABELS = {
-  draft:      { label: '草稿',   dot: 'gray' },
-  recruiting: { label: '招募中', dot: 'green' },
-  closed:     { label: '已关闭', dot: 'yellow' },
-  ended:      { label: '已结束', dot: 'gray' },
+  draft:       { label: '草稿',   dot: 'gray'   },
+  recruiting:  { label: '招生中', dot: 'green'  },
+  in_progress: { label: '进行中', dot: 'blue'   },
+  closed:      { label: '已关闭', dot: 'yellow' },
+  ended:       { label: '已结束', dot: 'gray'   },
 };
 
 const ENROLL_STATUS_LABELS = {
@@ -117,7 +118,7 @@ async function openProjectModal(projectId) {
         <div style="flex:1">
           <label>状态</label>
           <select class="input" id="pfStatus">
-            ${['draft','recruiting','closed','ended'].map(s =>
+            ${['draft','recruiting','in_progress','closed','ended'].map(s =>
               `<option value="${s}" ${proj?.status === s ? 'selected' : ''}>${STATUS_LABELS[s]?.label || s}</option>`
             ).join('')}
           </select>
@@ -253,7 +254,7 @@ async function openCohortEditModal(cohortId, projectId, projectTitle) {
         <div style="flex:1">
           <label>状态</label>
           <select class="input" id="cfStatus">
-            ${['draft','recruiting','closed','ended'].map(s =>
+            ${['draft','recruiting','in_progress','closed','ended'].map(s =>
               `<option value="${s}" ${c?.status === s ? 'selected' : ''}>${STATUS_LABELS[s]?.label || s}</option>`
             ).join('')}
           </select>

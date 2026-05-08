@@ -12,6 +12,8 @@ const els = {
   markCasesBtn: document.getElementById('markCasesBtn'),
   markMomentsBtn: document.getElementById('markMomentsBtn'),
   markVideosBtn: document.getElementById('markVideosBtn'),
+  ordersNotifList: document.getElementById('ordersNotifList'),
+  ordersNotifCount: document.getElementById('ordersNotifCount'),
 };
 
 const SEEN_KEYS = {
@@ -329,6 +331,52 @@ function renderMoments(list){
   }).join('');
 }
 
+async function loadOrderNotifications(userId){
+  if(!els.ordersNotifList) return;
+  try{
+    const { data: jobs } = await supabase
+      .from('notification_jobs')
+      .select('id, related_order_id, payload_json, created_at, template:template_id ( code, title, body )')
+      .eq('user_id', userId)
+      .eq('channel', 'site')
+      .order('created_at', { ascending: false })
+      .limit(20);
+    const list = jobs || [];
+    if(els.ordersNotifCount) els.ordersNotifCount.textContent = String(list.length);
+    if(!list.length){
+      els.ordersNotifList.innerHTML = `<div class="muted small">暂无订单消息。</div>`;
+      return;
+    }
+    els.ordersNotifList.innerHTML = list.map(j => {
+      const code = j.template?.code || '';
+      const title = j.template?.title || '通知';
+      const payload = j.payload_json || {};
+      const orderNo = payload.order_no || '';
+      const reason = payload.reason || '';
+      const ts = j.created_at ? relTime(j.created_at) : '';
+      const cls = code === 'order_approved' ? '✅' : (code === 'order_rejected' ? '❌' : '📬');
+      const sub = orderNo ? `订单 ${esc(orderNo)}${reason ? ' · ' + esc(reason) : ''}` : '';
+      const link = j.related_order_id ? `my-learning.html` : '#';
+      return `
+        <a class="list-item" href="${esc(link)}">
+          <b>${cls} ${esc(title)}</b>
+          ${sub ? `<div class="small" style="margin-top:6px">${sub}</div>` : ''}
+          <div class="small muted" style="margin-top:6px">${esc(ts)}</div>
+        </a>
+      `;
+    }).join('');
+    // Mark as seen so the topbar bell badge clears
+    try{ localStorage.setItem('ks_seen_order_notif_at', new Date().toISOString()); }catch(_e){}
+  }catch(e){
+    const msg = String(e?.message || e || '');
+    if(/relation .*notification_jobs.* does not exist/i.test(msg)){
+      els.ordersNotifList.innerHTML = `<div class="muted small">通知系统未启用。</div>`;
+      return;
+    }
+    els.ordersNotifList.innerHTML = `<div class="note"><b>读取订单消息失败</b><div class="small" style="margin-top:6px">${esc(msg)}</div></div>`;
+  }
+}
+
 async function refresh(){
   if(!isConfigured()){
     els.casesList && (els.casesList.innerHTML = `<div class="note"><b>演示模式：</b>请在 assets/config.js 配置 Supabase 后启用通知中心。</div>`);
@@ -346,6 +394,9 @@ async function refresh(){
     toast('需要登录', '请先登录。', 'err');
     return;
   }
+
+  // Load order/system notifications in parallel with other content
+  loadOrderNotifications(user.id);
 
   // Baseline strategy (very important):
   // - If this device already has a "seen" timestamp, use it.

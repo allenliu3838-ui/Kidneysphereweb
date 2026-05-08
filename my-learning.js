@@ -290,6 +290,95 @@ function renderEnrollments(list) {
   }).join('');
 }
 
+/* ── dashboard summary: membership card + recent notifications ── */
+async function renderDashboardSummary(user) {
+  const wrap = document.getElementById('mlDashSummary');
+  if (!wrap) return;
+
+  // 1. Membership card (top-left)
+  const memberEl = document.getElementById('dashMembership');
+  if (memberEl) {
+    try {
+      const nowIso = new Date().toISOString();
+      const { data: ents } = await supabase
+        .from('user_entitlements')
+        .select('end_at, entitlement_type, status')
+        .eq('user_id', user.id)
+        .eq('entitlement_type', 'membership')
+        .eq('status', 'active')
+        .or(`end_at.is.null,end_at.gt.${nowIso}`)
+        .order('end_at', { ascending: false, nullsFirst: false })
+        .limit(1);
+      const ent = (ents || [])[0];
+      if (ent) {
+        const days = ent.end_at ? Math.max(0, Math.ceil((new Date(ent.end_at) - Date.now()) / 86400000)) : null;
+        const expiry = ent.end_at ? new Date(ent.end_at).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }) : '永久有效';
+        const expiringSoon = days != null && days <= 30;
+        memberEl.innerHTML = `
+          <h4>👑 会员状态</h4>
+          <div style="font-size:15px;font-weight:600;color:#c084fc">✓ GlomCon 教育会员</div>
+          <div class="small muted" style="margin-top:4px">
+            ${days != null ? `剩余 <b>${days}</b> 天 · ` : ''}有效期至 ${esc(expiry)}
+          </div>
+          ${expiringSoon ? `<a class="btn tiny" href="checkout.html?product=MEMBERSHIP-YEARLY" style="margin-top:8px">续费会员</a>` : ''}
+        `;
+      } else {
+        memberEl.innerHTML = `
+          <h4>👑 会员状态</h4>
+          <div style="font-size:15px;font-weight:600">尚未开通会员</div>
+          <div class="small muted" style="margin-top:4px">¥199/年 · 解锁全部 GlomCon 中国教育系列视频</div>
+          <a class="btn primary tiny" href="checkout.html?product=MEMBERSHIP-YEARLY" style="margin-top:10px">立即开通</a>
+        `;
+      }
+    } catch (_e) {
+      memberEl.innerHTML = `<h4>👑 会员状态</h4><div class="small muted">加载失败</div>`;
+    }
+  }
+
+  // 2. Recent notifications (top-middle) — pull last 3 site notifications
+  const notifList = document.getElementById('dashNotifList');
+  if (notifList) {
+    try {
+      const { data: jobs } = await supabase
+        .from('notification_jobs')
+        .select('id, related_order_id, payload_json, created_at, template:template_id ( code, title )')
+        .eq('user_id', user.id)
+        .eq('channel', 'site')
+        .order('created_at', { ascending: false })
+        .limit(3);
+      if (!jobs || jobs.length === 0) {
+        notifList.innerHTML = `<div class="muted small">暂无新通知。</div>`;
+      } else {
+        notifList.innerHTML = jobs.map(j => {
+          const code = j.template?.code || '';
+          const title = j.template?.title || '通知';
+          const payload = j.payload_json || {};
+          const orderNo = payload.order_no || '';
+          const reason = payload.reason || '';
+          const ts = j.created_at ? new Date(j.created_at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+          const cls = code === 'order_approved' ? 'approved' : (code === 'order_rejected' ? 'rejected' : '');
+          const sub = orderNo ? `订单 ${esc(orderNo)}${reason ? ' · ' + esc(reason) : ''}` : '';
+          return `
+            <div class="ml-dash-notif ${cls}">
+              <div class="notif-title">${esc(title)}</div>
+              ${sub ? `<div class="small">${sub}</div>` : ''}
+              <div class="notif-meta">${esc(ts)}</div>
+            </div>`;
+        }).join('');
+      }
+      // Mark notifications as seen since user is viewing them
+      try { localStorage.setItem('ks_seen_order_notif_at', new Date().toISOString()); } catch (_e) {}
+      // Hide the bell badge if currently showing
+      const bellBadge = document.querySelector('[data-nav-bell-badge]');
+      if (bellBadge) bellBadge.hidden = true;
+    } catch (_e) {
+      notifList.innerHTML = `<div class="muted small">通知系统暂不可用。</div>`;
+    }
+  }
+
+  wrap.hidden = false;
+}
+
 /* ── main init ── */
 async function init() {
   const gate = document.getElementById('mlGate');
@@ -315,6 +404,7 @@ async function init() {
   gate.hidden = true;
   main.hidden = false;
   initTabs();
+  renderDashboardSummary(user);
 
   // Load all three data sources in parallel
   const [entRes, ordRes, enrRes] = await Promise.allSettled([

@@ -32,6 +32,19 @@
     .enroll-card{border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 16px;margin-bottom:10px}
     .qr-wrap{margin-top:10px;padding:10px;background:rgba(255,255,255,.05);border-radius:8px;text-align:center}
     .qr-wrap img{max-width:160px;border-radius:8px}
+    /* Dashboard summary cards */
+    .ml-dash{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:14px 0 0}
+    .ml-dash-card{border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 16px;background:rgba(255,255,255,.025)}
+    .ml-dash-card h4{margin:0 0 10px;font-size:13px;font-weight:600;opacity:.75;text-transform:uppercase;letter-spacing:.04em}
+    .ml-dash-notif{font-size:13px;margin-bottom:8px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.04);border-left:2px solid rgba(63,131,248,.4)}
+    .ml-dash-notif.approved{border-left-color:#22c55e}
+    .ml-dash-notif.rejected{border-left-color:#ef4444}
+    .ml-dash-notif .notif-title{font-weight:600}
+    .ml-dash-notif .notif-meta{font-size:11px;opacity:.55;margin-top:3px}
+    .ml-quick-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+    .ml-quick-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);text-decoration:none;color:inherit;font-size:13px;transition:background .15s}
+    .ml-quick-btn:hover{background:rgba(255,255,255,.08)}
+    .ml-quick-btn .qb-icon{font-size:18px}
   </style>
 </head>
 <body>
@@ -56,6 +69,24 @@
       <div id="mlGate" class="note" style="margin-top:12px">正在验证登录状态…</div>
 
       <div id="mlMain" hidden>
+        <!-- Dashboard summary: 会员状态 / 最近通知 / 快捷入口 -->
+        <div id="mlDashSummary" class="ml-dash" hidden>
+          <div class="ml-dash-card" id="dashMembership"></div>
+          <div class="ml-dash-card" id="dashNotifications">
+            <h4>📬 最近通知</h4>
+            <div id="dashNotifList"><div class="muted small">加载中…</div></div>
+          </div>
+          <div class="ml-dash-card">
+            <h4>⚡ 快捷入口</h4>
+            <div class="ml-quick-grid">
+              <a class="ml-quick-btn" href="learning.html"><span class="qb-icon">📚</span><span>学习中心</span></a>
+              <a class="ml-quick-btn" href="videos.html"><span class="qb-icon">🎬</span><span>视频库</span></a>
+              <a class="ml-quick-btn" href="favorites.html"><span class="qb-icon">⭐</span><span>我的收藏</span></a>
+              <a class="ml-quick-btn" href="notes.html"><span class="qb-icon">📝</span><span>我的笔记</span></a>
+            </div>
+          </div>
+        </div>
+
         <div class="ml-tabs" id="mlTabs">
           <button class="btn active" data-tab="entitlements" type="button">我的权益</button>
           <button class="btn" data-tab="orders" type="button">我的订单</button>
