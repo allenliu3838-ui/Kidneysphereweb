@@ -43,7 +43,7 @@ function initTabs() {
 
 /* ── 权益类型标签 ── */
 const ENT_TYPE_LABEL = {
-  membership:      '会员',
+  membership:      'GlomCon 中国教育会员',
   specialty_bundle:'专科整套课',
   single_video:    '单视频',
   project_access:  '项目权限',
@@ -119,7 +119,7 @@ function renderEntitlements(list) {
       } else if (type === 'single_video' && e.video_id) {
         cta = `<a class="btn tiny" href="watch.html?id=${encodeURIComponent(e.video_id)}">立即观看</a>`;
       } else if (type === 'membership') {
-        cta = `<a class="btn tiny" href="learning.html">进入学习中心</a>`;
+        cta = `<a class="btn tiny" href="videos.html?source=glomcon">进入 GlomCon 视频库</a>`;
       }
 
       html += `

@@ -1002,25 +1002,68 @@ async function init(){
     if(els.videoIsPaid) els.videoIsPaid.value = isPaid ? '1' : '';
     if(els.videoMembershipAccessible) els.videoMembershipAccessible.value = isMembership ? '1' : '';
   }
-  els.videoAccessType?.addEventListener('change', updateAccessTypeUI);
-  updateAccessTypeUI();
+
+  // ── Mutual exclusion: GlomCon source ⊥ specialty / paid_specialty ──
+  // GlomCon 内容统一为「付费会员可看」，且不绑定专科；
+  // 反过来，绑定专科或选「付费专科可看」的视频不能标 GlomCon 来源。
+  function applyAccessConsistency(){
+    const src = els.videoContentSource?.value || '';
+    const at = els.videoAccessType?.value || 'registered_free';
+    const hasSpecialty = !!(els.videoSpecialty?.value);
+
+    if(src === 'glomcon'){
+      if(els.videoAccessType){
+        els.videoAccessType.value = 'paid_membership';
+        els.videoAccessType.disabled = true;
+        els.videoAccessType.title = 'GlomCon 内容统一为「付费会员可看」';
+      }
+      if(els.videoSpecialty){
+        els.videoSpecialty.value = '';
+        els.videoSpecialty.disabled = true;
+        els.videoSpecialty.title = 'GlomCon 内容不绑定专科';
+      }
+    } else {
+      if(els.videoAccessType){
+        els.videoAccessType.disabled = false;
+        els.videoAccessType.title = '';
+      }
+      if(els.videoSpecialty){
+        els.videoSpecialty.disabled = false;
+        els.videoSpecialty.title = '';
+      }
+    }
+
+    if(els.videoContentSource){
+      const glomconOpt = els.videoContentSource.querySelector('option[value="glomcon"]');
+      if(glomconOpt){
+        const blockGlomcon = (hasSpecialty || at === 'paid_specialty') && src !== 'glomcon';
+        glomconOpt.disabled = blockGlomcon;
+        glomconOpt.title = blockGlomcon ? '绑定专科或「付费专科可看」的视频不能选 GlomCon 来源' : '';
+      }
+    }
+
+    updateAccessTypeUI();
+  }
+
+  els.videoAccessType?.addEventListener('change', applyAccessConsistency);
+  applyAccessConsistency();
 
   // Auto-set access type when specialty is selected
   els.videoSpecialty?.addEventListener('change', ()=>{
     if(els.videoSpecialty.value && els.videoAccessType){
       if(els.videoAccessType.value === 'registered_free'){
         els.videoAccessType.value = 'paid_specialty';
-        updateAccessTypeUI();
       }
     }
+    applyAccessConsistency();
   });
 
   // Auto-set access type when GlomCon source is selected
   els.videoContentSource?.addEventListener('change', ()=>{
     if(els.videoContentSource.value === 'glomcon' && els.videoAccessType){
       els.videoAccessType.value = 'paid_membership';
-      updateAccessTypeUI();
     }
+    applyAccessConsistency();
   });
 
   // Save draft button
