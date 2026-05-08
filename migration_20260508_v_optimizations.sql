@@ -452,21 +452,24 @@ begin
   end loop;
 end $$;
 
+-- pg_cron schedules in UTC; we convert Beijing (UTC+8) to UTC.
+-- 北京 02:20 = UTC 18:20 (前一日)
+-- 北京 02:25 = UTC 18:25 (前一日)
 select cron.schedule(
   'ks_cancel_stale_orders_hourly',
-  '15 * * * *',  -- :15 every hour
+  '15 * * * *',     -- 每小时 :15（与时区无关）
   $$ select public.cron_cancel_stale_orders(); $$
 );
 
 select cron.schedule(
   'ks_process_expirations_daily',
-  '20 2 * * *',  -- 02:20 UTC daily
+  '20 18 * * *',    -- UTC 18:20 = 北京 02:20 daily
   $$ select public.cron_process_expirations(); $$
 );
 
 select cron.schedule(
   'ks_switch_early_bird_daily',
-  '25 2 * * *',  -- 02:25 UTC daily
+  '25 18 * * *',    -- UTC 18:25 = 北京 02:25 daily
   $$ select public.cron_switch_early_bird_to_regular(); $$
 );
 
