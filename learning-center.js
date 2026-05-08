@@ -1064,10 +1064,11 @@ init();
 // ============================================================
 
 const PROJECT_STATUS_LABELS = {
-  draft:      { label: '筹备中', color: 'rgba(156,163,175,.7)' },
-  recruiting: { label: '招募中', color: '#4ade80' },
-  closed:     { label: '报名已截止', color: '#fbbf24' },
-  ended:      { label: '已结束', color: 'rgba(156,163,175,.5)' },
+  draft:       { label: '筹备中',     color: 'rgba(156,163,175,.7)' },
+  recruiting:  { label: '招生中',     color: '#4ade80' },
+  in_progress: { label: '进行中',     color: '#3fa9f5' },
+  closed:      { label: '报名已截止', color: '#fbbf24' },
+  ended:       { label: '已结束',     color: 'rgba(156,163,175,.5)' },
 };
 
 async function loadTrainingProjects(){
@@ -1151,7 +1152,6 @@ async function loadTrainingProjects(){
         const hasAccess = userEnts.has(proj.id);
         const prods = productsByProject[proj.id] || [];
         const fullProd  = prods.find(p => /full|完整|报名/.test(p.product_code + p.title));
-        const videoProd = prods.find(p => /video|视频|回放/.test(p.product_code + p.title));
 
         function priceTag(p){
           if(!p) return '';
@@ -1165,11 +1165,10 @@ async function loadTrainingProjects(){
             <div class="note" style="border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.06);padding:10px;border-radius:8px;margin-top:10px">
               ✅ 已报名。<a href="my-learning.html">进入我的学习</a>查看班期与学习群。
             </div>`;
-        } else if(proj.status === 'recruiting'){
-          const fullBtn  = fullProd  ? `<a class="btn primary" href="checkout.html?product_id=${encodeURIComponent(fullProd.id)}">${priceTag(fullProd)} 报名版</a>` : '';
-          const videoBtn = videoProd ? `<a class="btn" href="checkout.html?product_id=${encodeURIComponent(videoProd.id)}">${priceTag(videoProd)} 视频版</a>` : '';
-          if(fullBtn || videoBtn){
-            ctaHtml = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${fullBtn}${videoBtn}</div>`;
+        } else if(proj.status === 'recruiting' || proj.status === 'in_progress'){
+          const fullBtn = fullProd ? `<a class="btn primary" href="checkout.html?product_id=${encodeURIComponent(fullProd.id)}">${priceTag(fullProd)} 报名版</a>` : '';
+          if(fullBtn){
+            ctaHtml = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${fullBtn}</div>`;
           } else {
             ctaHtml = `<div style="margin-top:10px"><a class="btn" href="mailto:china@kidneysphere.com?subject=${encodeURIComponent('报名咨询：' + (proj.title || ''))}">联系招募</a></div>`;
           }
@@ -1192,11 +1191,10 @@ async function loadTrainingProjects(){
                 ${proj.intro ? `<p class="small muted" style="margin-top:6px;line-height:1.6">${esc(proj.intro.slice(0,100))}${proj.intro.length > 100 ? '…' : ''}</p>` : ''}
               </div>
             </div>
-            ${fullProd || videoProd ? `
+            ${fullProd ? `
               <div class="hr" style="margin:10px 0"></div>
               <div style="display:flex;gap:16px;flex-wrap:wrap">
-                ${fullProd ? `<div class="small"><span class="muted">报名版：</span>${priceTag(fullProd)}</div>` : ''}
-                ${videoProd ? `<div class="small"><span class="muted">视频版：</span>${priceTag(videoProd)}</div>` : ''}
+                <div class="small"><span class="muted">报名版：</span>${priceTag(fullProd)}</div>
               </div>` : ''}
             ${proj.refund_policy_text ? `<p class="small muted" style="margin-top:6px">退款：${esc(proj.refund_policy_text)}</p>` : ''}
             ${ctaHtml}

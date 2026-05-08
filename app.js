@@ -112,6 +112,7 @@ function applyVersionParamToLinks(){
 function injectNav(){
   const header = document.querySelector('header.nav');
   if(!header) return;
+  injectTopbarExtraStyles();
   header.innerHTML = `
     <div class="container nav-inner">
       <a class="brand" href="index.html" aria-label="肾域 Home">
@@ -122,28 +123,178 @@ function injectNav(){
       </a>
       <nav class="menu" aria-label="Primary">
         <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
-        <a data-nav href="research-pilot.html"><span class="zh">科研试点</span><span class="en">Research</span></a>
-        <a data-nav href="community.html"><span class="zh">社区讨论</span><span class="en">Community</span></a>
-        <a data-nav href="moments.html"><span class="zh">社区动态</span><span class="en">Moments</span></a>
-        <a data-nav href="learning.html"><span class="zh">学习中心</span><span class="en">Learning</span></a>
-        <a data-nav href="qbank.html"><span class="zh">题库</span><span class="en">Q-Bank</span></a>
-        <a data-nav href="academy.html"><span class="zh">培训与定价</span><span class="en">Academy</span></a>
-        <a data-nav href="events.html"><span class="zh">会议与活动</span><span class="en">Events</span></a>
-        <a data-nav href="about.html"><span class="zh">关于</span><span class="en">About</span></a>
-        <a data-nav href="search.html"><span class="zh">搜索</span><span class="en">Search</span></a>
+        <a data-nav href="community.html"><span class="zh">社区</span><span class="en">Community</span></a>
+        <a data-nav href="moments.html"><span class="zh">动态</span><span class="en">Moments</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习</span><span class="en">Learning</span></a>
+        <a data-nav href="events.html"><span class="zh">活动</span><span class="en">Events</span></a>
+        <a data-nav href="my-learning.html" data-nav-auth-only hidden><span class="zh">我的</span><span class="en">My</span></a>
       </nav>
       <div class="nav-dropdown">
-        <button type="button" class="nav-dropdown-trigger" aria-haspopup="true" aria-expanded="false"><span class="zh">产品工具</span><span class="en">Products</span><span class="chev">▾</span></button>
+        <button type="button" class="nav-dropdown-trigger" aria-haspopup="true" aria-expanded="false"><span class="zh">更多</span><span class="en">More</span><span class="chev">▾</span></button>
         <div class="nav-dropdown-menu">
-          <a href="https://kidneysphereregistry.cn" target="_blank" rel="noopener">🔬 肾域·科研</a>
-          <span class="small muted" style="padding:6px 12px;opacity:.6">更多产品即将上线</span>
+          <a href="academy.html">📋 培训与定价</a>
+          <a href="qbank.html">🧪 题库</a>
+          <a href="research-pilot.html">🔬 科研试点</a>
+          <a href="search.html">🔍 全站搜索</a>
+          <a href="about.html">ℹ️ 关于</a>
+          <span class="nav-dropdown-sep"></span>
+          <a href="https://kidneysphereregistry.cn" target="_blank" rel="noopener">🔬 肾域·科研（科研系统）</a>
         </div>
       </div>
+      <form class="nav-search" data-nav-search role="search" action="search.html" method="get">
+        <input class="nav-search-input" name="q" type="search" placeholder="🔍 搜索病例 / 文章 / 视频…" autocomplete="off" aria-label="全站搜索" />
+      </form>
+      <a class="nav-bell" data-nav-bell href="notifications.html" hidden aria-label="通知" title="通知">
+        <span aria-hidden="true">🔔</span>
+        <span class="nav-bell-badge" data-nav-bell-badge hidden>0</span>
+      </a>
+      <a class="nav-member-badge" data-nav-member-badge href="my-learning.html" hidden></a>
       <div class="auth" data-auth>
         <a class="btn" href="login.html">登录</a>
         <a class="btn primary" href="register.html">注册</a>
       </div>
     </div>`;
+}
+
+function injectTopbarExtraStyles(){
+  if(document.getElementById('ks-topbar-extra-styles')) return;
+  const s = document.createElement('style');
+  s.id = 'ks-topbar-extra-styles';
+  s.textContent = `
+    .nav-search{display:flex;align-items:center;margin-left:auto;margin-right:6px;flex-shrink:0}
+    .nav-search-input{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:inherit;border-radius:8px;padding:6px 12px;font-size:13px;width:200px;transition:width .2s,background .2s}
+    .nav-search-input::placeholder{color:rgba(255,255,255,.4)}
+    .nav-search-input:focus{width:260px;background:rgba(255,255,255,.1);outline:none;border-color:rgba(63,131,248,.5)}
+    .nav-bell{position:relative;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:none;color:inherit;font-size:17px;padding:6px 8px;cursor:pointer;flex-shrink:0;border-radius:6px;text-decoration:none;line-height:1}
+    .nav-bell:hover{background:rgba(255,255,255,.06)}
+    .nav-bell-badge{position:absolute;top:2px;right:2px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;border-radius:8px;padding:1px 5px;min-width:14px;text-align:center;line-height:1.3;border:1.5px solid rgba(5,15,36,.95)}
+    .nav-member-badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:12px;text-decoration:none;flex-shrink:0;border:1px solid rgba(168,85,247,.4);background:rgba(168,85,247,.08);color:#c084fc;transition:background .2s;white-space:nowrap}
+    .nav-member-badge:hover{background:rgba(168,85,247,.18)}
+    .nav-member-badge[data-state="expiring"]{border-color:rgba(234,179,8,.5);background:rgba(234,179,8,.08);color:#fbbf24}
+    .nav-member-badge[data-state="cta"]{border-color:rgba(63,131,248,.4);background:rgba(63,131,248,.1);color:#67e8f9}
+    .nav-dropdown-sep{display:block;border-top:1px solid rgba(255,255,255,.1);margin:4px 0}
+    @media (max-width:1100px){
+      .nav-search-input{width:160px}
+      .nav-search-input:focus{width:200px}
+    }
+    @media (max-width:900px){
+      .nav-search{display:none}
+    }
+    @media (max-width:600px){
+      .nav-bell{display:none}
+      .nav-member-badge{display:none}
+    }
+  `;
+  document.head.appendChild(s);
+}
+
+// Populate member status badge + notification bell after auth is known.
+// Idempotent: safe to call multiple times.
+const NOTIFY_SEEN_KEY = 'ks_seen_order_notif_at';
+async function populateTopbarExtras(){
+  const memberBadge = document.querySelector('[data-nav-member-badge]');
+  const bell        = document.querySelector('[data-nav-bell]');
+  const bellBadge   = document.querySelector('[data-nav-bell-badge]');
+  const myLink      = document.querySelector('[data-nav-auth-only]');
+
+  // Default: hide everything that requires auth
+  if(memberBadge) memberBadge.hidden = true;
+  if(bell)        bell.hidden = true;
+  if(myLink)      myLink.hidden = true;
+
+  if(!isConfigured()) return;
+
+  let session = null;
+  try{ session = await getSession(); }catch(_e){}
+  if(!session?.user) return;
+
+  // Authenticated → show "我的" link + bell
+  if(myLink) myLink.hidden = false;
+  if(bell)   bell.hidden = false;
+
+  await ensureSupabase();
+  const userId = session.user.id;
+
+  // 1. Membership badge — read latest active membership entitlement
+  try{
+    const nowIso = new Date().toISOString();
+    const { data: ents } = await supabase
+      .from('user_entitlements')
+      .select('end_at, entitlement_type, status')
+      .eq('user_id', userId)
+      .eq('entitlement_type', 'membership')
+      .eq('status', 'active')
+      .or(`end_at.is.null,end_at.gt.${nowIso}`)
+      .order('end_at', { ascending: false, nullsFirst: false })
+      .limit(1);
+    if(memberBadge){
+      const ent = (ents || [])[0];
+      if(ent){
+        const endAt = ent.end_at ? new Date(ent.end_at) : null;
+        if(!endAt){
+          memberBadge.textContent = '✓ 会员';
+          memberBadge.removeAttribute('data-state');
+        } else {
+          const days = Math.max(0, Math.ceil((endAt - Date.now()) / 86400000));
+          memberBadge.textContent = `✓ 会员 · ${days} 天`;
+          memberBadge.dataset.state = days <= 7 ? 'expiring' : '';
+        }
+        memberBadge.hidden = false;
+      } else {
+        memberBadge.textContent = '开通会员';
+        memberBadge.dataset.state = 'cta';
+        memberBadge.href = 'checkout.html?product=MEMBERSHIP-YEARLY';
+        memberBadge.hidden = false;
+      }
+    }
+  }catch(_e){
+    // Silently skip — table might not exist yet on older deployments
+  }
+
+  // 2. Notification bell — count unread notification_jobs since localStorage timestamp
+  try{
+    let seenIso = null;
+    try{ seenIso = localStorage.getItem(NOTIFY_SEEN_KEY); }catch(_e){}
+    let q = supabase
+      .from('notification_jobs')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('channel', 'site');
+    if(seenIso) q = q.gt('created_at', seenIso);
+    const { count } = await q;
+    if(bellBadge){
+      const n = Math.max(0, count || 0);
+      if(n > 0){
+        bellBadge.textContent = n > 99 ? '99+' : String(n);
+        bellBadge.hidden = false;
+      } else {
+        bellBadge.hidden = true;
+      }
+    }
+  }catch(_e){
+    // Table missing or no permission — leave bell badge hidden
+  }
+}
+
+// Mark order notifications as seen when user visits notifications page
+function markOrderNotificationsSeen(){
+  try{ localStorage.setItem(NOTIFY_SEEN_KEY, new Date().toISOString()); }catch(_e){}
+}
+
+// Bind: clicking the bell icon clears the badge optimistically (final clear happens on visit)
+function bindTopbarExtras(){
+  const bell = document.querySelector('[data-nav-bell]');
+  if(bell){
+    bell.addEventListener('click', ()=>{
+      const badge = document.querySelector('[data-nav-bell-badge]');
+      if(badge) badge.hidden = true;
+      markOrderNotificationsSeen();
+    });
+  }
+  // Auto-clear if user is currently viewing notifications page
+  if(/\/notifications(\.html)?$/.test(location.pathname)){
+    markOrderNotificationsSeen();
+  }
 }
 
 function initNavDropdown(){
@@ -1114,6 +1265,8 @@ initSearchHotkey();
 initMobileDrawer();
 setActiveNav();
 renderAuthArea();
+bindTopbarExtras();
+populateTopbarExtras();
 
 // 语音录入模块 — 自动为所有文本框添加麦克风按钮
 (function loadVoiceModule(){
@@ -1148,6 +1301,7 @@ if(isConfigured()){
         // ignore
       }
       renderAuthArea();
+      populateTopbarExtras();
     });
   })();
 }

@@ -19,11 +19,23 @@ function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 function fmtPrice(p){ return p != null ? `¥${Number(p).toLocaleString('zh-CN',{minimumFractionDigits:0})}` : null; }
 
 function cohortStatusLabel(s){
-  const MAP = { planning:'筹备中', enrollment:'招募中', live:'进行中', concluded:'已结束', recruiting:'招生中' };
+  const MAP = {
+    planning:'筹备中', draft:'筹备中',
+    enrollment:'招生中', recruiting:'招生中',
+    live:'进行中', in_progress:'进行中',
+    concluded:'已结束', ended:'已结束',
+    closed:'报名已截止',
+  };
   return MAP[s] || s || '筹备中';
 }
 function cohortStatusClass(s){
-  const MAP = { enrollment:'enrollment', live:'live', planning:'planning', concluded:'concluded', recruiting:'enrollment' };
+  const MAP = {
+    planning:'planning', draft:'planning',
+    enrollment:'enrollment', recruiting:'enrollment',
+    live:'live', in_progress:'live',
+    concluded:'concluded', ended:'concluded',
+    closed:'planning',
+  };
   return MAP[s] || 'planning';
 }
 
