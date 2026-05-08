@@ -662,6 +662,13 @@ function openEditModal(videoId){
     specOptions += `<option value="${esc(id)}" ${id === (v.specialty_id || '') ? 'selected' : ''}>${esc(s.title)}</option>`;
   }
 
+  const curSource = v.source || 'external';
+  const sourceOptions = [
+    { value: 'glomcon',     label: 'GlomCon 中国' },
+    { value: 'kidneysphere',label: '肾域原创' },
+    { value: 'external',    label: '外部资源' },
+  ].map(o => `<option value="${o.value}" ${o.value === curSource ? 'selected' : ''}>${o.label}</option>`).join('');
+
   const modal = document.createElement('div');
   modal.id = 'videoEditModal';
   modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);padding:16px';
@@ -688,15 +695,21 @@ function openEditModal(videoId){
           <input class="input" id="editUrl" value="${esc(v.mp4_url || v.source_url || '')}" />
         </div>
         <div class="form-row">
+          <div style="min-width:180px">
+            <label>内容来源</label>
+            <select class="input" id="editContentSource">${sourceOptions}</select>
+          </div>
           <div style="min-width:200px">
             <label>所属专科</label>
             <select class="input" id="editSpecialty">${specOptions}</select>
           </div>
-          <div style="min-width:120px;display:flex;align-items:center;gap:8px;padding-top:24px">
+        </div>
+        <div class="form-row">
+          <div style="min-width:120px;display:flex;align-items:center;gap:8px">
             <input type="checkbox" id="editIsPaid" ${v.is_paid ? 'checked' : ''} />
             <label for="editIsPaid" style="margin:0;cursor:pointer">付费视频</label>
           </div>
-          <div style="min-width:120px;display:flex;align-items:center;gap:8px;padding-top:24px">
+          <div style="min-width:120px;display:flex;align-items:center;gap:8px">
             <input type="checkbox" id="editMembershipAccessible" ${v.membership_accessible ? 'checked' : ''} />
             <label for="editMembershipAccessible" style="margin:0;cursor:pointer">会员可看</label>
           </div>
@@ -713,6 +726,27 @@ function openEditModal(videoId){
   modal.addEventListener('click', (e) => { if(e.target === modal) closeEditModal(); });
   document.getElementById('editCancelBtn').addEventListener('click', closeEditModal);
   document.getElementById('editSaveBtn').addEventListener('click', saveEdit);
+
+  // GlomCon source ⊥ specialty: lock specialty + flags when source = glomcon
+  const srcEl = document.getElementById('editContentSource');
+  const spEl  = document.getElementById('editSpecialty');
+  const paidEl = document.getElementById('editIsPaid');
+  const memEl  = document.getElementById('editMembershipAccessible');
+  function applyEditConsistency(){
+    if(!srcEl) return;
+    const isGlomcon = srcEl.value === 'glomcon';
+    if(isGlomcon){
+      if(spEl){ spEl.value = ''; spEl.disabled = true; spEl.title = 'GlomCon 内容不绑定专科'; }
+      if(paidEl){ paidEl.checked = true;  paidEl.disabled = true; }
+      if(memEl){  memEl.checked = true;   memEl.disabled = true; }
+    } else {
+      if(spEl){ spEl.disabled = false; spEl.title = ''; }
+      if(paidEl){ paidEl.disabled = false; }
+      if(memEl){  memEl.disabled = false; }
+    }
+  }
+  srcEl?.addEventListener('change', applyEditConsistency);
+  applyEditConsistency();
 }
 
 function closeEditModal(){
@@ -730,6 +764,7 @@ async function saveEdit(){
   const category = String(document.getElementById('editCategory')?.value || '').trim();
   const urlVal = String(document.getElementById('editUrl')?.value || '').trim();
   const specialtyId = String(document.getElementById('editSpecialty')?.value || '').trim() || null;
+  const contentSource = String(document.getElementById('editContentSource')?.value || 'external').trim();
   const isPaid = !!document.getElementById('editIsPaid')?.checked;
   const membershipAccessible = !!document.getElementById('editMembershipAccessible')?.checked;
 
@@ -740,6 +775,7 @@ async function saveEdit(){
       title,
       speaker,
       category,
+      source: contentSource,
       is_paid: isPaid,
       membership_accessible: membershipAccessible,
       specialty_id: specialtyId,
