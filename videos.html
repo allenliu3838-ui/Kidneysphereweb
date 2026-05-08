@@ -184,6 +184,7 @@
 
   // Determine the access level of a video: 'free' | 'member' | 'training'
   function videoAccessLevel(v){
+    if(v.source === 'glomcon') return 'member';
     if(!v.is_paid) return 'free';
     if(v.membership_accessible) return 'member';
     return 'training';
@@ -191,7 +192,8 @@
 
   // Check if user has access to a paid video
   function hasVideoAccess(v){
-    if(!v.is_paid) return true;
+    if(v.source !== 'glomcon' && !v.is_paid) return true;
+    if(v.source === 'glomcon') return _accessSet.has('membership');
     // Resolve specialty_id: use video's specialty_id, or fall back to category→specialty mapping
     const spId = v.specialty_id || _categoryToSpecialtyId[v.category] || null;
     return _accessSet.has(v.id)
