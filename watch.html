@@ -245,7 +245,7 @@
             if(supabase){
               const { data } = await supabase
                 .from('learning_videos')
-                .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,speaker,is_paid,membership_accessible,specialty_id,enabled,deleted_at')
+                .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,speaker,is_paid,membership_accessible,specialty_id,specialty_ids,source,enabled,deleted_at')
                 .eq('id', id)
                 .maybeSingle();
               if(data && !data.deleted_at && data.enabled !== false){

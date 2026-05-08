@@ -190,14 +190,22 @@
     return 'training';
   }
 
+  // Resolve all specialty IDs for a video (new specialty_ids[] takes priority)
+  function videoSpecialtyIds(v){
+    const arr = Array.isArray(v.specialty_ids) ? v.specialty_ids.filter(Boolean) : [];
+    if(arr.length > 0) return arr;
+    if(v.specialty_id) return [v.specialty_id];
+    const fallback = _categoryToSpecialtyId[v.category];
+    return fallback ? [fallback] : [];
+  }
+
   // Check if user has access to a paid video
   function hasVideoAccess(v){
     if(v.source !== 'glomcon' && !v.is_paid) return true;
     if(v.source === 'glomcon') return _accessSet.has('membership');
-    // Resolve specialty_id: use video's specialty_id, or fall back to category→specialty mapping
-    const spId = v.specialty_id || _categoryToSpecialtyId[v.category] || null;
+    const spIds = videoSpecialtyIds(v);
     return _accessSet.has(v.id)
-      || (spId && _accessSet.has('sp_' + spId))
+      || spIds.some(id => _accessSet.has('sp_' + id))
       || (v.membership_accessible && _accessSet.has('membership'));
   }
 
@@ -240,8 +248,8 @@
       if(v.product_id){
         btns += `<a class="btn primary" href="checkout.html?product_id=${encodeURIComponent(v.product_id)}">购买单集</a>`;
       }
-      const spId = v.specialty_id || _categoryToSpecialtyId[v.category] || null;
-      const bundleId = spId && _specialtyBundles[spId];
+      const spIds = videoSpecialtyIds(v);
+      const bundleId = spIds.map(id => _specialtyBundles[id]).find(Boolean);
       if(bundleId){
         btns += `<a class="btn" href="checkout.html?product_id=${encodeURIComponent(bundleId)}">购买整套课</a>`;
       }
@@ -363,7 +371,7 @@
 
     // Specialty filter (from URL param, e.g. my-learning)
     if(_specialtyFilter){
-      list = list.filter(v => v.specialty_id === _specialtyFilter);
+      list = list.filter(v => videoSpecialtyIds(v).includes(_specialtyFilter));
     }
 
     // Access level filter
@@ -585,13 +593,13 @@
     try{
       let { data, error } = await supabase
         .from('learning_videos')
-        .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,speaker,created_at,enabled,deleted_at,is_paid,membership_accessible,specialty_id,product_id,source')
+        .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,speaker,created_at,enabled,deleted_at,is_paid,membership_accessible,specialty_id,specialty_ids,product_id,source')
         .eq('enabled', true)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
         .limit(200);
       // Backward compat
-      if(error && /is_paid|specialty_id|product_id|aliyun_vid|source/i.test(String(error.message || ''))){
+      if(error && /is_paid|specialty_id|specialty_ids|product_id|aliyun_vid|source/i.test(String(error.message || ''))){
         const r2 = await supabase
           .from('learning_videos')
           .select('id,title,category,kind,source_url,mp4_url,bvid,speaker,created_at,enabled,deleted_at')
@@ -618,6 +626,7 @@
           is_paid: isLegacyGlomcon ? true : (v.is_paid || false),
           membership_accessible: isLegacyGlomcon ? true : (v.membership_accessible || false),
           specialty_id: v.specialty_id || null,
+          specialty_ids: Array.isArray(v.specialty_ids) ? v.specialty_ids.filter(Boolean) : (v.specialty_id ? [v.specialty_id] : []),
           product_id: v.product_id || null,
         };
       });

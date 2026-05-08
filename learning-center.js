@@ -33,7 +33,7 @@ const els = {
   videoAliyunUrl: document.getElementById('videoAliyunUrl'),
   videoAliyunVid: document.getElementById('videoAliyunVid'),
   videoSpeaker: document.getElementById('videoSpeaker'),
-  videoSpecialty: document.getElementById('videoSpecialty'),
+  videoSpecialtyChecks: document.getElementById('videoSpecialtyChecks'),
   videoIsPaid: document.getElementById('videoIsPaid'),
   videoMembershipAccessible: document.getElementById('videoMembershipAccessible'),
   // New fields for paid video MVP
@@ -286,13 +286,36 @@ async function loadSpecialties(){
   }
 }
 
-function fillSpecialtyDropdown(){
-  if(!els.videoSpecialty) return;
-  let html = '<option value="">无（免费公开视频）</option>';
-  for(const [id, s] of _specialtiesMap){
-    html += `<option value="${esc(id)}">${esc(s.title)}</option>`;
+function buildSpecialtyChecksHTML(selectedIds, idPrefix){
+  // selectedIds: array of uuid strings, idPrefix: e.g. 'video' or 'edit'
+  const sel = new Set((selectedIds || []).filter(Boolean).map(String));
+  const parts = [];
+  if(_specialtiesMap.size === 0){
+    parts.push('<span style="opacity:.6;font-size:13px">（专科加载中…）</span>');
+  } else {
+    for(const [id, s] of _specialtiesMap){
+      const checked = sel.has(String(id)) ? 'checked' : '';
+      parts.push(
+        `<label style="display:inline-flex;align-items:center;gap:5px;font-weight:normal;cursor:pointer;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,.04)">
+          <input type="checkbox" class="${idPrefix}-spec-check" value="${esc(id)}" ${checked} />
+          <span style="font-size:13px">${esc(s.title)}</span>
+        </label>`
+      );
+    }
   }
-  els.videoSpecialty.innerHTML = html;
+  return parts.join('');
+}
+
+function getCheckedSpecialtyIds(idPrefix){
+  return Array.from(document.querySelectorAll(`.${idPrefix}-spec-check:checked`))
+    .map(el => String(el.value))
+    .filter(Boolean);
+}
+
+function fillSpecialtyDropdown(){
+  const wrap = document.getElementById('videoSpecialtyChecks');
+  if(!wrap) return;
+  wrap.innerHTML = buildSpecialtyChecksHTML([], 'video');
 }
 
 function checkAliyunUrlExpiry(url){
@@ -345,10 +368,14 @@ function renderVideoAdminList(rows){
     const memberBadge = v.membership_accessible
       ? `<span class="badge" style="border-color:rgba(168,85,247,.5);background:rgba(168,85,247,.1);color:#c084fc">会员</span>`
       : '';
-    const specName = v.specialty_id ? (_specialtiesMap.get(v.specialty_id)?.title || '专科') : '';
-    const specBadge = specName
-      ? `<span class="badge" style="border-color:rgba(99,102,241,.4);background:rgba(99,102,241,.08);color:#818cf8">${esc(specName)}</span>`
-      : '';
+    const specIds = (Array.isArray(v.specialty_ids) && v.specialty_ids.length > 0)
+      ? v.specialty_ids
+      : (v.specialty_id ? [v.specialty_id] : []);
+    const specBadge = specIds
+      .map(id => _specialtiesMap.get(id)?.title)
+      .filter(Boolean)
+      .map(name => `<span class="badge" style="border-color:rgba(99,102,241,.4);background:rgba(99,102,241,.08);color:#818cf8">${esc(name)}</span>`)
+      .join(' ');
     const speakerText = v.speaker ? `主讲：${esc(v.speaker)} · ` : '';
 
     const cardStyle = isDeleted
@@ -396,11 +423,11 @@ async function loadAdminVideos(){
   try{
     let { data, error } = await supabase
       .from('learning_videos')
-      .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,speaker,is_paid,membership_accessible,specialty_id,product_id,created_at,enabled,deleted_at')
+      .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,speaker,is_paid,membership_accessible,specialty_id,specialty_ids,source,product_id,created_at,enabled,deleted_at')
       .order('created_at', { ascending: false })
       .limit(50);
     // Backward compat: retry without newer columns if they don't exist yet
-    if(error && /is_paid|specialty_id|product_id|aliyun_vid|speaker/i.test(String(error.message || ''))){
+    if(error && /is_paid|specialty_id|specialty_ids|product_id|aliyun_vid|speaker|source/i.test(String(error.message || ''))){
       const r2 = await supabase
         .from('learning_videos')
         .select('id,title,category,kind,source_url,mp4_url,bvid,created_at,enabled,deleted_at')
@@ -525,7 +552,7 @@ async function saveVideo(currentUser, publish = true){
     }
 
     const speaker = String(els.videoSpeaker?.value || '').trim() || null;
-    const specialtyId = String(els.videoSpecialty?.value || '').trim() || null;
+    const specialtyIds = getCheckedSpecialtyIds('video');
     const contentSource = String(els.videoContentSource?.value || 'external').trim();
     const isPaid = accessType !== 'registered_free';
     const membershipAccessible = accessType === 'paid_membership';
@@ -539,9 +566,10 @@ async function saveVideo(currentUser, publish = true){
       membership_accessible: membershipAccessible,
       is_published: publish,
       sort_order: sortOrder,
+      specialty_ids: specialtyIds,
     };
     if(speaker) row.speaker = speaker;
-    if(specialtyId) row.specialty_id = specialtyId;
+    if(specialtyIds.length > 0) row.specialty_id = specialtyIds[0];
     if(aliyun_vid) row.aliyun_vid = aliyun_vid;
     if(price > 0) row.price = price;
     if(description) row.description = description;
@@ -550,7 +578,7 @@ async function saveVideo(currentUser, publish = true){
     let { error } = await supabase.from('learning_videos').insert(row);
 
     // Fallback: if new columns not yet migrated, retry without them
-    if(error && /access_type|price|cover_image|description|is_published|sort_order|source/i.test(String(error.message || ''))){
+    if(error && /access_type|price|cover_image|description|is_published|sort_order|source|specialty_ids/i.test(String(error.message || ''))){
       delete row.access_type;
       delete row.price;
       delete row.cover_image;
@@ -558,6 +586,7 @@ async function saveVideo(currentUser, publish = true){
       delete row.is_published;
       delete row.sort_order;
       delete row.source;
+      delete row.specialty_ids;
       const r2 = await supabase.from('learning_videos').insert(row);
       error = r2.error;
     }
@@ -578,7 +607,7 @@ async function saveVideo(currentUser, publish = true){
     if(els.videoAliyunUrl) els.videoAliyunUrl.value = '';
     if(els.videoAliyunVid) els.videoAliyunVid.value = '';
     if(els.videoSpeaker) els.videoSpeaker.value = '';
-    if(els.videoSpecialty) els.videoSpecialty.value = '';
+    document.querySelectorAll('.video-spec-check:checked').forEach(el => { el.checked = false; });
     if(els.videoDescription) els.videoDescription.value = '';
     if(els.videoCoverImage) els.videoCoverImage.value = '';
     if(els.videoSortOrder) els.videoSortOrder.value = '0';
@@ -657,10 +686,17 @@ function openEditModal(videoId){
     return `<option value="${esc(key)}" ${key === (v.category || '') ? 'selected' : ''}>${esc(label)}</option>`;
   }).join('');
 
-  let specOptions = '<option value="">无（免费公开视频）</option>';
-  for(const [id, s] of _specialtiesMap){
-    specOptions += `<option value="${esc(id)}" ${id === (v.specialty_id || '') ? 'selected' : ''}>${esc(s.title)}</option>`;
-  }
+  const curSpecIds = Array.isArray(v.specialty_ids) && v.specialty_ids.length > 0
+    ? v.specialty_ids
+    : (v.specialty_id ? [v.specialty_id] : []);
+  const specChecksHTML = buildSpecialtyChecksHTML(curSpecIds, 'edit');
+
+  const curSource = v.source || 'external';
+  const sourceOptions = [
+    { value: 'glomcon',     label: 'GlomCon 中国' },
+    { value: 'kidneysphere',label: '肾域原创' },
+    { value: 'external',    label: '外部资源' },
+  ].map(o => `<option value="${o.value}" ${o.value === curSource ? 'selected' : ''}>${o.label}</option>`).join('');
 
   const modal = document.createElement('div');
   modal.id = 'videoEditModal';
@@ -688,15 +724,21 @@ function openEditModal(videoId){
           <input class="input" id="editUrl" value="${esc(v.mp4_url || v.source_url || '')}" />
         </div>
         <div class="form-row">
-          <div style="min-width:200px">
-            <label>所属专科</label>
-            <select class="input" id="editSpecialty">${specOptions}</select>
+          <div style="min-width:180px">
+            <label>内容来源</label>
+            <select class="input" id="editContentSource">${sourceOptions}</select>
           </div>
-          <div style="min-width:120px;display:flex;align-items:center;gap:8px;padding-top:24px">
+          <div style="flex:1;min-width:260px">
+            <label>所属专科（可多选，留空 = 免费公开视频）</label>
+            <div id="editSpecialtyChecks" style="display:flex;flex-wrap:wrap;gap:8px 14px;padding:8px 10px;border:1px solid rgba(255,255,255,.1);border-radius:6px;min-height:38px;align-items:center">${specChecksHTML}</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div style="min-width:120px;display:flex;align-items:center;gap:8px">
             <input type="checkbox" id="editIsPaid" ${v.is_paid ? 'checked' : ''} />
             <label for="editIsPaid" style="margin:0;cursor:pointer">付费视频</label>
           </div>
-          <div style="min-width:120px;display:flex;align-items:center;gap:8px;padding-top:24px">
+          <div style="min-width:120px;display:flex;align-items:center;gap:8px">
             <input type="checkbox" id="editMembershipAccessible" ${v.membership_accessible ? 'checked' : ''} />
             <label for="editMembershipAccessible" style="margin:0;cursor:pointer">会员可看</label>
           </div>
@@ -713,6 +755,30 @@ function openEditModal(videoId){
   modal.addEventListener('click', (e) => { if(e.target === modal) closeEditModal(); });
   document.getElementById('editCancelBtn').addEventListener('click', closeEditModal);
   document.getElementById('editSaveBtn').addEventListener('click', saveEdit);
+
+  // GlomCon source ⊥ specialty: lock specialty + flags when source = glomcon
+  const srcEl = document.getElementById('editContentSource');
+  const spChecksEl = document.getElementById('editSpecialtyChecks');
+  const paidEl = document.getElementById('editIsPaid');
+  const memEl  = document.getElementById('editMembershipAccessible');
+  function applyEditConsistency(){
+    if(!srcEl) return;
+    const isGlomcon = srcEl.value === 'glomcon';
+    const checks = document.querySelectorAll('.edit-spec-check');
+    if(isGlomcon){
+      checks.forEach(c => { c.checked = false; c.disabled = true; });
+      if(spChecksEl){ spChecksEl.title = 'GlomCon 内容不绑定专科'; spChecksEl.style.opacity = '.5'; }
+      if(paidEl){ paidEl.checked = true;  paidEl.disabled = true; }
+      if(memEl){  memEl.checked = true;   memEl.disabled = true; }
+    } else {
+      checks.forEach(c => { c.disabled = false; });
+      if(spChecksEl){ spChecksEl.title = ''; spChecksEl.style.opacity = ''; }
+      if(paidEl){ paidEl.disabled = false; }
+      if(memEl){  memEl.disabled = false; }
+    }
+  }
+  srcEl?.addEventListener('change', applyEditConsistency);
+  applyEditConsistency();
 }
 
 function closeEditModal(){
@@ -729,7 +795,8 @@ async function saveEdit(){
   const speaker = String(document.getElementById('editSpeaker')?.value || '').trim() || null;
   const category = String(document.getElementById('editCategory')?.value || '').trim();
   const urlVal = String(document.getElementById('editUrl')?.value || '').trim();
-  const specialtyId = String(document.getElementById('editSpecialty')?.value || '').trim() || null;
+  const specialtyIds = getCheckedSpecialtyIds('edit');
+  const contentSource = String(document.getElementById('editContentSource')?.value || 'external').trim();
   const isPaid = !!document.getElementById('editIsPaid')?.checked;
   const membershipAccessible = !!document.getElementById('editMembershipAccessible')?.checked;
 
@@ -740,9 +807,11 @@ async function saveEdit(){
       title,
       speaker,
       category,
+      source: contentSource,
       is_paid: isPaid,
       membership_accessible: membershipAccessible,
-      specialty_id: specialtyId,
+      specialty_id: specialtyIds[0] || null,
+      specialty_ids: specialtyIds,
       updated_at: new Date().toISOString(),
     };
 
@@ -762,10 +831,17 @@ async function saveEdit(){
       }
     }
 
-    const { error } = await supabase
+    let { error } = await supabase
       .from('learning_videos')
       .update(updates)
       .eq('id', _editingVideoId);
+    // Fallback: if specialty_ids column not yet migrated, retry without it
+    if(error && /specialty_ids|source/i.test(String(error.message || ''))){
+      delete updates.specialty_ids;
+      delete updates.source;
+      const r2 = await supabase.from('learning_videos').update(updates).eq('id', _editingVideoId);
+      error = r2.error;
+    }
     if(error) throw error;
 
     toast('已更新', '视频信息已保存。', 'ok');
@@ -868,11 +944,9 @@ async function init(){
                 <label>主讲人</label>
                 <input class="input" id="videoSpeaker" />
               </div>
-              <div style="min-width:220px">
-                <label>所属专科</label>
-                <select class="input" id="videoSpecialty">
-                  <option value="">无</option>
-                </select>
+              <div style="flex:1;min-width:260px">
+                <label>所属专科（可多选，留空 = 免费公开视频）</label>
+                <div id="videoSpecialtyChecks" class="spec-checks" style="display:flex;flex-wrap:wrap;gap:8px 14px;padding:8px 10px;border:1px solid rgba(255,255,255,.1);border-radius:6px;min-height:38px;align-items:center"></div>
               </div>
               <div style="min-width:180px">
                 <label>内容来源</label>
@@ -948,7 +1022,7 @@ async function init(){
     els.videoAliyunUrl = document.getElementById('videoAliyunUrl');
     els.videoAliyunVid = document.getElementById('videoAliyunVid');
     els.videoSpeaker = document.getElementById('videoSpeaker');
-    els.videoSpecialty = document.getElementById('videoSpecialty');
+    els.videoSpecialtyChecks = document.getElementById('videoSpecialtyChecks');
     els.videoIsPaid = document.getElementById('videoIsPaid');
     els.videoMembershipAccessible = document.getElementById('videoMembershipAccessible');
     els.videoSourceType = document.getElementById('videoSourceType');
@@ -1009,7 +1083,8 @@ async function init(){
   function applyAccessConsistency(){
     const src = els.videoContentSource?.value || '';
     const at = els.videoAccessType?.value || 'registered_free';
-    const hasSpecialty = !!(els.videoSpecialty?.value);
+    const hasSpecialty = getCheckedSpecialtyIds('video').length > 0;
+    const specChecks = document.querySelectorAll('.video-spec-check');
 
     if(src === 'glomcon'){
       if(els.videoAccessType){
@@ -1017,19 +1092,20 @@ async function init(){
         els.videoAccessType.disabled = true;
         els.videoAccessType.title = 'GlomCon 内容统一为「付费会员可看」';
       }
-      if(els.videoSpecialty){
-        els.videoSpecialty.value = '';
-        els.videoSpecialty.disabled = true;
-        els.videoSpecialty.title = 'GlomCon 内容不绑定专科';
+      specChecks.forEach(c => { c.checked = false; c.disabled = true; });
+      if(els.videoSpecialtyChecks){
+        els.videoSpecialtyChecks.title = 'GlomCon 内容不绑定专科';
+        els.videoSpecialtyChecks.style.opacity = '.5';
       }
     } else {
       if(els.videoAccessType){
         els.videoAccessType.disabled = false;
         els.videoAccessType.title = '';
       }
-      if(els.videoSpecialty){
-        els.videoSpecialty.disabled = false;
-        els.videoSpecialty.title = '';
+      specChecks.forEach(c => { c.disabled = false; });
+      if(els.videoSpecialtyChecks){
+        els.videoSpecialtyChecks.title = '';
+        els.videoSpecialtyChecks.style.opacity = '';
       }
     }
 
@@ -1048,9 +1124,10 @@ async function init(){
   els.videoAccessType?.addEventListener('change', applyAccessConsistency);
   applyAccessConsistency();
 
-  // Auto-set access type when specialty is selected
-  els.videoSpecialty?.addEventListener('change', ()=>{
-    if(els.videoSpecialty.value && els.videoAccessType){
+  // Listen for specialty checkbox changes (delegated)
+  els.videoSpecialtyChecks?.addEventListener('change', (e)=>{
+    if(!e.target.classList.contains('video-spec-check')) return;
+    if(getCheckedSpecialtyIds('video').length > 0 && els.videoAccessType){
       if(els.videoAccessType.value === 'registered_free'){
         els.videoAccessType.value = 'paid_specialty';
       }
