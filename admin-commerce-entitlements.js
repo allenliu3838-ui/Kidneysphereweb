@@ -208,26 +208,47 @@ async function bulkCheckEmails() {
   }
 }
 
+function parseGrantValue(value) {
+  if (!value) return { kind: null, code: null };
+  const idx = value.indexOf(':');
+  if (idx < 0) return { kind: 'project', code: value };
+  return { kind: value.slice(0, idx), code: value.slice(idx + 1) };
+}
+
+async function callGrantRpc(kind, code, emails, reasonPrefix) {
+  const grantReason = reasonPrefix + '_' + new Date().toISOString().slice(0, 10);
+  if (kind === 'membership') {
+    return supabase.rpc('admin_batch_grant_membership', {
+      p_emails: emails,
+      p_product_code: code,
+      p_grant_reason: grantReason,
+    });
+  }
+  return supabase.rpc('admin_batch_grant_project', {
+    p_emails: emails,
+    p_project_code: code,
+    p_grant_reason: grantReason,
+  });
+}
+
 async function bulkGrantProject() {
   const projectSel = document.getElementById('bulkGrantProject');
-  const projectCode = projectSel?.value;
-  if (!projectCode) { toast('请选择项目', '请先选择要开通的项目。', 'err'); return; }
+  const rawValue = projectSel?.value;
+  const { kind, code } = parseGrantValue(rawValue);
+  if (!code) { toast('请选择', '请先选择要开通的项目或会员。', 'err'); return; }
 
   // Get emails of registered but no entitlements users
   const toGrant = _lastCheckResults.filter(r => r.status === 'no_entitlements');
   if (!toGrant.length) { toast('无需开通', '没有需要开通的用户。', 'ok'); return; }
 
-  const projectName = projectSel.options[projectSel.selectedIndex]?.text || projectCode;
+  const optName = projectSel.options[projectSel.selectedIndex]?.text || code;
+  const kindLabel = kind === 'membership' ? '会员' : '项目';
   const emails = toGrant.map(r => r.email);
 
-  if (!confirm(`确定为以下 ${emails.length} 个用户开通「${projectName}」项目权限？\n\n${emails.join('\n')}`)) return;
+  if (!confirm(`确定为以下 ${emails.length} 个用户开通「${optName}」${kindLabel}权限？\n\n${emails.join('\n')}`)) return;
 
   try {
-    const { data, error } = await supabase.rpc('admin_batch_grant_project', {
-      p_emails: emails,
-      p_project_code: projectCode,
-      p_grant_reason: 'admin_batch_grant_' + new Date().toISOString().slice(0, 10),
-    });
+    const { data, error } = await callGrantRpc(kind, code, emails, 'admin_batch_grant');
     if (error) throw error;
 
     const r = data;
@@ -251,6 +272,37 @@ async function getProjectsCached() {
     .order('title');
   _projectsCache = data || [];
   return _projectsCache;
+}
+
+let _grantOptionsCache = null;
+async function getGrantOptionsCached() {
+  if (_grantOptionsCache) return _grantOptionsCache;
+  const [{ data: projects }, { data: memberships }] = await Promise.all([
+    supabase.from('learning_projects').select('project_code, title').order('title'),
+    supabase.from('products')
+      .select('product_code, title')
+      .eq('product_type', 'membership_plan')
+      .eq('is_active', true)
+      .order('sort_order'),
+  ]);
+  _grantOptionsCache = {
+    projects: (projects || []).map(p => ({ code: p.project_code, title: p.title })),
+    memberships: (memberships || []).map(m => ({ code: m.product_code, title: m.title })),
+  };
+  return _grantOptionsCache;
+}
+
+function renderGrantOptionsHtml(opts) {
+  const projOpts = opts.projects
+    .map(p => `<option value="project:${esc(p.code)}">${esc(p.title)}</option>`)
+    .join('');
+  const memOpts = opts.memberships
+    .map(m => `<option value="membership:${esc(m.code)}">${esc(m.title)}</option>`)
+    .join('');
+  return `
+    ${opts.projects.length ? `<optgroup label="培训项目">${projOpts}</optgroup>` : ''}
+    ${opts.memberships.length ? `<optgroup label="会员">${memOpts}</optgroup>` : ''}
+  `;
 }
 
 async function showManageUserModal(userId, email, fullName) {
@@ -277,21 +329,18 @@ async function showManageUserModal(userId, email, fullName) {
     if (changeBtn) {
       const id = changeBtn.dataset.changeProject;
       const sel = body.querySelector(`[data-change-project-sel="${CSS.escape(id)}"]`);
-      const newCode = sel?.value;
-      if (!newCode) { toast('请选择项目', '', 'err'); return; }
-      const newTitle = sel.options[sel.selectedIndex]?.text || newCode;
-      if (!confirm(`确定将此权益切换为「${newTitle}」？当前权益会被撤销，并为新项目发放 365 天访问权。`)) return;
+      const { kind, code } = parseGrantValue(sel?.value);
+      if (!code) { toast('请选择', '', 'err'); return; }
+      const newTitle = sel.options[sel.selectedIndex]?.text || code;
+      const kindLabel = kind === 'membership' ? '会员' : '项目';
+      if (!confirm(`确定将此权益切换为「${newTitle}」${kindLabel}？当前权益会被撤销，并按新选项的有效期发放访问权。`)) return;
       changeBtn.disabled = true;
       try {
         const { error: revErr } = await supabase.from('user_entitlements').update({ status: 'revoked' }).eq('id', id);
         if (revErr) throw revErr;
-        const { error: grantErr } = await supabase.rpc('admin_batch_grant_project', {
-          p_emails: [email],
-          p_project_code: newCode,
-          p_grant_reason: 'admin_change_project_' + new Date().toISOString().slice(0, 10),
-        });
+        const { error: grantErr } = await callGrantRpc(kind, code, [email], 'admin_change');
         if (grantErr) throw grantErr;
-        toast('已切换项目', newTitle, 'ok');
+        toast('已切换', newTitle, 'ok');
         await renderManageUserBody(userId, email, fullName);
         bulkCheckEmails();
       } catch (err) {
@@ -304,22 +353,22 @@ async function showManageUserModal(userId, email, fullName) {
     const addBtn = e.target.closest('#addNewProjectBtn');
     if (addBtn) {
       const sel = body.querySelector('#addNewProjectSel');
-      const newCode = sel?.value;
-      if (!newCode) { toast('请选择项目', '', 'err'); return; }
-      const newTitle = sel.options[sel.selectedIndex]?.text || newCode;
-      if (!confirm(`确定为该用户额外添加「${newTitle}」项目权限（365 天）？现有权益将保留。`)) return;
+      const { kind, code } = parseGrantValue(sel?.value);
+      if (!code) { toast('请选择', '', 'err'); return; }
+      const newTitle = sel.options[sel.selectedIndex]?.text || code;
+      const kindLabel = kind === 'membership' ? '会员' : '项目';
+      if (!confirm(`确定为该用户额外添加「${newTitle}」${kindLabel}权限？现有权益将保留。`)) return;
       addBtn.disabled = true;
       try {
-        const { data, error: grantErr } = await supabase.rpc('admin_batch_grant_project', {
-          p_emails: [email],
-          p_project_code: newCode,
-          p_grant_reason: 'admin_add_project_' + new Date().toISOString().slice(0, 10),
-        });
+        const { data, error: grantErr } = await callGrantRpc(kind, code, [email], 'admin_add');
         if (grantErr) throw grantErr;
         if (data && data.already_active > 0 && data.granted === 0) {
-          toast('已存在', '该用户已开通此项目，无需重复添加。', 'ok');
+          const msg = kind === 'membership'
+            ? '该用户已有活跃会员，无需重复添加。'
+            : '该用户已开通此项目，无需重复添加。';
+          toast('已存在', msg, 'ok');
         } else {
-          toast('已添加项目', newTitle, 'ok');
+          toast('已添加', newTitle, 'ok');
         }
         await renderManageUserBody(userId, email, fullName);
         bulkCheckEmails();
@@ -337,30 +386,29 @@ async function renderManageUserBody(userId, email, fullName) {
   const body = document.getElementById('modalBody');
   if (!body) return;
 
-  const [{ data: ents, error }, projects] = await Promise.all([
+  const [{ data: ents, error }, projects, grantOpts] = await Promise.all([
     supabase.from('user_entitlements')
       .select('id, entitlement_type, project_id, specialty_id, end_at, status, grant_reason, created_at')
       .eq('user_id', userId)
       .eq('status', 'active')
       .order('created_at', { ascending: false }),
     getProjectsCached(),
+    getGrantOptionsCached(),
   ]);
 
   if (error) { body.innerHTML = `<div class="note">${esc(error.message)}</div>`; return; }
 
   const projectById = new Map(projects.map(p => [p.id, p]));
-  const projectOptions = projects
-    .map(p => `<option value="${esc(p.project_code)}">${esc(p.title)}</option>`)
-    .join('');
+  const grantOptionsHtml = renderGrantOptionsHtml(grantOpts);
 
   const addProjectHtml = `
     <div style="margin-top:14px;padding:10px;background:rgba(34,197,94,.06);border-radius:8px">
-      <div style="margin-bottom:6px;font-weight:600">添加新项目权限</div>
+      <div style="margin-bottom:6px;font-weight:600">添加新权益（项目 / 会员）</div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <select class="input" id="addNewProjectSel" style="min-width:220px">${projectOptions}</select>
-        <button class="btn tiny primary" type="button" id="addNewProjectBtn">添加项目</button>
+        <select class="input" id="addNewProjectSel" style="min-width:240px">${grantOptionsHtml}</select>
+        <button class="btn tiny primary" type="button" id="addNewProjectBtn">添加</button>
       </div>
-      <div class="small muted" style="margin-top:6px">不影响现有权益，为新项目额外发放 365 天访问权（用于同时购买多个项目的用户）。</div>
+      <div class="small muted" style="margin-top:6px">不影响现有权益，按所选项目/会员的有效期额外发放访问权（用于同时购买多项权益的用户）。</div>
     </div>
   `;
 
@@ -389,8 +437,8 @@ async function renderManageUserBody(userId, email, fullName) {
           const canChangeProject = r.entitlement_type === 'project_access' || r.entitlement_type === 'cohort_access';
           const changeHtml = canChangeProject ? `
             <div style="display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap">
-              <select class="input" data-change-project-sel="${esc(r.id)}" style="min-width:180px">${projectOptions}</select>
-              <button class="btn tiny" type="button" data-change-project="${esc(r.id)}">切换项目</button>
+              <select class="input" data-change-project-sel="${esc(r.id)}" style="min-width:200px">${grantOptionsHtml}</select>
+              <button class="btn tiny" type="button" data-change-project="${esc(r.id)}">切换</button>
             </div>` : '';
           return `
             <tr data-ent-row="${esc(r.id)}">
@@ -406,7 +454,7 @@ async function renderManageUserBody(userId, email, fullName) {
       </tbody>
     </table>
     ${addProjectHtml}
-    <div class="small muted" style="margin-top:10px">撤销后此权益立即失效；切换项目会撤销当前项目并为新项目发放 365 天访问权；添加项目则保留现有权益。</div>
+    <div class="small muted" style="margin-top:10px">撤销后此权益立即失效；切换会撤销当前权益并按所选项目/会员的有效期发放访问权；添加则保留现有权益。</div>
   `;
 
   // Preselect the current project in the dropdown when possible
@@ -414,7 +462,7 @@ async function renderManageUserBody(userId, email, fullName) {
     if (r.project_id) {
       const sel = body.querySelector(`[data-change-project-sel="${CSS.escape(r.id)}"]`);
       const proj = projectById.get(r.project_id);
-      if (sel && proj) sel.value = proj.project_code;
+      if (sel && proj) sel.value = `project:${proj.project_code}`;
     }
   });
 }
@@ -423,17 +471,11 @@ async function loadProjectOptions() {
   const sel = document.getElementById('bulkGrantProject');
   if (!sel) return;
 
-  const { data } = await supabase
-    .from('learning_projects')
-    .select('id, project_code, title')
-    .order('title');
-
-  if (data && data.length) {
-    sel.innerHTML = data.map(p =>
-      `<option value="${esc(p.project_code)}">${esc(p.title)}</option>`
-    ).join('');
+  const opts = await getGrantOptionsCached();
+  if (opts.projects.length || opts.memberships.length) {
+    sel.innerHTML = renderGrantOptionsHtml(opts);
   } else {
-    sel.innerHTML = '<option value="">无项目</option>';
+    sel.innerHTML = '<option value="">无可选项</option>';
   }
 }
 
