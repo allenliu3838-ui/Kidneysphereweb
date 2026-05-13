@@ -298,6 +298,35 @@ async function showManageUserModal(userId, email, fullName) {
         toast('切换失败', err.message, 'err');
         changeBtn.disabled = false;
       }
+      return;
+    }
+
+    const addBtn = e.target.closest('#addNewProjectBtn');
+    if (addBtn) {
+      const sel = body.querySelector('#addNewProjectSel');
+      const newCode = sel?.value;
+      if (!newCode) { toast('请选择项目', '', 'err'); return; }
+      const newTitle = sel.options[sel.selectedIndex]?.text || newCode;
+      if (!confirm(`确定为该用户额外添加「${newTitle}」项目权限（365 天）？现有权益将保留。`)) return;
+      addBtn.disabled = true;
+      try {
+        const { data, error: grantErr } = await supabase.rpc('admin_batch_grant_project', {
+          p_emails: [email],
+          p_project_code: newCode,
+          p_grant_reason: 'admin_add_project_' + new Date().toISOString().slice(0, 10),
+        });
+        if (grantErr) throw grantErr;
+        if (data && data.already_active > 0 && data.granted === 0) {
+          toast('已存在', '该用户已开通此项目，无需重复添加。', 'ok');
+        } else {
+          toast('已添加项目', newTitle, 'ok');
+        }
+        await renderManageUserBody(userId, email, fullName);
+        bulkCheckEmails();
+      } catch (err) {
+        toast('添加失败', err.message, 'err');
+        addBtn.disabled = false;
+      }
     }
   });
 
@@ -324,9 +353,24 @@ async function renderManageUserBody(userId, email, fullName) {
     .map(p => `<option value="${esc(p.project_code)}">${esc(p.title)}</option>`)
     .join('');
 
+  const addProjectHtml = `
+    <div style="margin-top:14px;padding:10px;background:rgba(34,197,94,.06);border-radius:8px">
+      <div style="margin-bottom:6px;font-weight:600">添加新项目权限</div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <select class="input" id="addNewProjectSel" style="min-width:220px">${projectOptions}</select>
+        <button class="btn tiny primary" type="button" id="addNewProjectBtn">添加项目</button>
+      </div>
+      <div class="small muted" style="margin-top:6px">不影响现有权益，为新项目额外发放 365 天访问权（用于同时购买多个项目的用户）。</div>
+    </div>
+  `;
+
   const rows = ents || [];
   if (!rows.length) {
-    body.innerHTML = '<div class="muted">该用户当前没有活跃权益。</div>';
+    body.innerHTML = `
+      <div class="small muted" style="margin-bottom:8px">用户ID: <code>${esc(userId)}</code></div>
+      <div class="muted">该用户当前没有活跃权益。</div>
+      ${addProjectHtml}
+    `;
     return;
   }
 
@@ -361,7 +405,8 @@ async function renderManageUserBody(userId, email, fullName) {
         }).join('')}
       </tbody>
     </table>
-    <div class="small muted" style="margin-top:10px">撤销后此权益立即失效；切换项目会撤销当前项目并为新项目发放 365 天访问权。</div>
+    ${addProjectHtml}
+    <div class="small muted" style="margin-top:10px">撤销后此权益立即失效；切换项目会撤销当前项目并为新项目发放 365 天访问权；添加项目则保留现有权益。</div>
   `;
 
   // Preselect the current project in the dropdown when possible
