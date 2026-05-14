@@ -126,6 +126,7 @@ function injectNav(){
         <a data-nav href="community.html"><span class="zh">社区</span><span class="en">Community</span></a>
         <a data-nav href="moments.html"><span class="zh">动态</span><span class="en">Moments</span></a>
         <a data-nav href="learning.html"><span class="zh">学习</span><span class="en">Learning</span></a>
+        <a data-nav href="atlas.html"><span class="zh">专业图谱 Pro</span><span class="en">Atlas Pro</span></a>
         <a data-nav href="events.html"><span class="zh">活动</span><span class="en">Events</span></a>
         <a data-nav href="my-learning.html" data-nav-auth-only hidden><span class="zh">我的</span><span class="en">My</span></a>
       </nav>

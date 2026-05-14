@@ -135,7 +135,7 @@ test('sitemap.xml is accessible and well-formed', async ({ request }) => {
 
 const NOINDEX_PAGES = [
   '/login', '/register', '/forgot', '/reset',
-  '/admin', '/admin-commerce', '/article-editor',
+  '/admin', '/admin-commerce', '/admin/atlas', '/article-editor',
   '/profile', '/checkout', '/membership',
   '/favorites', '/notifications', '/post-case',
   '/board', '/case', '/verify-doctor',
@@ -246,3 +246,27 @@ for (const { path: p, expected } of CANONICAL_PAGES) {
     expect(html).toContain(`href="${expected}"`);
   });
 }
+
+// ─── Atlas Pro public entry points ───
+
+test('Atlas landing page is publicly accessible', async ({ request }) => {
+  const res = await request.get(`${BASE}/atlas`);
+  expect(res.status()).toBe(200);
+  const html = await res.text();
+  expect(html).toContain('肾域专业图谱');
+  expect(html).toContain('Atlas Pro');
+});
+
+test('Atlas topic pretty route rewrites to topic page', async ({ request }) => {
+  const res = await request.get(`${BASE}/atlas/topic/iga-nephropathy`);
+  expect(res.status()).toBe(200);
+  const html = await res.text();
+  expect(html).toContain('id="atlasTopicTitle"');
+});
+
+test('Atlas series page has lock CTA text for Pro content', async ({ request }) => {
+  const res = await request.get(`${BASE}/atlas-series.html`);
+  expect(res.status()).toBe(200);
+  const html = await res.text();
+  expect(html).toContain('返回图谱首页');
+});

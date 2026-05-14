@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Atlas 管理后台</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="stylesheet" href="styles.css" />
+  <script type="module" src="app.js"></script>
+  <script type="module" src="admin-atlas.js"></script>
+</head>
+<body>
+  <main class="container" style="max-width:1100px;margin:0 auto;padding:16px;">
+    <h1>Atlas Pro 管理</h1>
+    <div id="atlasAdminGate" class="note">正在校验管理员权限…</div>
+    <section id="atlasAdminPanel" hidden>
+      <div class="card" style="padding:12px;margin-bottom:12px;">
+        <h2>分类管理</h2>
+        <form id="catForm" style="display:grid;gap:8px;grid-template-columns:1fr 1fr auto;">
+          <input class="input" name="name" placeholder="分类名" required />
+          <input class="input" name="slug" placeholder="slug" required />
+          <button class="btn primary" type="submit">新增分类</button>
+        </form>
+        <div id="catList" class="stack" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="card" style="padding:12px;margin-bottom:12px;">
+        <h2>专题管理</h2>
+        <form id="topicForm" style="display:grid;gap:8px;grid-template-columns:1fr 1fr 1fr auto;">
+          <select class="input" name="category_id" required id="topicCategory"></select>
+          <input class="input" name="name" placeholder="专题名" required />
+          <input class="input" name="slug" placeholder="slug" required />
+          <button class="btn primary" type="submit">新增专题</button>
+        </form>
+        <div id="topicList" class="stack" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="card" style="padding:12px;">
+        <h2>系列管理</h2>
+        <form id="seriesForm" style="display:grid;gap:8px;grid-template-columns:1fr 1fr 1fr auto;">
+          <select class="input" name="topic_id" required id="seriesTopic"></select>
+          <input class="input" name="title" placeholder="系列标题" required />
+          <input class="input" name="slug" placeholder="slug" required />
+          <button class="btn primary" type="submit">新增系列</button>
+        </form>
+        <div id="seriesList" class="stack" style="margin-top:8px;"></div>
+      </div>
+
+
+      <div class="card" style="padding:12px;margin-top:12px;">
+        <h2>图谱卡管理</h2>
+        <form id="assetForm" style="display:grid;gap:8px;grid-template-columns:1fr 1fr 1fr 1fr auto;">
+          <select class="input" name="series_id" required id="assetSeries"></select>
+          <input class="input" name="title" placeholder="图谱标题" required />
+          <select class="input" name="visibility"><option value="pro">Pro</option><option value="free">Free</option></select>
+          <select class="input" name="deidentified_status"><option value="confirmed">去标识化已确认</option><option value="needs_review">去标识化待审核</option></select>
+          <button class="btn primary" type="submit">新增图谱卡</button>
+        </form>
+        <div id="assetList" class="stack" style="margin-top:8px;"></div>
+      </div>
+
+      
+      <div class="card" style="padding:12px;margin-top:12px;">
+        <h2>参考文献管理</h2>
+        <form id="refForm" style="display:grid;gap:8px;grid-template-columns:1fr 2fr auto;">
+          <select class="input" name="series_id" required id="refSeries"></select>
+          <input class="input" name="citation_text" placeholder="文献引用文本" required />
+          <button class="btn primary" type="submit">新增文献</button>
+        </form>
+        <div id="refList" class="stack" style="margin-top:8px;"></div>
+      </div>
+
+      
+      <div class="card" style="padding:12px;margin-top:12px;">
+        <h2>极速上传（推荐）</h2>
+        <form id="quickUploadForm" class="stack" style="gap:8px;">
+          <div style="display:grid;gap:8px;grid-template-columns:1fr 1fr;">
+            <select class="input" id="quickSeriesId" name="series_id" required></select>
+            <input class="input" name="prefix" placeholder="标题前缀（如 IgA-机制）" />
+          </div>
+          <input class="input" type="file" id="quickFiles" name="files" accept="image/*" multiple required />
+          <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="quickFirstPreview" checked /> 首张自动设为免费预览</label>
+          <button class="btn primary" type="submit">批量上传并入库</button>
+        </form>
+        <div id="quickUploadProgress" class="small muted" style="margin-top:8px;"></div>
+      </div>
+
+      <section class="note" style="margin-top:12px;">上传病理、影像、病例相关图片前，请确认已完成去标识化处理，不包含姓名、住院号、病理号、条码、联系方式、精确日期等可识别患者身份的信息。</section>
+    </section>
+  </main>
+</body>
+</html>
