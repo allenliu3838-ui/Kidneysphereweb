@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>肾域专业图谱 · Atlas Pro</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script type="module" src="app.js"></script>
+  <script type="module" src="atlas.js"></script>
+</head>
+<body>
+  <main class="container" style="padding:16px;max-width:1100px;margin:0 auto;">
+    <section class="card" style="padding:20px;">
+      <h1>肾域专业图谱</h1>
+      <p>从机制、病理到治疗决策的肾脏病专业图谱库。</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="btn primary" href="#atlasCategories">立即浏览图谱</a>
+        <a class="btn" href="membership.html">解锁 Atlas Pro</a>
+      </div>
+    </section>
+
+    <section class="stack" style="margin-top:16px;" id="atlasFeatured">
+      <h2>热门专题</h2>
+      <div id="atlasFeaturedList" class="grid"></div>
+    </section>
+
+    <section class="stack" style="margin-top:16px;" id="atlasCategories">
+      <h2>按专科浏览</h2>
+      <div id="atlasCategoryList" class="grid"></div>
+    </section>
+
+    <section class="stack" style="margin-top:16px;" id="atlasLatest">
+      <h2>最新更新</h2>
+      <div id="atlasLatestList" class="grid"></div>
+    </section>
+
+    <section class="card" style="margin-top:16px;padding:16px;">
+      <h3>会员说明</h3>
+      <ul>
+        <li>免费用户：查看目录与免费预览图。</li>
+        <li>Atlas Pro：查看完整高清图谱与持续更新专题。</li>
+      </ul>
+    </section>
+
+    <section class="note" style="margin-top:16px;">
+      本内容仅供医学教育与学术交流使用，不能替代专业医生的诊断、治疗建议或临床决策。具体诊疗请结合患者实际情况、当地指南和医疗机构规范。
+    </section>
+  </main>
+</body>
+</html>
