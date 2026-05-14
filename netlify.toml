@@ -96,3 +96,43 @@
   to = "https://kidneysphere.com/:splat"
   status = 301
   force = true
+
+[[redirects]]
+  from = "/atlas"
+  to = "/atlas.html"
+  status = 200
+
+[[redirects]]
+  from = "/atlas/"
+  to = "/atlas.html"
+  status = 200
+
+[[redirects]]
+  from = "/atlas/category/:slug"
+  to = "/atlas-category.html?slug=:slug"
+  status = 200
+
+[[redirects]]
+  from = "/atlas/topic/:slug"
+  to = "/atlas-topic.html?slug=:slug"
+  status = 200
+
+[[redirects]]
+  from = "/atlas/series/:slug"
+  to = "/atlas-series.html?slug=:slug"
+  status = 200
+
+[[redirects]]
+  from = "/api/atlas/assets/:id/url"
+  to = "/.netlify/functions/atlas-asset-url"
+  status = 200
+
+[[redirects]]
+  from = "/admin/atlas"
+  to = "/admin-atlas.html"
+  status = 200
+
+[[redirects]]
+  from = "/api/atlas/home"
+  to = "/.netlify/functions/atlas-home"
+  status = 200
