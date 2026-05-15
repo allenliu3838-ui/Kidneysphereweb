@@ -191,3 +191,12 @@ drop trigger if exists trg_validate_atlas_series_publish on public.atlas_series;
 create trigger trg_validate_atlas_series_publish
 before insert or update on public.atlas_series
 for each row execute function public.validate_atlas_series_publish();
+
+-- storage buckets for atlas
+insert into storage.buckets (id, name, public)
+values ('atlas_previews','atlas_previews', true)
+on conflict (id) do nothing;
+
+insert into storage.buckets (id, name, public)
+values ('atlas_hd','atlas_hd', false)
+on conflict (id) do nothing;
