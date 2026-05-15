@@ -363,6 +363,48 @@ export function isAdminRole(role) {
   return r === 'admin' || r === 'super_admin' || r === 'owner';
 }
 
+// ───────────────────────── Entitlements ─────────────────────────
+// Active, non-expired entitlement rows for the given user. [] on miss/error.
+export async function getActiveEntitlements(userId) {
+  if (!userId) return [];
+  try {
+    await ensureSupabase();
+    if (!supabase) return [];
+    const now = new Date().toISOString();
+    const { data } = await supabase
+      .from('user_entitlements')
+      .select('entitlement_type,status,end_at,project_id,membership_product_id')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .or(`end_at.is.null,end_at.gt.${now}`);
+    return data || [];
+  } catch (_e) {
+    return [];
+  }
+}
+
+// 肾域 Pro = GlomCon 教育会员的核心权益。任意一种 active 权益即可解锁：
+//   membership      → 付费会员 / 教育会员
+//   atlas_pro       → 老的 Atlas Pro 单买（legacy）
+//   project_access  → 项目学员
+//   cohort_access   → 班期学员 (training project member)
+// 调用方可传入 entitlements 数组（同步），或 user 对象（异步，内部取）。
+const NEPHRO_PRO_ENTITLEMENTS = new Set([
+  'membership', 'atlas_pro', 'project_access', 'cohort_access',
+]);
+
+export async function canAccessNephroPro(userOrEntitlements) {
+  if (Array.isArray(userOrEntitlements)) {
+    return userOrEntitlements.some(e =>
+      e && e.status === 'active' && NEPHRO_PRO_ENTITLEMENTS.has(e.entitlement_type)
+    );
+  }
+  const user = userOrEntitlements;
+  if (!user?.id) return false;
+  const ents = await getActiveEntitlements(user.id);
+  return ents.some(e => NEPHRO_PRO_ENTITLEMENTS.has(e.entitlement_type));
+}
+
 export const LEVEL_THRESHOLDS = [
   0, 10, 30, 60, 100, 160, 240, 340, 460, 600, 760, 940,
 ];
@@ -696,6 +738,8 @@ try {
       clearLocalAuthCache,
       normalizeRole,
       isAdminRole,
+      getActiveEntitlements,
+      canAccessNephroPro,
       LEVEL_THRESHOLDS,
       computeLevelFromPoints,
       levelName,

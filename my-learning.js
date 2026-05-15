@@ -168,7 +168,7 @@ function renderEntitlements(list) {
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
           <div>
             <div style="font-weight:600;font-size:14px">👑 升级为 GlomCon 教育会员</div>
-            <div class="small muted" style="margin-top:3px">¥199/年 · 解锁全部 GlomCon 中国教育系列视频</div>
+            <div class="small muted" style="margin-top:3px">¥299/年 · 视频学习、病例讨论、肾域 Pro 一站解锁</div>
           </div>
           <a class="btn primary" href="checkout.html?product=MEMBERSHIP-YEARLY">开通会员</a>
         </div>`;
@@ -326,7 +326,7 @@ async function renderDashboardSummary(user) {
         memberEl.innerHTML = `
           <h4>👑 会员状态</h4>
           <div style="font-size:15px;font-weight:600">尚未开通会员</div>
-          <div class="small muted" style="margin-top:4px">¥199/年 · 解锁全部 GlomCon 中国教育系列视频</div>
+          <div class="small muted" style="margin-top:4px">¥299/年 · 视频学习、病例讨论、肾域 Pro 一站解锁</div>
           <a class="btn primary tiny" href="checkout.html?product=MEMBERSHIP-YEARLY" style="margin-top:10px">立即开通</a>
         `;
       }

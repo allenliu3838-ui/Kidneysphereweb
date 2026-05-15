@@ -11,6 +11,7 @@ import {
   ensureSupabase,
   isConfigured,
   getSession,
+  canAccessNephroPro,
 } from './supabaseClient.js?v=20260401_fix';
 
 // ── 工具函数 ──────────────────────────────────────────────────
@@ -150,23 +151,17 @@ function renderMembership(yearly, monthly, purchasedIds){
   const hasMembership = purchasedIds.has(yearly?.id) || purchasedIds.has(monthly?.id);
 
   if(hasMembership && ctaEl){
-    ctaEl.innerHTML = '<span class="badge" style="border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.1);color:#4ade80;padding:8px 16px;font-size:14px">已开通会员</span> <a class="btn" href="videos.html?source=glomcon">进入 GlomCon 视频</a>';
-    const promoEl = document.getElementById('membershipPromo');
-    if(promoEl) promoEl.hidden = true;
+    ctaEl.innerHTML = '<span class="badge" style="border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.1);color:#4ade80;padding:8px 16px;font-size:14px">已开通会员</span> <a class="btn" href="videos.html?source=glomcon">进入 GlomCon 视频</a> <a class="btn" href="nephro-pro.html">进入肾域 Pro</a>';
     return;
   }
 
   if(yearly){
     if(priceEl) priceEl.textContent = fmtPrice(yearly.price_cny) + '/年';
-    if(origEl && yearly.list_price_cny > yearly.price_cny){
-      origEl.textContent = fmtPrice(yearly.list_price_cny) + '/年';
-    }else if(origEl){
-      origEl.hidden = true;
-    }
+    if(origEl) origEl.hidden = true;
     const buyYearly = document.getElementById('membershipBuyYearly');
     if(buyYearly){
       buyYearly.href = `checkout.html?product_id=${encodeURIComponent(yearly.id)}`;
-      buyYearly.textContent = `年费 ${fmtPrice(yearly.price_cny)}`;
+      buyYearly.textContent = `开通教育会员 ${fmtPrice(yearly.price_cny)}/年`;
     }
   }
   if(monthly){
@@ -313,6 +308,10 @@ function renderStatusBar(ents){
     single_video: '单视频',
   };
   const labels = [...new Set(active.map(e => typeLabels[e.entitlement_type] || e.entitlement_type))];
+  // 肾域 Pro 是教育会员/付费会员/项目学员的核心权益, 多角色叠加时单独显示一个标签
+  if(canAccessNephroPro(active)){
+    labels.push('肾域 Pro');
+  }
   text.textContent = `已开通权益：${labels.join(' · ')}`;
   bar.hidden = false;
 }
