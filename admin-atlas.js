@@ -26,6 +26,160 @@ async function uploadToBucket(bucket, path, file){
   if(error) throw error;
 }
 
+function publicUrl(bucket, path){
+  if(!path) return '';
+  try {
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    return data?.publicUrl || '';
+  } catch {
+    return '';
+  }
+}
+
+function formatDeletedAgo(iso){
+  if(!iso) return '';
+  const ms = Date.now() - new Date(iso).getTime();
+  if(ms < 60000) return '刚刚删除';
+  const m = Math.floor(ms / 60000);
+  if(m < 60) return `${m} 分钟前删除`;
+  const h = Math.floor(ms / 3600000);
+  if(h < 24) return `${h} 小时前删除`;
+  const d = Math.floor(ms / 86400000);
+  return `${d} 天前删除`;
+}
+
+async function deleteAsset(asset){
+  if(!confirm(`确定删除「${asset.title || '未命名'}」？\n会移动到回收站，30 天内可恢复。`)) return;
+  const { error } = await supabase.from('atlas_assets').update({ deleted_at: new Date().toISOString() }).eq('id', asset.id);
+  if(error){ alert('删除失败：' + (error.message || 'unknown')); return; }
+  await refreshAll();
+}
+
+async function restoreAsset(asset){
+  const { error } = await supabase.from('atlas_assets').update({ deleted_at: null }).eq('id', asset.id);
+  if(error){ alert('恢复失败：' + (error.message || 'unknown')); return; }
+  await refreshAll();
+}
+
+async function purgeAsset(asset){
+  if(!confirm(`永久删除「${asset.title || '未命名'}」？\n图片文件和数据库记录都会立刻清除，不可恢复。`)) return;
+  const tasks = [];
+  if(asset.image_path) tasks.push(supabase.storage.from('atlas_hd').remove([asset.image_path]));
+  if(asset.preview_image_path) tasks.push(supabase.storage.from('atlas_previews').remove([asset.preview_image_path]));
+  if(asset.thumbnail_path && asset.thumbnail_path !== asset.preview_image_path){
+    tasks.push(supabase.storage.from('atlas_previews').remove([asset.thumbnail_path]));
+  }
+  await Promise.allSettled(tasks);
+  const { error } = await supabase.from('atlas_assets').delete().eq('id', asset.id);
+  if(error){ alert('永久删除失败：' + (error.message || 'unknown')); return; }
+  await refreshAll();
+}
+
+async function moveAsset(asset, direction){
+  const { data: rows } = await supabase
+    .from('atlas_assets')
+    .select('id,sequence_no')
+    .eq('series_id', asset.series_id)
+    .is('deleted_at', null)
+    .order('sequence_no', { ascending: true });
+  if(!rows?.length) return;
+  const idx = rows.findIndex(r => r.id === asset.id);
+  if(idx < 0) return;
+  const swapIdx = idx + direction;
+  if(swapIdx < 0 || swapIdx >= rows.length) return;
+  const neighbor = rows[swapIdx];
+  await Promise.all([
+    supabase.from('atlas_assets').update({ sequence_no: neighbor.sequence_no }).eq('id', asset.id),
+    supabase.from('atlas_assets').update({ sequence_no: asset.sequence_no }).eq('id', neighbor.id),
+  ]);
+  await refreshAll();
+}
+
+async function reorderAssetToPosition(source, target){
+  if(source.series_id !== target.series_id) return;
+  const { data: rows } = await supabase
+    .from('atlas_assets')
+    .select('id,sequence_no')
+    .eq('series_id', source.series_id)
+    .is('deleted_at', null)
+    .order('sequence_no', { ascending: true });
+  if(!rows?.length) return;
+  const sourceRow = rows.find(r => r.id === source.id);
+  if(!sourceRow) return;
+  const filtered = rows.filter(r => r.id !== source.id);
+  const targetIdx = filtered.findIndex(r => r.id === target.id);
+  if(targetIdx < 0) return;
+  filtered.splice(targetIdx, 0, sourceRow);
+  const updates = [];
+  filtered.forEach((r, i) => {
+    const newSeq = i + 1;
+    if(r.sequence_no !== newSeq){
+      updates.push(supabase.from('atlas_assets').update({ sequence_no: newSeq }).eq('id', r.id));
+    }
+  });
+  if(updates.length) await Promise.all(updates);
+  await refreshAll();
+}
+
+function setupAssetDragReorder(assetById){
+  const list = $('assetList');
+  if(!list || list.dataset.dragWired === '1') return;
+  list.dataset.dragWired = '1';
+  let sourceId = null;
+  const clearHighlights = ()=>{
+    list.querySelectorAll('[data-asset-card]').forEach(c=>{
+      c.style.outline = '';
+      c.style.opacity = '';
+    });
+  };
+  list.addEventListener('dragstart', (e)=>{
+    const card = e.target.closest('[data-asset-card]');
+    if(!card) return;
+    sourceId = card.getAttribute('data-asset-card');
+    card.style.opacity = '0.4';
+    if(e.dataTransfer){
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', sourceId); } catch {}
+    }
+  });
+  list.addEventListener('dragend', ()=>{ clearHighlights(); sourceId = null; });
+  list.addEventListener('dragover', (e)=>{
+    const card = e.target.closest('[data-asset-card]');
+    if(!card || !sourceId) return;
+    const src = assetById[sourceId];
+    const dst = assetById[card.getAttribute('data-asset-card')];
+    if(!src || !dst || src.series_id !== dst.series_id) return;
+    e.preventDefault();
+    if(e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+  });
+  list.addEventListener('dragenter', (e)=>{
+    const card = e.target.closest('[data-asset-card]');
+    if(!card || !sourceId) return;
+    const cardId = card.getAttribute('data-asset-card');
+    if(cardId === sourceId) return;
+    const src = assetById[sourceId];
+    const dst = assetById[cardId];
+    if(!src || !dst || src.series_id !== dst.series_id) return;
+    card.style.outline = '2px solid #4a90e2';
+  });
+  list.addEventListener('dragleave', (e)=>{
+    const card = e.target.closest('[data-asset-card]');
+    if(card) card.style.outline = '';
+  });
+  list.addEventListener('drop', async (e)=>{
+    e.preventDefault();
+    const card = e.target.closest('[data-asset-card]');
+    if(!card || !sourceId) return;
+    const targetId = card.getAttribute('data-asset-card');
+    if(targetId === sourceId) return;
+    const source = assetById[sourceId];
+    const target = assetById[targetId];
+    if(!source || !target) return;
+    clearHighlights();
+    await reorderAssetToPosition(source, target);
+  });
+}
+
 function setupQuickUploadDropZone(){
   const zone = $('quickDropZone');
   const input = $('quickFiles');
@@ -183,17 +337,20 @@ async function init(){
 }
 
 async function refreshAll(){
-  const [cat, topic, series, assets, refs] = await Promise.all([
+  const assetFields = 'id,title,series_id,sequence_no,image_path,preview_image_path,thumbnail_path,visibility,deidentified_status,copyright_status,review_status,deleted_at';
+  const [cat, topic, series, assets, trash, refs] = await Promise.all([
     supabase.from('atlas_categories').select('id,name,slug,status').order('sort_order'),
     supabase.from('atlas_topics').select('id,name,slug,status,category_id').order('updated_at',{ascending:false}).limit(50),
     supabase.from('atlas_series').select('id,title,slug,status,visibility,topic_id').order('updated_at',{ascending:false}).limit(50),
-    supabase.from('atlas_assets').select('id,title,series_id,visibility,deidentified_status,copyright_status,review_status').order('updated_at',{ascending:false}).limit(50),
+    supabase.from('atlas_assets').select(assetFields).is('deleted_at', null).order('series_id',{ascending:true}).order('sequence_no',{ascending:true}).limit(500),
+    supabase.from('atlas_assets').select(assetFields).not('deleted_at','is',null).order('deleted_at',{ascending:false}).limit(200),
     supabase.from('atlas_references').select('id,series_id,citation_text,source_type').order('created_at',{ascending:false}).limit(50),
   ]);
   const cats = cat.data || [];
   const topics = topic.data || [];
   const listSeries = series.data || [];
   const listAssets = assets.data || [];
+  const trashAssets = trash.data || [];
   const listRefs = refs.data || [];
 
   $('topicCategory').innerHTML = cats.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
@@ -205,8 +362,39 @@ async function refreshAll(){
   $('catList').innerHTML = cats.map(c=>`<div class="card" style="padding:8px;"><b>${esc(c.name)}</b> · ${esc(c.slug)} · ${esc(c.status)}</div>`).join('') || '<div class="note">暂无分类</div>';
   $('topicList').innerHTML = topics.map(t=>`<div class="card" style="padding:8px;"><b>${esc(t.name)}</b> · ${esc(t.slug)} · ${esc(t.status)}</div>`).join('') || '<div class="note">暂无专题</div>';
   $('seriesList').innerHTML = listSeries.map(s=>`<div class="card" style="padding:8px;"><b>${esc(s.title)}</b> · ${esc(s.slug)} · ${esc(s.visibility)} / ${esc(s.status)} <button class="btn tiny" data-publish-series="${s.id}">发布</button></div>`).join('') || '<div class="note">暂无系列</div>';
-  $('assetList').innerHTML = listAssets.map(a=>`<div class="card" style="padding:8px;"><b>${esc(a.title||'未命名')}</b> · ${esc(a.visibility)} · 版权:${esc(a.copyright_status)} · 去标识:${esc(a.deidentified_status)} · 审核:${esc(a.review_status)}</div>`).join('') || '<div class="note">暂无图谱卡</div>';
-  $('refList').innerHTML = listRefs.map(r=>`<div class="card" style="padding:8px;">${esc(r.citation_text)} <span class="badge">${esc(r.source_type||'paper')}</span></div>`).join('') || '<div class="note">暂无参考文献</div>'; 
+  const seriesById = Object.fromEntries(listSeries.map(s=>[s.id, s.title]));
+  $('assetList').innerHTML = listAssets.map(a=>{
+    const thumb = publicUrl('atlas_previews', a.thumbnail_path || a.preview_image_path);
+    const seriesName = seriesById[a.series_id] || `系列#${a.series_id}`;
+    return `<div class="card" data-asset-card="${a.id}" draggable="true" style="padding:8px;display:flex;align-items:center;gap:10px;cursor:grab;">
+      <span style="color:#888;cursor:grab;user-select:none;" title="拖拽以重排">⋮⋮</span>
+      <img src="${esc(thumb)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'" style="width:60px;height:60px;object-fit:cover;border-radius:4px;background:#1a2230;flex-shrink:0;" />
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(a.title||'未命名')}</div>
+        <div class="small muted">${esc(seriesName)} · #${a.sequence_no} · ${esc(a.visibility)} · 去标识:${esc(a.deidentified_status)} · 审核:${esc(a.review_status)}</div>
+      </div>
+      <button class="btn tiny" data-asset-up="${a.id}" title="上移">↑</button>
+      <button class="btn tiny" data-asset-down="${a.id}" title="下移">↓</button>
+      <button class="btn tiny danger" data-asset-delete="${a.id}" title="删除">🗑</button>
+    </div>`;
+  }).join('') || '<div class="note">暂无图谱卡</div>';
+
+  if($('trashCount')) $('trashCount').textContent = trashAssets.length ? `(${trashAssets.length})` : '';
+  if($('trashList')) $('trashList').innerHTML = trashAssets.map(a=>{
+    const thumb = publicUrl('atlas_previews', a.thumbnail_path || a.preview_image_path);
+    const seriesName = seriesById[a.series_id] || `系列#${a.series_id}`;
+    return `<div class="card" style="padding:8px;display:flex;align-items:center;gap:10px;opacity:0.7;">
+      <img src="${esc(thumb)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'" style="width:60px;height:60px;object-fit:cover;border-radius:4px;background:#1a2230;flex-shrink:0;filter:grayscale(0.5);" />
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(a.title||'未命名')}</div>
+        <div class="small muted">${esc(seriesName)} · #${a.sequence_no} · ${esc(formatDeletedAgo(a.deleted_at))}</div>
+      </div>
+      <button class="btn tiny" data-asset-restore="${a.id}" title="恢复">↺ 恢复</button>
+      <button class="btn tiny danger" data-asset-purge="${a.id}" title="永久删除">永久删除</button>
+    </div>`;
+  }).join('') || '<div class="note">回收站为空</div>';
+
+  $('refList').innerHTML = listRefs.map(r=>`<div class="card" style="padding:8px;">${esc(r.citation_text)} <span class="badge">${esc(r.source_type||'paper')}</span></div>`).join('') || '<div class="note">暂无参考文献</div>';
 
   document.querySelectorAll('[data-publish-series]').forEach(btn=>{
     btn.onclick = async ()=>{
@@ -216,6 +404,25 @@ async function refreshAll(){
       await refreshAll();
     };
   });
+
+  const assetById = Object.fromEntries([...listAssets, ...trashAssets].map(a=>[String(a.id), a]));
+  document.querySelectorAll('[data-asset-delete]').forEach(btn=>{
+    btn.onclick = ()=> deleteAsset(assetById[btn.getAttribute('data-asset-delete')]);
+  });
+  document.querySelectorAll('[data-asset-up]').forEach(btn=>{
+    btn.onclick = ()=> moveAsset(assetById[btn.getAttribute('data-asset-up')], -1);
+  });
+  document.querySelectorAll('[data-asset-down]').forEach(btn=>{
+    btn.onclick = ()=> moveAsset(assetById[btn.getAttribute('data-asset-down')], +1);
+  });
+  document.querySelectorAll('[data-asset-restore]').forEach(btn=>{
+    btn.onclick = ()=> restoreAsset(assetById[btn.getAttribute('data-asset-restore')]);
+  });
+  document.querySelectorAll('[data-asset-purge]').forEach(btn=>{
+    btn.onclick = ()=> purgeAsset(assetById[btn.getAttribute('data-asset-purge')]);
+  });
+
+  setupAssetDragReorder(assetById);
 }
 
 init();
