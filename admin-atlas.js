@@ -80,6 +80,7 @@ async function moveAsset(asset, direction){
     .from('atlas_assets')
     .select('id,sequence_no')
     .eq('series_id', asset.series_id)
+    .is('deleted_at', null)
     .order('sequence_no', { ascending: true });
   if(!rows?.length) return;
   const idx = rows.findIndex(r => r.id === asset.id);
@@ -92,6 +93,91 @@ async function moveAsset(asset, direction){
     supabase.from('atlas_assets').update({ sequence_no: asset.sequence_no }).eq('id', neighbor.id),
   ]);
   await refreshAll();
+}
+
+async function reorderAssetToPosition(source, target){
+  if(source.series_id !== target.series_id) return;
+  const { data: rows } = await supabase
+    .from('atlas_assets')
+    .select('id,sequence_no')
+    .eq('series_id', source.series_id)
+    .is('deleted_at', null)
+    .order('sequence_no', { ascending: true });
+  if(!rows?.length) return;
+  const sourceRow = rows.find(r => r.id === source.id);
+  if(!sourceRow) return;
+  const filtered = rows.filter(r => r.id !== source.id);
+  const targetIdx = filtered.findIndex(r => r.id === target.id);
+  if(targetIdx < 0) return;
+  filtered.splice(targetIdx, 0, sourceRow);
+  const updates = [];
+  filtered.forEach((r, i) => {
+    const newSeq = i + 1;
+    if(r.sequence_no !== newSeq){
+      updates.push(supabase.from('atlas_assets').update({ sequence_no: newSeq }).eq('id', r.id));
+    }
+  });
+  if(updates.length) await Promise.all(updates);
+  await refreshAll();
+}
+
+function setupAssetDragReorder(assetById){
+  const list = $('assetList');
+  if(!list || list.dataset.dragWired === '1') return;
+  list.dataset.dragWired = '1';
+  let sourceId = null;
+  const clearHighlights = ()=>{
+    list.querySelectorAll('[data-asset-card]').forEach(c=>{
+      c.style.outline = '';
+      c.style.opacity = '';
+    });
+  };
+  list.addEventListener('dragstart', (e)=>{
+    const card = e.target.closest('[data-asset-card]');
+    if(!card) return;
+    sourceId = card.getAttribute('data-asset-card');
+    card.style.opacity = '0.4';
+    if(e.dataTransfer){
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', sourceId); } catch {}
+    }
+  });
+  list.addEventListener('dragend', ()=>{ clearHighlights(); sourceId = null; });
+  list.addEventListener('dragover', (e)=>{
+    const card = e.target.closest('[data-asset-card]');
+    if(!card || !sourceId) return;
+    const src = assetById[sourceId];
+    const dst = assetById[card.getAttribute('data-asset-card')];
+    if(!src || !dst || src.series_id !== dst.series_id) return;
+    e.preventDefault();
+    if(e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+  });
+  list.addEventListener('dragenter', (e)=>{
+    const card = e.target.closest('[data-asset-card]');
+    if(!card || !sourceId) return;
+    const cardId = card.getAttribute('data-asset-card');
+    if(cardId === sourceId) return;
+    const src = assetById[sourceId];
+    const dst = assetById[cardId];
+    if(!src || !dst || src.series_id !== dst.series_id) return;
+    card.style.outline = '2px solid #4a90e2';
+  });
+  list.addEventListener('dragleave', (e)=>{
+    const card = e.target.closest('[data-asset-card]');
+    if(card) card.style.outline = '';
+  });
+  list.addEventListener('drop', async (e)=>{
+    e.preventDefault();
+    const card = e.target.closest('[data-asset-card]');
+    if(!card || !sourceId) return;
+    const targetId = card.getAttribute('data-asset-card');
+    if(targetId === sourceId) return;
+    const source = assetById[sourceId];
+    const target = assetById[targetId];
+    if(!source || !target) return;
+    clearHighlights();
+    await reorderAssetToPosition(source, target);
+  });
 }
 
 function setupQuickUploadDropZone(){
@@ -280,7 +366,8 @@ async function refreshAll(){
   $('assetList').innerHTML = listAssets.map(a=>{
     const thumb = publicUrl('atlas_previews', a.thumbnail_path || a.preview_image_path);
     const seriesName = seriesById[a.series_id] || `系列#${a.series_id}`;
-    return `<div class="card" style="padding:8px;display:flex;align-items:center;gap:10px;">
+    return `<div class="card" data-asset-card="${a.id}" draggable="true" style="padding:8px;display:flex;align-items:center;gap:10px;cursor:grab;">
+      <span style="color:#888;cursor:grab;user-select:none;" title="拖拽以重排">⋮⋮</span>
       <img src="${esc(thumb)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'" style="width:60px;height:60px;object-fit:cover;border-radius:4px;background:#1a2230;flex-shrink:0;" />
       <div style="flex:1;min-width:0;">
         <div style="font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(a.title||'未命名')}</div>
@@ -334,6 +421,8 @@ async function refreshAll(){
   document.querySelectorAll('[data-asset-purge]').forEach(btn=>{
     btn.onclick = ()=> purgeAsset(assetById[btn.getAttribute('data-asset-purge')]);
   });
+
+  setupAssetDragReorder(assetById);
 }
 
 init();
