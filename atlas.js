@@ -98,7 +98,7 @@ async function loadSeries(){
   if(!s) return;
   document.getElementById('atlasSeriesTitle').textContent = s.title;
   document.getElementById('atlasSeriesSummary').textContent = s.summary || '';
-  const { data: assets } = await supabase.from('atlas_assets').select('*').eq('series_id',s.id).order('sequence_no');
+  const { data: assets } = await supabase.from('atlas_assets').select('*').eq('series_id',s.id).is('deleted_at', null).order('sequence_no');
   let idx=0;
   const viewer = document.getElementById('atlasAssetViewer');
   async function resolveAssetUrl(a, canHD){
