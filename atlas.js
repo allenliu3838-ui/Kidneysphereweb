@@ -116,8 +116,8 @@ async function loadSeries(){
       </div>
       <img id="atlasAssetImg" src="${esc(img||'')}" alt="${esc(a.alt_text||a.title||'atlas')}" style="width:100%;max-height:85vh;object-fit:contain;border-radius:10px;background:rgba(255,255,255,0.04);${canHD && img ? 'cursor:zoom-in;' : ''}" />
       <h3>${esc(a.title||'')}</h3>
-      <p>${esc(canHD?(a.caption||''):'该图谱为 Pro 内容，解锁 Atlas Pro 查看完整高清图谱。')}</p>
-      ${!canHD?'<a class="btn danger" href="membership.html">解锁 Atlas Pro</a>':''}
+      <p>${esc(canHD?(a.caption||''):'该图谱为肾域 Pro 内容，开通 GlomCon 教育会员查看完整高清图谱。')}</p>
+      ${!canHD?'<a class="btn danger" href="membership.html">解锁肾域 Pro</a>':''}
     </div>`;
     if(canHD && img){
       const el = document.getElementById('atlasAssetImg');

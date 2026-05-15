@@ -247,14 +247,14 @@ for (const { path: p, expected } of CANONICAL_PAGES) {
   });
 }
 
-// ─── Atlas Pro public entry points ───
+// ─── 肾域 Pro · 证据图谱库 public entry points ───
 
 test('Atlas landing page is publicly accessible', async ({ request }) => {
   const res = await request.get(`${BASE}/atlas`);
   expect(res.status()).toBe(200);
   const html = await res.text();
-  expect(html).toContain('肾域专业图谱');
-  expect(html).toContain('Atlas Pro');
+  expect(html).toContain('肾域 Pro');
+  expect(html).toContain('证据图谱库');
 });
 
 test('Atlas topic pretty route rewrites to topic page', async ({ request }) => {
