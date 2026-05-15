@@ -26,6 +26,46 @@ async function uploadToBucket(bucket, path, file){
   if(error) throw error;
 }
 
+function setupQuickUploadDropZone(){
+  const zone = $('quickDropZone');
+  const input = $('quickFiles');
+  const summary = $('quickFileSummary');
+  if(!zone || !input || !summary) return;
+
+  const refreshSummary = ()=>{
+    const n = input.files?.length || 0;
+    summary.textContent = n ? `已选择 ${n} 个文件` : '尚未选择文件';
+  };
+  input.addEventListener('change', refreshSummary);
+  $('quickUploadForm')?.addEventListener('reset', ()=>setTimeout(refreshSummary, 0));
+
+  const setActive = (on)=>{
+    zone.style.borderColor = on ? '#4a90e2' : '#888';
+    zone.style.backgroundColor = on ? 'rgba(74,144,226,0.1)' : '';
+  };
+
+  ['dragenter','dragover'].forEach(evt=>{
+    zone.addEventListener(evt, (e)=>{ e.preventDefault(); e.stopPropagation(); setActive(true); });
+  });
+  ['dragleave','dragend'].forEach(evt=>{
+    zone.addEventListener(evt, (e)=>{ e.preventDefault(); e.stopPropagation(); setActive(false); });
+  });
+  zone.addEventListener('drop', (e)=>{
+    e.preventDefault(); e.stopPropagation(); setActive(false);
+    const dropped = Array.from(e.dataTransfer?.files || []);
+    const images = dropped.filter(f => f.type && f.type.startsWith('image/'));
+    if(!images.length){ summary.textContent = '只支持图片文件'; return; }
+    try {
+      const dt = new DataTransfer();
+      images.forEach(f => dt.items.add(f));
+      input.files = dt.files;
+    } catch {
+      // Older browsers without constructable DataTransfer fall back to picker
+    }
+    refreshSummary();
+  });
+}
+
 async function init(){
   await ensureSupabase();
   const user = await getCurrentUser();
@@ -36,6 +76,8 @@ async function init(){
   if(!ok) return;
 
   await refreshAll();
+
+  setupQuickUploadDropZone();
 
   $('quickUploadForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
