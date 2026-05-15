@@ -4,7 +4,7 @@
  */
 import {
   supabase, ensureSupabase, isConfigured,
-  getCurrentUser, toast,
+  getCurrentUser, toast, canAccessNephroPro,
 } from './supabaseClient.js?v=20260401_fix';
 
 /* ── helpers ── */
@@ -58,9 +58,36 @@ function entBadge(ent) {
   return `<span class="ent-badge active">有效至 ${fmtDate(ent.end_at)}</span>`;
 }
 
+function renderNephroProCard(entitlements){
+  const card = document.getElementById('nephroProCard');
+  if(!card) return;
+  const hasAccess = canAccessNephroPro(entitlements || []);
+  if(hasAccess){
+    card.innerHTML = `
+      <div style="padding:14px 16px;border:1px solid rgba(34,197,94,.4);background:rgba(34,197,94,.08);border-radius:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div>
+          <div style="font-weight:600;">🗺️ 肾域 Pro <span class="badge" style="margin-left:6px;color:#4ade80;border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.1);">已解锁</span></div>
+          <div class="small muted" style="margin-top:3px;">肾内科证据图谱与文献更新工具</div>
+        </div>
+        <a class="btn primary tiny" href="nephro-pro.html">进入学习</a>
+      </div>`;
+  } else {
+    card.innerHTML = `
+      <div style="padding:14px 16px;border:1px solid rgba(168,85,247,.25);background:rgba(168,85,247,.05);border-radius:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div>
+          <div style="font-weight:600;">🗺️ 肾域 Pro</div>
+          <div class="small muted" style="margin-top:3px;">肾内科证据图谱与文献更新工具</div>
+        </div>
+        <a class="btn primary tiny" href="checkout.html?product=MEMBERSHIP-YEARLY">开通教育会员解锁</a>
+      </div>`;
+  }
+  card.hidden = false;
+}
+
 function renderEntitlements(list) {
   const wrap = document.getElementById('entList');
   document.getElementById('entLoading').hidden = true;
+  renderNephroProCard(list || []);
 
   if (!list || list.length === 0) {
     document.getElementById('entEmpty').hidden = false;
