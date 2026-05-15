@@ -26,6 +26,49 @@ async function uploadToBucket(bucket, path, file){
   if(error) throw error;
 }
 
+function publicUrl(bucket, path){
+  if(!path) return '';
+  try {
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    return data?.publicUrl || '';
+  } catch {
+    return '';
+  }
+}
+
+async function deleteAsset(asset){
+  if(!confirm(`确定删除「${asset.title || '未命名'}」？\n图片文件和数据库记录都会删除，不可恢复。`)) return;
+  const tasks = [];
+  if(asset.image_path) tasks.push(supabase.storage.from('atlas_hd').remove([asset.image_path]));
+  if(asset.preview_image_path) tasks.push(supabase.storage.from('atlas_previews').remove([asset.preview_image_path]));
+  if(asset.thumbnail_path && asset.thumbnail_path !== asset.preview_image_path){
+    tasks.push(supabase.storage.from('atlas_previews').remove([asset.thumbnail_path]));
+  }
+  await Promise.allSettled(tasks);
+  const { error } = await supabase.from('atlas_assets').delete().eq('id', asset.id);
+  if(error){ alert('删除失败：' + (error.message || 'unknown')); return; }
+  await refreshAll();
+}
+
+async function moveAsset(asset, direction){
+  const { data: rows } = await supabase
+    .from('atlas_assets')
+    .select('id,sequence_no')
+    .eq('series_id', asset.series_id)
+    .order('sequence_no', { ascending: true });
+  if(!rows?.length) return;
+  const idx = rows.findIndex(r => r.id === asset.id);
+  if(idx < 0) return;
+  const swapIdx = idx + direction;
+  if(swapIdx < 0 || swapIdx >= rows.length) return;
+  const neighbor = rows[swapIdx];
+  await Promise.all([
+    supabase.from('atlas_assets').update({ sequence_no: neighbor.sequence_no }).eq('id', asset.id),
+    supabase.from('atlas_assets').update({ sequence_no: asset.sequence_no }).eq('id', neighbor.id),
+  ]);
+  await refreshAll();
+}
+
 function setupQuickUploadDropZone(){
   const zone = $('quickDropZone');
   const input = $('quickFiles');
@@ -187,7 +230,7 @@ async function refreshAll(){
     supabase.from('atlas_categories').select('id,name,slug,status').order('sort_order'),
     supabase.from('atlas_topics').select('id,name,slug,status,category_id').order('updated_at',{ascending:false}).limit(50),
     supabase.from('atlas_series').select('id,title,slug,status,visibility,topic_id').order('updated_at',{ascending:false}).limit(50),
-    supabase.from('atlas_assets').select('id,title,series_id,visibility,deidentified_status,copyright_status,review_status').order('updated_at',{ascending:false}).limit(50),
+    supabase.from('atlas_assets').select('id,title,series_id,sequence_no,image_path,preview_image_path,thumbnail_path,visibility,deidentified_status,copyright_status,review_status').order('series_id',{ascending:true}).order('sequence_no',{ascending:true}).limit(500),
     supabase.from('atlas_references').select('id,series_id,citation_text,source_type').order('created_at',{ascending:false}).limit(50),
   ]);
   const cats = cat.data || [];
@@ -205,7 +248,21 @@ async function refreshAll(){
   $('catList').innerHTML = cats.map(c=>`<div class="card" style="padding:8px;"><b>${esc(c.name)}</b> · ${esc(c.slug)} · ${esc(c.status)}</div>`).join('') || '<div class="note">暂无分类</div>';
   $('topicList').innerHTML = topics.map(t=>`<div class="card" style="padding:8px;"><b>${esc(t.name)}</b> · ${esc(t.slug)} · ${esc(t.status)}</div>`).join('') || '<div class="note">暂无专题</div>';
   $('seriesList').innerHTML = listSeries.map(s=>`<div class="card" style="padding:8px;"><b>${esc(s.title)}</b> · ${esc(s.slug)} · ${esc(s.visibility)} / ${esc(s.status)} <button class="btn tiny" data-publish-series="${s.id}">发布</button></div>`).join('') || '<div class="note">暂无系列</div>';
-  $('assetList').innerHTML = listAssets.map(a=>`<div class="card" style="padding:8px;"><b>${esc(a.title||'未命名')}</b> · ${esc(a.visibility)} · 版权:${esc(a.copyright_status)} · 去标识:${esc(a.deidentified_status)} · 审核:${esc(a.review_status)}</div>`).join('') || '<div class="note">暂无图谱卡</div>';
+  const seriesById = Object.fromEntries(listSeries.map(s=>[s.id, s.title]));
+  $('assetList').innerHTML = listAssets.map(a=>{
+    const thumb = publicUrl('atlas_previews', a.thumbnail_path || a.preview_image_path);
+    const seriesName = seriesById[a.series_id] || `系列#${a.series_id}`;
+    return `<div class="card" style="padding:8px;display:flex;align-items:center;gap:10px;">
+      <img src="${esc(thumb)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'" style="width:60px;height:60px;object-fit:cover;border-radius:4px;background:#1a2230;flex-shrink:0;" />
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(a.title||'未命名')}</div>
+        <div class="small muted">${esc(seriesName)} · #${a.sequence_no} · ${esc(a.visibility)} · 去标识:${esc(a.deidentified_status)} · 审核:${esc(a.review_status)}</div>
+      </div>
+      <button class="btn tiny" data-asset-up="${a.id}" title="上移">↑</button>
+      <button class="btn tiny" data-asset-down="${a.id}" title="下移">↓</button>
+      <button class="btn tiny danger" data-asset-delete="${a.id}" title="删除">🗑</button>
+    </div>`;
+  }).join('') || '<div class="note">暂无图谱卡</div>';
   $('refList').innerHTML = listRefs.map(r=>`<div class="card" style="padding:8px;">${esc(r.citation_text)} <span class="badge">${esc(r.source_type||'paper')}</span></div>`).join('') || '<div class="note">暂无参考文献</div>'; 
 
   document.querySelectorAll('[data-publish-series]').forEach(btn=>{
@@ -215,6 +272,17 @@ async function refreshAll(){
       if(error) alert('发布失败：'+ (error.message||'unknown'));
       await refreshAll();
     };
+  });
+
+  const assetById = Object.fromEntries(listAssets.map(a=>[String(a.id), a]));
+  document.querySelectorAll('[data-asset-delete]').forEach(btn=>{
+    btn.onclick = ()=> deleteAsset(assetById[btn.getAttribute('data-asset-delete')]);
+  });
+  document.querySelectorAll('[data-asset-up]').forEach(btn=>{
+    btn.onclick = ()=> moveAsset(assetById[btn.getAttribute('data-asset-up')], -1);
+  });
+  document.querySelectorAll('[data-asset-down]').forEach(btn=>{
+    btn.onclick = ()=> moveAsset(assetById[btn.getAttribute('data-asset-down')], +1);
   });
 }
 
