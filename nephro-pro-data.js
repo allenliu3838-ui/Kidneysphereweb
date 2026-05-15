@@ -1,19 +1,52 @@
 /**
- * nephro-pro-data.js — 肾域 Pro 六大模块的展示数据（mock）
+ * nephro-pro-data.js — 肾域 Pro 六大模块的展示数据
  *
- * 后端数据出来之前用这份做卡片展示。每个 item 字段保持和未来后端
- * 表结构一致，迁移成本最低：
- *   id / title / summary / contentType / accessLevel /
- *   requiredEntitlement / evidenceLevel / reviewStatus / updatedAt /
- *   licenseStatus
+ * ============================================================
+ *   编辑指南（你打开 / 增加内容时看这里）
+ * ============================================================
  *
- * 字段语义：
+ *   一、加一条内容
+ *   ---------------------------------------
+ *   找到对应模块的 items 数组，加一条形如：
+ *
+ *     {
+ *       id: '唯一英文短 ID',
+ *       title: '中文标题',
+ *       summary: '一两句话简介',
+ *       cover_url: 'https://你的图床/缩略图.jpg',   // 必填, 免费用户也看
+ *       hd_image_url: 'https://你的图床/高清.jpg',  // 选填, 付费才看
+ *       external_link: 'https://pubmed...',          // 选填, 期刊/PDF 外链
+ *       contentType: 'series',                        // 见下方枚举
+ *       evidenceLevel: '指南',                        // 见下方枚举
+ *       reviewStatus: 'reviewed',                     // reviewed | pending
+ *       updatedAt: '2026-05-15',
+ *       licenseStatus: 'original',                    // original | licensed | public_domain
+ *     }
+ *
+ *   图床建议：Supabase Storage 公开 bucket / 七牛 / 腾讯 COS / Cloudflare R2 都行，
+ *   只要返回 https URL 能直接 <img> 就行。
+ *
+ *   二、开放 / 关闭一个模块
+ *   ---------------------------------------
+ *   把模块的 status 在 'coming_soon' 与 'live' 之间切换。
+ *   coming_soon: 落地页显示"敬请期待"，没有跳转链接
+ *   live:        落地页显示"进入"按钮，跳到 nephro-pro-module.html?id=xxx
+ *
+ *   三、字段语义参考
+ *   ---------------------------------------
  *   contentType: series | paper-digest | guideline-update | pathway | case | download
  *   accessLevel: free | preview | pro
  *   requiredEntitlement: nephro_pro | membership | project_access
- *   evidenceLevel:  指南 | 系统综述 | RCT | 队列 | 病例 | 专家共识
+ *   evidenceLevel:  指南 | 系统综述 | RCT | 队列 | 病例 | 专家共识 | 教学素材
  *   reviewStatus: reviewed | pending | needs_review
  *   licenseStatus: original | licensed | public_domain | needs_review
+ *
+ *   四、付费 / 免费控制
+ *   ---------------------------------------
+ *   有 hd_image_url 且当前用户未付费 → 卡片只显示 cover_url + "高清待解锁"徽章
+ *   有 hd_image_url 且当前用户已付费 → 卡片直接显示 hd_image_url
+ *   没有 hd_image_url                  → 完全免费, cover_url 即最终图
+ *   只有 external_link 没有图          → 卡片只是文本卡 + "查看原文 ↗" 按钮
  */
 
 export const NEPHRO_PRO_MODULES = [
@@ -68,13 +101,17 @@ export const NEPHRO_PRO_MODULES = [
     title: '最新文献图解',
     summary: '每周精选高影响因子肾内科论文，用图解方式拆解研究问题、设计与结论。',
     icon: '📄',
-    href: '#literature-digest',
+    href: 'nephro-pro-module.html?id=literature-digest',
     status: 'coming_soon',
     items: [
+      // ↓ 示范条目（含图 URL）—— 替换 cover_url / hd_image_url 即可
       {
         id: 'lit-2026-05-empa-ckd',
         title: 'EMPA-KIDNEY 长期随访：心肾终点的持续获益',
         summary: 'SGLT2i 在非糖尿病 CKD 中的 30 个月随访数据图解。',
+        cover_url: '',     // 填你的缩略图 URL
+        hd_image_url: '',  // 选填高清图 URL（付费用户看）
+        external_link: 'https://pubmed.ncbi.nlm.nih.gov/',  // 选填原文链接
         contentType: 'paper-digest',
         accessLevel: 'pro',
         requiredEntitlement: 'nephro_pro',
@@ -102,7 +139,7 @@ export const NEPHRO_PRO_MODULES = [
     title: '指南更新雷达',
     summary: 'KDIGO、ERA、ASN、中国指南更新追踪 + 关键差异点的图解对照。',
     icon: '📡',
-    href: '#guideline-watch',
+    href: 'nephro-pro-module.html?id=guideline-watch',
     status: 'coming_soon',
     items: [
       {
@@ -136,7 +173,7 @@ export const NEPHRO_PRO_MODULES = [
     title: '临床路径图谱',
     summary: '从急诊接诊到病理穿刺到 follow-up 的全流程图谱，覆盖常见与疑难场景。',
     icon: '🧭',
-    href: '#clinical-pathways',
+    href: 'nephro-pro-module.html?id=clinical-pathways',
     status: 'coming_soon',
     items: [
       {
@@ -170,7 +207,7 @@ export const NEPHRO_PRO_MODULES = [
     title: '病例学习',
     summary: '真实病例去标识化后改编，配套学习问题、关键鉴别与教学要点。',
     icon: '🧪',
-    href: '#case-learning',
+    href: 'nephro-pro-module.html?id=case-learning',
     status: 'coming_soon',
     items: [
       {
@@ -204,7 +241,7 @@ export const NEPHRO_PRO_MODULES = [
     title: '教学下载中心',
     summary: '高清图谱原图、PPT 模板、教学讲义和病例打印版，可用于授课与查房。',
     icon: '⬇️',
-    href: '#download-center',
+    href: 'nephro-pro-module.html?id=download-center',
     status: 'coming_soon',
     items: [
       {
