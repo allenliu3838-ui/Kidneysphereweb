@@ -13,17 +13,6 @@ function publicUrl(bucket, path){
   }
 }
 
-function openLightbox(url, alt){
-  if(!url) return;
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.94);display:flex;align-items:center;justify-content:center;cursor:zoom-out;padding:20px;';
-  overlay.innerHTML = `<img src="${esc(url)}" alt="${esc(alt||'')}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;" />`;
-  const close = ()=>{ overlay.remove(); document.removeEventListener('keydown', onKey); };
-  const onKey = (e)=>{ if(e.key === 'Escape') close(); };
-  overlay.addEventListener('click', close);
-  document.addEventListener('keydown', onKey);
-  document.body.appendChild(overlay);
-}
 
 async function hasAtlasPro(userId){
   if(!userId || !supabase) return false;
@@ -123,7 +112,7 @@ async function loadSeries(){
     viewer.innerHTML = `<div style="opacity:${canHD?1:0.55}">
       <div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
         <span>${String(idx+1).padStart(2,'0')}/${String(assets.length).padStart(2,'0')}</span>
-        ${canHD && img ? '<span class="small muted">点击图片查看大图</span>' : ''}
+        ${canHD && img ? '<span class="small muted">点击图片查看大图（← → 键翻页 · Esc 关闭）</span>' : ''}
       </div>
       <img id="atlasAssetImg" src="${esc(img||'')}" alt="${esc(a.alt_text||a.title||'atlas')}" style="width:100%;max-height:85vh;object-fit:contain;border-radius:10px;background:rgba(255,255,255,0.04);${canHD && img ? 'cursor:zoom-in;' : ''}" />
       <h3>${esc(a.title||'')}</h3>
@@ -132,9 +121,67 @@ async function loadSeries(){
     </div>`;
     if(canHD && img){
       const el = document.getElementById('atlasAssetImg');
-      if(el) el.onclick = ()=> openLightbox(img, a.alt_text||a.title||'');
+      if(el) el.onclick = openLightbox;
     }
   }
+
+  let lightboxOverlay = null;
+  function openLightbox(){
+    if(lightboxOverlay || !assets?.length) return;
+    lightboxOverlay = document.createElement('div');
+    lightboxOverlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.94);display:flex;align-items:center;justify-content:center;padding:20px;';
+    const multi = assets.length > 1;
+    lightboxOverlay.innerHTML = `
+      ${multi ? '<button type="button" data-lb-prev style="position:absolute;left:16px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:32px;width:48px;height:48px;border-radius:50%;cursor:pointer;line-height:1;">‹</button>' : ''}
+      <img data-lb-img alt="" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;cursor:default;" />
+      ${multi ? '<button type="button" data-lb-next style="position:absolute;right:16px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:32px;width:48px;height:48px;border-radius:50%;cursor:pointer;line-height:1;">›</button>' : ''}
+      <div data-lb-counter style="position:absolute;bottom:24px;left:50%;transform:translateX(-50%);color:#fff;background:rgba(0,0,0,0.5);padding:4px 12px;border-radius:4px;font-size:14px;"></div>
+      <button type="button" data-lb-close style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:20px;width:40px;height:40px;border-radius:50%;cursor:pointer;line-height:1;">✕</button>
+    `;
+    document.body.appendChild(lightboxOverlay);
+
+    const lbImg = lightboxOverlay.querySelector('[data-lb-img]');
+    const lbCounter = lightboxOverlay.querySelector('[data-lb-counter]');
+
+    async function syncLightbox(){
+      const a = assets[idx];
+      const canHD = isAdmin || a.visibility==='free' || s.visibility==='free' || pro;
+      lbImg.src = await resolveAssetUrl(a, canHD) || '';
+      lbImg.alt = a.alt_text || a.title || '';
+      lbCounter.textContent = `${idx+1} / ${assets.length}`;
+    }
+
+    const navigate = async (delta)=>{
+      if(assets.length < 2) return;
+      idx = (idx + delta + assets.length) % assets.length;
+      await syncLightbox();
+      render();
+    };
+
+    lbImg.onclick = (e)=>e.stopPropagation();
+    lightboxOverlay.querySelector('[data-lb-prev]')?.addEventListener('click', (e)=>{ e.stopPropagation(); navigate(-1); });
+    lightboxOverlay.querySelector('[data-lb-next]')?.addEventListener('click', (e)=>{ e.stopPropagation(); navigate(+1); });
+    lightboxOverlay.querySelector('[data-lb-close]')?.addEventListener('click', (e)=>{ e.stopPropagation(); closeLightbox(); });
+    lightboxOverlay.addEventListener('click', closeLightbox);
+    document.addEventListener('keydown', onLightboxKey);
+
+    syncLightbox();
+  }
+
+  function closeLightbox(){
+    if(!lightboxOverlay) return;
+    document.removeEventListener('keydown', onLightboxKey);
+    lightboxOverlay.remove();
+    lightboxOverlay = null;
+  }
+
+  function onLightboxKey(e){
+    if(!lightboxOverlay) return;
+    if(e.key === 'Escape'){ closeLightbox(); return; }
+    if(e.key === 'ArrowLeft'){ lightboxOverlay.querySelector('[data-lb-prev]')?.click(); return; }
+    if(e.key === 'ArrowRight'){ lightboxOverlay.querySelector('[data-lb-next]')?.click(); return; }
+  }
+
   document.getElementById('atlasPrev').onclick = ()=>{ if(!assets?.length) return; idx=(idx-1+assets.length)%assets.length; render(); };
   document.getElementById('atlasNext').onclick = ()=>{ if(!assets?.length) return; idx=(idx+1)%assets.length; render(); };
   render();
