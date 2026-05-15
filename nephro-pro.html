@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>肾域 Pro · 肾内科证据图谱与文献更新工具</title>
+  <meta name="description" content="肾域 Pro：用图谱方式连接指南、文献、病种、临床问题和教学资料，帮助医生快速追踪肾内科关键证据更新。" />
+  <link rel="stylesheet" href="styles.css" />
+  <script type="module" src="app.js"></script>
+  <script type="module" src="nephro-pro.js"></script>
+</head>
+<body>
+  <main class="container" style="padding:16px;max-width:1100px;margin:0 auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+      <a class="btn tiny" href="index.html" aria-label="返回首页">← 返回首页</a>
+      <a class="btn tiny" href="academy.html#membership" aria-label="教育会员权益">查看会员权益</a>
+    </div>
+
+    <!-- Hero -->
+    <section class="card" style="padding:24px;background:linear-gradient(135deg,rgba(168,85,247,.10),rgba(74,144,226,.08));border:1px solid rgba(168,85,247,.3);">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+        <h1 style="margin:0;font-size:28px;">肾域 Pro</h1>
+        <span class="badge" style="background:rgba(168,85,247,.18);border:1px solid rgba(168,85,247,.4);color:#c084fc;">含于 GlomCon 教育会员</span>
+      </div>
+      <div style="font-size:17px;font-weight:500;opacity:.9;margin-bottom:10px;">肾内科证据图谱与文献更新工具</div>
+      <p style="margin:0;line-height:1.7;">用图谱方式连接指南、文献、病种、临床问题和教学资料，帮助医生快速追踪肾内科关键证据更新。</p>
+      <div id="nephroProGate" style="margin-top:18px;"></div>
+    </section>
+
+    <!-- Modules -->
+    <section class="stack" style="margin-top:18px;">
+      <h2 style="margin-bottom:10px;">六大模块</h2>
+      <div id="nephroProModules" class="grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
+    </section>
+
+    <!-- Compliance -->
+    <section class="card" style="margin-top:18px;padding:18px;">
+      <h3 style="margin-top:0;">合规与版权说明</h3>
+      <ul style="margin:0;padding-left:18px;line-height:1.8;font-size:14px;">
+        <li>本平台内容仅用于医学教育、文献学习与临床参考，不替代医生诊疗决策。</li>
+        <li>AI 生成或辅助整理的内容会明确标记，并进入医学审核流程。</li>
+        <li>文献图片遵循版权规范：优先使用原创重绘、开放许可图片或原文外链，不直接复制期刊原图，除非已获得明确授权。</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
