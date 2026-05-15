@@ -3,6 +3,16 @@ import { ensureSupabase, supabase, getCurrentUser, getUserProfile, isAdminRole, 
 function qp(k){ return new URLSearchParams(location.search).get(k) || ''; }
 function esc(s){ return String(s||'').replace(/[&<>\"]/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m])); }
 
+function publicUrl(bucket, path){
+  if(!path) return '';
+  try {
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    return data?.publicUrl || '';
+  } catch {
+    return '';
+  }
+}
+
 async function hasAtlasPro(userId){
   if(!userId || !supabase) return false;
   const now = new Date().toISOString();
@@ -80,15 +90,16 @@ async function loadSeries(){
   let idx=0;
   const viewer = document.getElementById('atlasAssetViewer');
   async function resolveAssetUrl(a, canHD){
-    if(!canHD) return a.preview_image_path || a.thumbnail_path || '';
-    if(a.visibility==='free' || a.is_preview || s.visibility==='free') return a.image_path || a.preview_image_path || a.thumbnail_path || '';
+    const previewFallback = publicUrl('atlas_previews', a.preview_image_path) || publicUrl('atlas_previews', a.thumbnail_path);
+    if(!canHD) return previewFallback;
+    if(a.visibility==='free' || a.is_preview || s.visibility==='free') return previewFallback;
     try {
       const token = (await supabase.auth.getSession())?.data?.session?.access_token;
       const r = await fetch(`/api/atlas/assets/${encodeURIComponent(a.id)}/url`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
       const j = await r.json();
-      return j.signedURL || j.url || a.preview_image_path || a.thumbnail_path || '';
+      return j.signedURL || j.url || previewFallback;
     } catch {
-      return a.preview_image_path || a.thumbnail_path || '';
+      return previewFallback;
     }
   }
 

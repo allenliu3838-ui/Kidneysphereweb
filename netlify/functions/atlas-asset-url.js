@@ -61,7 +61,9 @@ exports.handler = async (event) => {
 
     // Free path
     if (asset.visibility === 'free' || series.visibility === 'free' || asset.is_preview) {
-      return json(200, { access: 'preview', url: asset.preview_image_path || asset.thumbnail_path || null });
+      const previewPath = asset.preview_image_path || asset.thumbnail_path;
+      const url = previewPath ? `${SUPABASE_URL}/storage/v1/object/public/atlas_previews/${previewPath}` : null;
+      return json(200, { access: 'preview', url });
     }
 
     if (!user) return json(401, { error: 'login_required' });
