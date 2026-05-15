@@ -3,6 +3,29 @@ import { ensureSupabase, supabase, getCurrentUser, getUserProfile, isAdminRole, 
 const $ = (id)=>document.getElementById(id);
 const esc = (s)=>String(s||'').replace(/[&<>\"]/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]));
 
+function extOf(file){
+  const name = file?.name || '';
+  const idx = name.lastIndexOf('.');
+  return idx >= 0 ? name.substring(idx).toLowerCase() : '';
+}
+
+function slugifyName(name){
+  return String(name||'')
+    .replace(/\.[^.]+$/, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\-_]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 50);
+}
+
+async function uploadToBucket(bucket, path, file){
+  const { error } = await supabase.storage.from(bucket).upload(path, file, {
+    upsert: false,
+    contentType: file.type || undefined,
+  });
+  if(error) throw error;
+}
+
 async function init(){
   await ensureSupabase();
   const user = await getCurrentUser();
@@ -14,7 +37,58 @@ async function init(){
 
   await refreshAll();
 
+  $('quickUploadForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const seriesId = Number(fd.get('series_id'));
+    const files = Array.from(($('quickFiles')?.files || []));
+    const prefix = String(fd.get('prefix') || '').trim();
+    const firstPreview = !!$('quickFirstPreview')?.checked;
+    const progress = $('quickUploadProgress');
+    if(!seriesId || !files.length){ alert('请选择系列并上传图片'); return; }
 
+    const { data: maxRows } = await supabase.from('atlas_assets').select('sequence_no').eq('series_id', seriesId).order('sequence_no',{ascending:false}).limit(1);
+    let seq = Number(maxRows?.[0]?.sequence_no || 0);
+
+    try {
+      for(let i=0;i<files.length;i++){
+        const f = files[i];
+        seq += 1;
+        const ext = extOf(f);
+        const base = `${Date.now()}-${i+1}-${slugifyName(f.name)}`;
+        const hdPath = `series-${seriesId}/${base}${ext}`;
+        const prevPath = `series-${seriesId}/preview-${base}${ext}`;
+        const thumbPath = `series-${seriesId}/thumb-${base}${ext}`;
+        progress.textContent = `上传中 ${i+1}/${files.length}：${f.name}`;
+
+        await uploadToBucket('atlas_hd', hdPath, f);
+        await uploadToBucket('atlas_previews', prevPath, f);
+        await uploadToBucket('atlas_previews', thumbPath, f);
+
+        const title = `${prefix ? prefix + ' ' : ''}${String(seq).padStart(2,'0')}`;
+        const { error: insErr } = await supabase.from('atlas_assets').insert({
+          series_id: seriesId,
+          title,
+          sequence_no: seq,
+          image_path: hdPath,
+          preview_image_path: prevPath,
+          thumbnail_path: thumbPath,
+          visibility: (firstPreview && i===0) ? 'free' : 'pro',
+          is_preview: !!(firstPreview && i===0),
+          deidentified_status: 'confirmed',
+          copyright_status: 'original',
+          review_status: 'reviewed',
+        });
+        if(insErr) throw insErr;
+      }
+      progress.textContent = `完成：共上传 ${files.length} 张`;
+      form.reset();
+      await refreshAll();
+    } catch(err){
+      progress.textContent = `上传失败：${err?.message || '未知错误'}`;
+    }
+  });
 
   $('refForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
@@ -83,6 +157,7 @@ async function refreshAll(){
   $('topicCategory').innerHTML = cats.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
   $('seriesTopic').innerHTML = topics.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
   $('assetSeries').innerHTML = listSeries.map(x=>`<option value="${x.id}">${esc(x.title)}</option>`).join('');
+  $('quickSeriesId').innerHTML = listSeries.map(x=>`<option value="${x.id}">${esc(x.title)}</option>`).join('');
   $('refSeries').innerHTML = listSeries.map(x=>`<option value="${x.id}">${esc(x.title)}</option>`).join('');
 
   $('catList').innerHTML = cats.map(c=>`<div class="card" style="padding:8px;"><b>${esc(c.name)}</b> · ${esc(c.slug)} · ${esc(c.status)}</div>`).join('') || '<div class="note">暂无分类</div>';

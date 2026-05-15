@@ -46,6 +46,19 @@
         <div id="seriesList" class="stack" style="margin-top:8px;"></div>
       </div>
 
+      <div class="card" style="padding:12px;margin-top:12px;">
+        <h2>极速上传（推荐）</h2>
+        <form id="quickUploadForm" class="stack" style="gap:8px;">
+          <div style="display:grid;gap:8px;grid-template-columns:1fr 1fr;">
+            <select class="input" id="quickSeriesId" name="series_id" required></select>
+            <input class="input" name="prefix" placeholder="标题前缀（如 IgA-机制）" />
+          </div>
+          <input class="input" type="file" id="quickFiles" name="files" accept="image/*" multiple required />
+          <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="quickFirstPreview" checked /> 首张自动设为免费预览</label>
+          <button class="btn primary" type="submit">批量上传并入库</button>
+        </form>
+        <div id="quickUploadProgress" class="small muted" style="margin-top:8px;"></div>
+      </div>
 
       <div class="card" style="padding:12px;margin-top:12px;">
         <h2>图谱卡管理</h2>
