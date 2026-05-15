@@ -19,6 +19,7 @@ async function hasAtlasPro(userId){
 function card(title, body, href){ return `<a class="card" style="display:block;padding:12px;text-decoration:none;color:inherit" href="${href}"><h4>${esc(title)}</h4><p>${esc(body||'')}</p></a>`; }
 
 async function loadAtlasHome(){
+  revealAdminEntryIfAdmin();
   let payload = null;
   try {
     const r = await fetch('/api/atlas/home');
@@ -31,6 +32,17 @@ async function loadAtlasHome(){
   document.getElementById('atlasCategoryList').innerHTML = categories.map(c=>card(c.name,c.description,`atlas-category.html?slug=${encodeURIComponent(c.slug)}`)).join('') || '<div class="note">图谱分类正在建设中</div>';
   document.getElementById('atlasFeaturedList').innerHTML = topics.map(t=>card(t.name,t.summary,`atlas-topic.html?slug=${encodeURIComponent(t.slug)}`)).join('') || '<div class="note">热门专题正在建设中</div>';
   document.getElementById('atlasLatestList').innerHTML = series.map(s=>card(`${s.title}${s.visibility==='pro'?' · Pro':''}`,s.summary,`atlas-series.html?slug=${encodeURIComponent(s.slug)}`)).join('') || '<div class="note">暂无更新</div>';
+}
+
+async function revealAdminEntryIfAdmin(){
+  const btn = document.getElementById('atlasAdminEntry');
+  if(!btn) return;
+  try {
+    const user = await getCurrentUser();
+    if(!user) return;
+    const profile = await getUserProfile(user);
+    if(isAdminRole(normalizeRole(profile?.role))) btn.hidden = false;
+  } catch {}
 }
 
 
