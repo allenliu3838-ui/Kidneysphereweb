@@ -26,6 +26,20 @@ function autoSlug(name, prefix){
   return `${prefix}-${Date.now().toString(36)}`;
 }
 
+// 保证 slug 在表中唯一. 已存在则加 -2/-3 后缀直到不冲突.
+// 超过 50 次后退化成时间戳, 防死循环.
+async function ensureUniqueSlug(table, baseSlug){
+  let slug = baseSlug;
+  let n = 1;
+  while(n <= 50){
+    const { data } = await supabase.from(table).select('id').eq('slug', slug).maybeSingle();
+    if(!data) return slug;
+    n += 1;
+    slug = `${baseSlug}-${n}`;
+  }
+  return `${baseSlug}-${Date.now().toString(36)}`;
+}
+
 async function uploadToBucket(bucket, path, file){
   const { error } = await supabase.storage.from(bucket).upload(path, file, {
     upsert: false,
@@ -366,12 +380,14 @@ async function init(){
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const name = String(fd.get('name') || '').trim();
-    const slug = String(fd.get('slug') || '').trim() || autoSlug(name, 'cat');
+    const baseSlug = String(fd.get('slug') || '').trim() || autoSlug(name, 'cat');
+    const slug = await ensureUniqueSlug('atlas_categories', baseSlug);
     const description = String(fd.get('description') || '').trim() || null;
     const { error } = await supabase.from('atlas_categories').insert({
       name, slug, description, status: 'published',
     });
     if(error){ alert('新增分类失败：' + (error.message || 'unknown')); return; }
+    if(slug !== baseSlug) alert(`slug "${baseSlug}" 已被占用，已自动改为 "${slug}"`);
     e.currentTarget.reset();
     await refreshAll();
   });
@@ -380,12 +396,14 @@ async function init(){
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const name = String(fd.get('name') || '').trim();
-    const slug = String(fd.get('slug') || '').trim() || autoSlug(name, 'topic');
+    const baseSlug = String(fd.get('slug') || '').trim() || autoSlug(name, 'topic');
+    const slug = await ensureUniqueSlug('atlas_topics', baseSlug);
     const summary = String(fd.get('summary') || '').trim() || null;
     const { error } = await supabase.from('atlas_topics').insert({
       category_id: Number(fd.get('category_id')), name, slug, summary, status: 'draft',
     });
     if(error){ alert('新增专题失败：' + (error.message || 'unknown')); return; }
+    if(slug !== baseSlug) alert(`slug "${baseSlug}" 已被占用，已自动改为 "${slug}"`);
     e.currentTarget.reset();
     await refreshAll();
   });
@@ -394,7 +412,8 @@ async function init(){
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const title = String(fd.get('title') || '').trim();
-    const slug = String(fd.get('slug') || '').trim() || autoSlug(title, 'series');
+    const baseSlug = String(fd.get('slug') || '').trim() || autoSlug(title, 'series');
+    const slug = await ensureUniqueSlug('atlas_series', baseSlug);
     const subtitle = String(fd.get('subtitle') || '').trim() || null;
     const summary = String(fd.get('summary') || '').trim() || null;
     const { error } = await supabase.from('atlas_series').insert({
@@ -402,6 +421,7 @@ async function init(){
       visibility: 'pro', status: 'draft',
     });
     if(error){ alert('新增系列失败：' + (error.message || 'unknown')); return; }
+    if(slug !== baseSlug) alert(`slug "${baseSlug}" 已被占用，已自动改为 "${slug}"`);
     e.currentTarget.reset();
     await refreshAll();
   });
