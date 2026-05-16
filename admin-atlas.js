@@ -253,7 +253,7 @@ function setupQuickUploadDropZone(){
 
   const refreshSummary = ()=>{
     const n = input.files?.length || 0;
-    summary.textContent = n ? `已选择 ${n} 个文件` : '尚未选择文件';
+    summary.textContent = n ? `已选择 ${n} 个文件（再次拖入会追加，提交后会自动清空）` : '尚未选择文件';
   };
   input.addEventListener('change', refreshSummary);
   $('quickUploadForm')?.addEventListener('reset', ()=>setTimeout(refreshSummary, 0));
@@ -276,10 +276,21 @@ function setupQuickUploadDropZone(){
     if(!images.length){ summary.textContent = '只支持图片文件'; return; }
     try {
       const dt = new DataTransfer();
-      images.forEach(f => dt.items.add(f));
+      // 追加已有文件 (拖拽追加, 不覆盖)
+      const existing = Array.from(input.files || []);
+      const existingKeys = new Set(existing.map(f => `${f.name}|${f.size}`));
+      existing.forEach(f => dt.items.add(f));
+      // 加入新拖入的图片, 跳过同名同大小的重复
+      images.forEach(f => {
+        const k = `${f.name}|${f.size}`;
+        if(!existingKeys.has(k)){
+          dt.items.add(f);
+          existingKeys.add(k);
+        }
+      });
       input.files = dt.files;
     } catch {
-      // Older browsers without constructable DataTransfer fall back to picker
+      // 老浏览器不支持 DataTransfer 构造, 跳过追加, fallback 用 picker
     }
     refreshSummary();
   });
@@ -304,10 +315,16 @@ async function init(){
     const fd = new FormData(form);
     const seriesId = Number(fd.get('series_id'));
     const files = Array.from(($('quickFiles')?.files || []));
-    const prefix = String(fd.get('prefix') || '').trim();
+    const userPrefix = String(fd.get('prefix') || '').trim();
     const firstPreview = !!$('quickFirstPreview')?.checked;
     const progress = $('quickUploadProgress');
     if(!seriesId || !files.length){ alert('请选择系列并上传图片'); return; }
+
+    // 未填前缀时, 用"专题 · 系列" (来自下拉选项 textContent) 当默认前缀,
+    // 避免出现单纯 "01" "02" 这种不知道属于谁的标题
+    const selectedOpt = $('quickSeriesId').selectedOptions?.[0];
+    const autoPrefix = selectedOpt ? selectedOpt.textContent.trim() : '';
+    const prefix = userPrefix || autoPrefix;
 
     const { data: maxRows } = await supabase.from('atlas_assets').select('sequence_no').eq('series_id', seriesId).order('sequence_no',{ascending:false}).limit(1);
     let seq = Number(maxRows?.[0]?.sequence_no || 0);
@@ -444,11 +461,24 @@ async function refreshAll(){
   const trashAssets = trash.data || [];
   const listRefs = refs.data || [];
 
+  // 专题下拉显示 "分类 · 专题", 系列下拉显示 "专题 · 系列",
+  // 这样多个同名的子项可以区分开
+  const catNameById = Object.fromEntries(cats.map(c => [c.id, c.name]));
+  const topicNameById = Object.fromEntries(topics.map(t => [t.id, t.name]));
   $('topicCategory').innerHTML = cats.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
-  $('seriesTopic').innerHTML = topics.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
-  $('assetSeries').innerHTML = listSeries.map(x=>`<option value="${x.id}">${esc(x.title)}</option>`).join('');
-  $('quickSeriesId').innerHTML = listSeries.map(x=>`<option value="${x.id}">${esc(x.title)}</option>`).join('');
-  $('refSeries').innerHTML = listSeries.map(x=>`<option value="${x.id}">${esc(x.title)}</option>`).join('');
+  $('seriesTopic').innerHTML = topics.map(t=>{
+    const cn = catNameById[t.category_id];
+    const label = cn ? `${cn} · ${t.name}` : t.name;
+    return `<option value="${t.id}">${esc(label)}</option>`;
+  }).join('');
+  const seriesOptionsHtml = listSeries.map(x=>{
+    const tn = topicNameById[x.topic_id];
+    const label = tn ? `${tn} · ${x.title}` : x.title;
+    return `<option value="${x.id}" data-topic="${esc(tn||'')}" data-series="${esc(x.title)}">${esc(label)}</option>`;
+  }).join('');
+  $('assetSeries').innerHTML = seriesOptionsHtml;
+  $('quickSeriesId').innerHTML = seriesOptionsHtml;
+  $('refSeries').innerHTML = seriesOptionsHtml;
 
   $('catList').innerHTML = cats.map(c=>`<div class="card" style="padding:8px;display:flex;align-items:center;gap:8px;">
     <div style="flex:1;min-width:0;"><b>${esc(c.name)}</b> · ${esc(c.slug)} · ${esc(c.status)}</div>
