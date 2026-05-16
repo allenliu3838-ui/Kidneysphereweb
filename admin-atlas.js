@@ -18,6 +18,14 @@ function slugifyName(name){
     .substring(0, 50);
 }
 
+// 用于自动生成实体 slug. 优先 slugify 名字 (英文/拼音输入时可用),
+// 中文名 slugify 后是空, 退化成 prefix-base36 时间戳形式.
+function autoSlug(name, prefix){
+  const s = slugifyName(name);
+  if(s) return s;
+  return `${prefix}-${Date.now().toString(36)}`;
+}
+
 async function uploadToBucket(bucket, path, file){
   const { error } = await supabase.storage.from(bucket).upload(path, file, {
     upsert: false,
@@ -52,6 +60,49 @@ async function deleteAsset(asset){
   if(!confirm(`确定删除「${asset.title || '未命名'}」？\n会移动到回收站，30 天内可恢复。`)) return;
   const { error } = await supabase.from('atlas_assets').update({ deleted_at: new Date().toISOString() }).eq('id', asset.id);
   if(error){ alert('删除失败：' + (error.message || 'unknown')); return; }
+  await refreshAll();
+}
+
+// ──────────────────────────────────────────────────────────
+// 通用重命名 / 删除工具（分类 / 专题 / 系列 / 图谱卡共用）
+// ──────────────────────────────────────────────────────────
+async function renameEntity({ table, id, field, currentName, label }){
+  const next = prompt(`重命名${label}：\n（当前：${currentName || '未命名'}）`, currentName || '');
+  if(next === null) return;            // 用户取消
+  const trimmed = next.trim();
+  if(!trimmed){ alert('名称不能为空'); return; }
+  if(trimmed === currentName) return;  // 没改
+  const { error } = await supabase.from(table).update({ [field]: trimmed }).eq('id', id);
+  if(error){ alert('重命名失败：' + (error.message || 'unknown')); return; }
+  await refreshAll();
+}
+
+async function deleteWithChildCheck({ table, id, name, label, childTable, childFk, childLabel }){
+  if(childTable){
+    const childQuery = supabase.from(childTable).select('id', { count: 'exact', head: true }).eq(childFk, id);
+    // 图谱卡子查询排除回收站
+    if(childTable === 'atlas_assets'){
+      childQuery.is('deleted_at', null);
+    }
+    const { count, error: cErr } = await childQuery;
+    if(cErr){ alert('校验子项失败：' + (cErr.message || 'unknown')); return; }
+    if(count && count > 0){
+      alert(`「${name}」下还有 ${count} 个${childLabel}，请先清理或移动后再删除。`);
+      return;
+    }
+  }
+  if(!confirm(`永久删除${label}「${name}」？\n不可恢复。`)) return;
+  const { error } = await supabase.from(table).delete().eq('id', id);
+  if(error){ alert('删除失败：' + (error.message || 'unknown')); return; }
+  await refreshAll();
+}
+
+async function toggleTopicPublish(topic){
+  const next = topic.status === 'published' ? 'draft' : 'published';
+  const patch = { status: next };
+  if(next === 'published') patch.published_at = new Date().toISOString();
+  const { error } = await supabase.from('atlas_topics').update(patch).eq('id', topic.id);
+  if(error){ alert('切换失败：' + (error.message || 'unknown')); return; }
   await refreshAll();
 }
 
@@ -314,7 +365,13 @@ async function init(){
   $('catForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    await supabase.from('atlas_categories').insert({ name: fd.get('name'), slug: fd.get('slug'), status: 'published' });
+    const name = String(fd.get('name') || '').trim();
+    const slug = String(fd.get('slug') || '').trim() || autoSlug(name, 'cat');
+    const description = String(fd.get('description') || '').trim() || null;
+    const { error } = await supabase.from('atlas_categories').insert({
+      name, slug, description, status: 'published',
+    });
+    if(error){ alert('新增分类失败：' + (error.message || 'unknown')); return; }
     e.currentTarget.reset();
     await refreshAll();
   });
@@ -322,7 +379,13 @@ async function init(){
   $('topicForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    await supabase.from('atlas_topics').insert({ category_id: Number(fd.get('category_id')), name: fd.get('name'), slug: fd.get('slug'), status: 'draft' });
+    const name = String(fd.get('name') || '').trim();
+    const slug = String(fd.get('slug') || '').trim() || autoSlug(name, 'topic');
+    const summary = String(fd.get('summary') || '').trim() || null;
+    const { error } = await supabase.from('atlas_topics').insert({
+      category_id: Number(fd.get('category_id')), name, slug, summary, status: 'draft',
+    });
+    if(error){ alert('新增专题失败：' + (error.message || 'unknown')); return; }
     e.currentTarget.reset();
     await refreshAll();
   });
@@ -330,7 +393,15 @@ async function init(){
   $('seriesForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    await supabase.from('atlas_series').insert({ topic_id: Number(fd.get('topic_id')), title: fd.get('title'), slug: fd.get('slug'), visibility: 'pro', status: 'draft' });
+    const title = String(fd.get('title') || '').trim();
+    const slug = String(fd.get('slug') || '').trim() || autoSlug(title, 'series');
+    const subtitle = String(fd.get('subtitle') || '').trim() || null;
+    const summary = String(fd.get('summary') || '').trim() || null;
+    const { error } = await supabase.from('atlas_series').insert({
+      topic_id: Number(fd.get('topic_id')), title, slug, subtitle, summary,
+      visibility: 'pro', status: 'draft',
+    });
+    if(error){ alert('新增系列失败：' + (error.message || 'unknown')); return; }
     e.currentTarget.reset();
     await refreshAll();
   });
@@ -359,9 +430,25 @@ async function refreshAll(){
   $('quickSeriesId').innerHTML = listSeries.map(x=>`<option value="${x.id}">${esc(x.title)}</option>`).join('');
   $('refSeries').innerHTML = listSeries.map(x=>`<option value="${x.id}">${esc(x.title)}</option>`).join('');
 
-  $('catList').innerHTML = cats.map(c=>`<div class="card" style="padding:8px;"><b>${esc(c.name)}</b> · ${esc(c.slug)} · ${esc(c.status)}</div>`).join('') || '<div class="note">暂无分类</div>';
-  $('topicList').innerHTML = topics.map(t=>`<div class="card" style="padding:8px;"><b>${esc(t.name)}</b> · ${esc(t.slug)} · ${esc(t.status)}</div>`).join('') || '<div class="note">暂无专题</div>';
-  $('seriesList').innerHTML = listSeries.map(s=>`<div class="card" style="padding:8px;"><b>${esc(s.title)}</b> · ${esc(s.slug)} · ${esc(s.visibility)} / ${esc(s.status)} <button class="btn tiny" data-publish-series="${s.id}">发布</button></div>`).join('') || '<div class="note">暂无系列</div>';
+  $('catList').innerHTML = cats.map(c=>`<div class="card" style="padding:8px;display:flex;align-items:center;gap:8px;">
+    <div style="flex:1;min-width:0;"><b>${esc(c.name)}</b> · ${esc(c.slug)} · ${esc(c.status)}</div>
+    <button class="btn tiny" data-cat-rename="${c.id}" title="重命名">✏️</button>
+    <button class="btn tiny danger" data-cat-delete="${c.id}" title="删除">🗑</button>
+  </div>`).join('') || '<div class="note">暂无分类</div>';
+
+  $('topicList').innerHTML = topics.map(t=>`<div class="card" style="padding:8px;display:flex;align-items:center;gap:8px;">
+    <div style="flex:1;min-width:0;"><b>${esc(t.name)}</b> · ${esc(t.slug)} · ${esc(t.status)}</div>
+    <button class="btn tiny" data-topic-toggle="${t.id}" title="${t.status==='published'?'撤回为草稿':'发布'}">${t.status==='published'?'撤回':'发布'}</button>
+    <button class="btn tiny" data-topic-rename="${t.id}" title="重命名">✏️</button>
+    <button class="btn tiny danger" data-topic-delete="${t.id}" title="删除">🗑</button>
+  </div>`).join('') || '<div class="note">暂无专题</div>';
+
+  $('seriesList').innerHTML = listSeries.map(s=>`<div class="card" style="padding:8px;display:flex;align-items:center;gap:8px;">
+    <div style="flex:1;min-width:0;"><b>${esc(s.title)}</b> · ${esc(s.slug)} · ${esc(s.visibility)} / ${esc(s.status)}</div>
+    <button class="btn tiny" data-publish-series="${s.id}">${s.status==='published'?'已发布':'发布'}</button>
+    <button class="btn tiny" data-series-rename="${s.id}" title="重命名">✏️</button>
+    <button class="btn tiny danger" data-series-delete="${s.id}" title="删除">🗑</button>
+  </div>`).join('') || '<div class="note">暂无系列</div>';
   const seriesById = Object.fromEntries(listSeries.map(s=>[s.id, s.title]));
   $('assetList').innerHTML = listAssets.map(a=>{
     const thumb = publicUrl('atlas_previews', a.thumbnail_path || a.preview_image_path);
@@ -373,6 +460,7 @@ async function refreshAll(){
         <div style="font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(a.title||'未命名')}</div>
         <div class="small muted">${esc(seriesName)} · #${a.sequence_no} · ${esc(a.visibility)} · 去标识:${esc(a.deidentified_status)} · 审核:${esc(a.review_status)}</div>
       </div>
+      <button class="btn tiny" data-asset-rename="${a.id}" title="重命名">✏️</button>
       <button class="btn tiny" data-asset-up="${a.id}" title="上移">↑</button>
       <button class="btn tiny" data-asset-down="${a.id}" title="下移">↓</button>
       <button class="btn tiny danger" data-asset-delete="${a.id}" title="删除">🗑</button>
@@ -405,7 +493,68 @@ async function refreshAll(){
     };
   });
 
+  // ── 分类 重命名 / 删除 ──
+  const catById = Object.fromEntries(cats.map(c=>[String(c.id), c]));
+  document.querySelectorAll('[data-cat-rename]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const c = catById[btn.getAttribute('data-cat-rename')];
+      renameEntity({ table:'atlas_categories', id:c.id, field:'name', currentName:c.name, label:'分类' });
+    };
+  });
+  document.querySelectorAll('[data-cat-delete]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const c = catById[btn.getAttribute('data-cat-delete')];
+      deleteWithChildCheck({ table:'atlas_categories', id:c.id, name:c.name, label:'分类',
+        childTable:'atlas_topics', childFk:'category_id', childLabel:'专题' });
+    };
+  });
+
+  // ── 专题 重命名 / 删除 / 发布切换 ──
+  const topicById = Object.fromEntries(topics.map(t=>[String(t.id), t]));
+  document.querySelectorAll('[data-topic-rename]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const t = topicById[btn.getAttribute('data-topic-rename')];
+      renameEntity({ table:'atlas_topics', id:t.id, field:'name', currentName:t.name, label:'专题' });
+    };
+  });
+  document.querySelectorAll('[data-topic-delete]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const t = topicById[btn.getAttribute('data-topic-delete')];
+      deleteWithChildCheck({ table:'atlas_topics', id:t.id, name:t.name, label:'专题',
+        childTable:'atlas_series', childFk:'topic_id', childLabel:'系列' });
+    };
+  });
+  document.querySelectorAll('[data-topic-toggle]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const t = topicById[btn.getAttribute('data-topic-toggle')];
+      toggleTopicPublish(t);
+    };
+  });
+
+  // ── 系列 重命名 / 删除 ──
+  const seriesById2 = Object.fromEntries(listSeries.map(s=>[String(s.id), s]));
+  document.querySelectorAll('[data-series-rename]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const s = seriesById2[btn.getAttribute('data-series-rename')];
+      renameEntity({ table:'atlas_series', id:s.id, field:'title', currentName:s.title, label:'系列' });
+    };
+  });
+  document.querySelectorAll('[data-series-delete]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const s = seriesById2[btn.getAttribute('data-series-delete')];
+      deleteWithChildCheck({ table:'atlas_series', id:s.id, name:s.title, label:'系列',
+        childTable:'atlas_assets', childFk:'series_id', childLabel:'图谱卡（不含回收站）' });
+    };
+  });
+
+  // ── 图谱卡 ──
   const assetById = Object.fromEntries([...listAssets, ...trashAssets].map(a=>[String(a.id), a]));
+  document.querySelectorAll('[data-asset-rename]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const a = assetById[btn.getAttribute('data-asset-rename')];
+      renameEntity({ table:'atlas_assets', id:a.id, field:'title', currentName:a.title, label:'图谱卡标题' });
+    };
+  });
   document.querySelectorAll('[data-asset-delete]').forEach(btn=>{
     btn.onclick = ()=> deleteAsset(assetById[btn.getAttribute('data-asset-delete')]);
   });
