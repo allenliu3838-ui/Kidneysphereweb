@@ -18,6 +18,14 @@ function slugifyName(name){
     .substring(0, 50);
 }
 
+// 用于自动生成实体 slug. 优先 slugify 名字 (英文/拼音输入时可用),
+// 中文名 slugify 后是空, 退化成 prefix-base36 时间戳形式.
+function autoSlug(name, prefix){
+  const s = slugifyName(name);
+  if(s) return s;
+  return `${prefix}-${Date.now().toString(36)}`;
+}
+
 async function uploadToBucket(bucket, path, file){
   const { error } = await supabase.storage.from(bucket).upload(path, file, {
     upsert: false,
@@ -357,7 +365,10 @@ async function init(){
   $('catForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    await supabase.from('atlas_categories').insert({ name: fd.get('name'), slug: fd.get('slug'), status: 'published' });
+    const name = String(fd.get('name') || '').trim();
+    const slug = String(fd.get('slug') || '').trim() || autoSlug(name, 'cat');
+    const { error } = await supabase.from('atlas_categories').insert({ name, slug, status: 'published' });
+    if(error){ alert('新增分类失败：' + (error.message || 'unknown')); return; }
     e.currentTarget.reset();
     await refreshAll();
   });
@@ -365,7 +376,12 @@ async function init(){
   $('topicForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    await supabase.from('atlas_topics').insert({ category_id: Number(fd.get('category_id')), name: fd.get('name'), slug: fd.get('slug'), status: 'draft' });
+    const name = String(fd.get('name') || '').trim();
+    const slug = String(fd.get('slug') || '').trim() || autoSlug(name, 'topic');
+    const { error } = await supabase.from('atlas_topics').insert({
+      category_id: Number(fd.get('category_id')), name, slug, status: 'draft',
+    });
+    if(error){ alert('新增专题失败：' + (error.message || 'unknown')); return; }
     e.currentTarget.reset();
     await refreshAll();
   });
@@ -373,7 +389,12 @@ async function init(){
   $('seriesForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    await supabase.from('atlas_series').insert({ topic_id: Number(fd.get('topic_id')), title: fd.get('title'), slug: fd.get('slug'), visibility: 'pro', status: 'draft' });
+    const title = String(fd.get('title') || '').trim();
+    const slug = String(fd.get('slug') || '').trim() || autoSlug(title, 'series');
+    const { error } = await supabase.from('atlas_series').insert({
+      topic_id: Number(fd.get('topic_id')), title, slug, visibility: 'pro', status: 'draft',
+    });
+    if(error){ alert('新增系列失败：' + (error.message || 'unknown')); return; }
     e.currentTarget.reset();
     await refreshAll();
   });
