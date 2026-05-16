@@ -367,7 +367,10 @@ async function init(){
     const fd = new FormData(e.currentTarget);
     const name = String(fd.get('name') || '').trim();
     const slug = String(fd.get('slug') || '').trim() || autoSlug(name, 'cat');
-    const { error } = await supabase.from('atlas_categories').insert({ name, slug, status: 'published' });
+    const description = String(fd.get('description') || '').trim() || null;
+    const { error } = await supabase.from('atlas_categories').insert({
+      name, slug, description, status: 'published',
+    });
     if(error){ alert('新增分类失败：' + (error.message || 'unknown')); return; }
     e.currentTarget.reset();
     await refreshAll();
@@ -378,8 +381,9 @@ async function init(){
     const fd = new FormData(e.currentTarget);
     const name = String(fd.get('name') || '').trim();
     const slug = String(fd.get('slug') || '').trim() || autoSlug(name, 'topic');
+    const summary = String(fd.get('summary') || '').trim() || null;
     const { error } = await supabase.from('atlas_topics').insert({
-      category_id: Number(fd.get('category_id')), name, slug, status: 'draft',
+      category_id: Number(fd.get('category_id')), name, slug, summary, status: 'draft',
     });
     if(error){ alert('新增专题失败：' + (error.message || 'unknown')); return; }
     e.currentTarget.reset();
@@ -391,8 +395,11 @@ async function init(){
     const fd = new FormData(e.currentTarget);
     const title = String(fd.get('title') || '').trim();
     const slug = String(fd.get('slug') || '').trim() || autoSlug(title, 'series');
+    const subtitle = String(fd.get('subtitle') || '').trim() || null;
+    const summary = String(fd.get('summary') || '').trim() || null;
     const { error } = await supabase.from('atlas_series').insert({
-      topic_id: Number(fd.get('topic_id')), title, slug, visibility: 'pro', status: 'draft',
+      topic_id: Number(fd.get('topic_id')), title, slug, subtitle, summary,
+      visibility: 'pro', status: 'draft',
     });
     if(error){ alert('新增系列失败：' + (error.message || 'unknown')); return; }
     e.currentTarget.reset();

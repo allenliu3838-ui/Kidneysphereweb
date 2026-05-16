@@ -7,7 +7,7 @@
   <meta name="robots" content="noindex,nofollow" />
   <link rel="stylesheet" href="styles.css" />
   <script type="module" src="app.js"></script>
-  <script type="module" src="admin-atlas.js"></script>
+  <script type="module" src="admin-atlas.js?v=20260516"></script>
 </head>
 <body>
   <main class="container" style="max-width:1100px;margin:0 auto;padding:16px;">
@@ -16,36 +16,48 @@
     <section id="atlasAdminPanel" hidden>
       <div class="card" style="padding:12px;margin-bottom:12px;">
         <h2>分类管理</h2>
-        <form id="catForm" style="display:grid;gap:8px;grid-template-columns:1fr 1fr auto;">
-          <input class="input" name="name" placeholder="分类名" required />
-          <input class="input" name="slug" placeholder="slug（英文短名，留空自动生成）" />
-          <button class="btn primary" type="submit">新增分类</button>
+        <form id="catForm" class="stack" style="gap:8px;">
+          <div style="display:grid;gap:8px;grid-template-columns:1fr 1fr auto;">
+            <input class="input" name="name" placeholder="分类名（如 肾脏病理）" required />
+            <input class="input" name="slug" placeholder="slug 英文短名（可留空自动生成）" />
+            <button class="btn primary" type="submit">新增分类</button>
+          </div>
+          <textarea class="input" name="description" rows="2" placeholder="分类简介（可选，比如：与肾脏组织学、电镜、免疫荧光相关的图谱）"></textarea>
         </form>
-        <div class="small muted" style="margin-top:4px;">slug 是该分类在 URL 里的英文短名（例: <code>immune-nephro</code>），留空将根据名称或时间戳自动生成。</div>
+        <div class="small muted" style="margin-top:4px;">slug 例: <code>renal-pathology</code> · <code>immune-nephro</code>。slug 必须英文小写连字符，留空会自动生成。</div>
         <div id="catList" class="stack" style="margin-top:8px;"></div>
       </div>
 
       <div class="card" style="padding:12px;margin-bottom:12px;">
         <h2>专题管理</h2>
-        <form id="topicForm" style="display:grid;gap:8px;grid-template-columns:1fr 1fr 1fr auto;">
-          <select class="input" name="category_id" required id="topicCategory"></select>
-          <input class="input" name="name" placeholder="专题名（如 狼疮性肾炎）" required />
-          <input class="input" name="slug" placeholder="slug（留空自动生成）" />
-          <button class="btn primary" type="submit">新增专题</button>
+        <form id="topicForm" class="stack" style="gap:8px;">
+          <div style="display:grid;gap:8px;grid-template-columns:1fr 1fr 1fr auto;">
+            <select class="input" name="category_id" required id="topicCategory"></select>
+            <input class="input" name="name" placeholder="专题名（如 狼疮性肾炎）" required />
+            <input class="input" name="slug" placeholder="slug 英文短名（可留空自动生成）" />
+            <button class="btn primary" type="submit">新增专题</button>
+          </div>
+          <textarea class="input" name="summary" rows="2" placeholder="专题副标题 / 简介（可选，比如：从机制到治疗决策）"></textarea>
         </form>
-        <div class="small muted" style="margin-top:4px;">slug 例: <code>lupus-nephritis</code> · <code>iga-nephropathy</code> · <code>membranous-nephropathy</code>。留空会自动生成 <code>topic-xxxxx</code> 形式的占位 slug，之后可手动改。</div>
+        <div class="small muted" style="margin-top:4px;">slug 例: <code>lupus-nephritis</code> · <code>iga-nephropathy</code>。<b>"从机制到治疗决策" 这种文字应该填上面的"简介"框，不是 slug 框</b>。slug 留空会自动生成。</div>
         <div id="topicList" class="stack" style="margin-top:8px;"></div>
       </div>
 
       <div class="card" style="padding:12px;">
         <h2>系列管理</h2>
-        <form id="seriesForm" style="display:grid;gap:8px;grid-template-columns:1fr 1fr 1fr auto;">
-          <select class="input" name="topic_id" required id="seriesTopic"></select>
-          <input class="input" name="title" placeholder="系列标题" required />
-          <input class="input" name="slug" placeholder="slug（留空自动生成）" />
-          <button class="btn primary" type="submit">新增系列</button>
+        <form id="seriesForm" class="stack" style="gap:8px;">
+          <div style="display:grid;gap:8px;grid-template-columns:1fr 1fr 1fr auto;">
+            <select class="input" name="topic_id" required id="seriesTopic"></select>
+            <input class="input" name="title" placeholder="系列标题（如 狼疮性肾炎 · 病理）" required />
+            <input class="input" name="slug" placeholder="slug（可留空自动生成）" />
+            <button class="btn primary" type="submit">新增系列</button>
+          </div>
+          <div style="display:grid;gap:8px;grid-template-columns:1fr 1fr;">
+            <input class="input" name="subtitle" placeholder="副标题（可选）" />
+            <input class="input" name="summary" placeholder="一句话简介（可选）" />
+          </div>
         </form>
-        <div class="small muted" style="margin-top:4px;">slug 例: <code>lupus-mechanism</code>（专题下的子方向）。留空会自动生成。</div>
+        <div class="small muted" style="margin-top:4px;">slug 例: <code>lupus-pathology</code> · <code>lupus-mechanism</code>。留空会自动生成。</div>
         <div id="seriesList" class="stack" style="margin-top:8px;"></div>
       </div>
 
