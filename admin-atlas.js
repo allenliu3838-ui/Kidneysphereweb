@@ -120,6 +120,44 @@ async function toggleTopicPublish(topic){
   await refreshAll();
 }
 
+// 把所有 draft 状态的专题和系列一键发布,
+// 用于"我以前传过一堆但没点发布,导致首页看不到"的批量补救场景.
+async function publishAllDrafts(){
+  if(!confirm('一键发布所有草稿状态的专题和系列?\n会让它们立刻出现在 atlas.html 上。')) return;
+  const now = new Date().toISOString();
+  const [topicRes, seriesRes] = await Promise.all([
+    supabase.from('atlas_topics').update({ status:'published', published_at: now }).eq('status','draft').select('id'),
+    supabase.from('atlas_series').update({ status:'published', published_at: now }).eq('status','draft').select('id'),
+  ]);
+  if(topicRes.error || seriesRes.error){
+    alert('发布失败：' + ((topicRes.error||seriesRes.error)?.message || 'unknown'));
+    return;
+  }
+  alert(`已发布: ${topicRes.data?.length || 0} 个专题, ${seriesRes.data?.length || 0} 个系列`);
+  await refreshAll();
+}
+
+// 上/下移动分类的 sort_order, 决定 atlas.html 板块的展示顺序
+async function moveCategory(cat, direction){
+  const { data: rows } = await supabase
+    .from('atlas_categories')
+    .select('id,sort_order')
+    .eq('status','published')
+    .order('sort_order',{ascending:true})
+    .order('id',{ascending:true});
+  if(!rows?.length) return;
+  const idx = rows.findIndex(r => r.id === cat.id);
+  if(idx < 0) return;
+  const swapIdx = idx + direction;
+  if(swapIdx < 0 || swapIdx >= rows.length) return;
+  // 重排所有 sort_order 为 1..N 保证连续 (避免之前手动数据没设 sort_order 都是 0 的情况)
+  const reordered = rows.slice();
+  [reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]];
+  const updates = reordered.map((r,i) => supabase.from('atlas_categories').update({ sort_order: i+1 }).eq('id', r.id));
+  await Promise.all(updates);
+  await refreshAll();
+}
+
 async function restoreAsset(asset){
   const { error } = await supabase.from('atlas_assets').update({ deleted_at: null }).eq('id', asset.id);
   if(error){ alert('恢复失败：' + (error.message || 'unknown')); return; }
@@ -309,6 +347,9 @@ async function init(){
 
   setupQuickUploadDropZone();
 
+  const publishAllBtn = $('publishAllDraftsBtn');
+  if(publishAllBtn) publishAllBtn.onclick = ()=> publishAllDrafts();
+
   $('quickUploadForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
     const form = e.currentTarget;
@@ -417,7 +458,8 @@ async function init(){
     const slug = await ensureUniqueSlug('atlas_topics', baseSlug);
     const summary = String(fd.get('summary') || '').trim() || null;
     const { error } = await supabase.from('atlas_topics').insert({
-      category_id: Number(fd.get('category_id')), name, slug, summary, status: 'draft',
+      category_id: Number(fd.get('category_id')), name, slug, summary,
+      status: 'published', published_at: new Date().toISOString(),
     });
     if(error){ alert('新增专题失败：' + (error.message || 'unknown')); return; }
     if(slug !== baseSlug) alert(`slug "${baseSlug}" 已被占用，已自动改为 "${slug}"`);
@@ -435,7 +477,7 @@ async function init(){
     const summary = String(fd.get('summary') || '').trim() || null;
     const { error } = await supabase.from('atlas_series').insert({
       topic_id: Number(fd.get('topic_id')), title, slug, subtitle, summary,
-      visibility: 'pro', status: 'draft',
+      visibility: 'pro', status: 'published', published_at: new Date().toISOString(),
     });
     if(error){ alert('新增系列失败：' + (error.message || 'unknown')); return; }
     if(slug !== baseSlug) alert(`slug "${baseSlug}" 已被占用，已自动改为 "${slug}"`);
@@ -447,7 +489,7 @@ async function init(){
 async function refreshAll(){
   const assetFields = 'id,title,series_id,sequence_no,image_path,preview_image_path,thumbnail_path,visibility,deidentified_status,copyright_status,review_status,deleted_at';
   const [cat, topic, series, assets, trash, refs] = await Promise.all([
-    supabase.from('atlas_categories').select('id,name,slug,status').order('sort_order'),
+    supabase.from('atlas_categories').select('id,name,slug,icon,sort_order,status').order('sort_order',{ascending:true}).order('id',{ascending:true}),
     supabase.from('atlas_topics').select('id,name,slug,status,category_id').order('updated_at',{ascending:false}).limit(50),
     supabase.from('atlas_series').select('id,title,slug,status,visibility,topic_id').order('updated_at',{ascending:false}).limit(50),
     supabase.from('atlas_assets').select(assetFields).is('deleted_at', null).order('series_id',{ascending:true}).order('sequence_no',{ascending:true}).limit(500),
@@ -481,7 +523,10 @@ async function refreshAll(){
   $('refSeries').innerHTML = seriesOptionsHtml;
 
   $('catList').innerHTML = cats.map(c=>`<div class="card" style="padding:8px;display:flex;align-items:center;gap:8px;">
-    <div style="flex:1;min-width:0;"><b>${esc(c.name)}</b> · ${esc(c.slug)} · ${esc(c.status)}</div>
+    <span style="font-size:18px;line-height:1;">${esc(c.icon || '📚')}</span>
+    <div style="flex:1;min-width:0;"><b>${esc(c.name)}</b> · ${esc(c.slug)} · #${esc(String(c.sort_order ?? 0))} · ${esc(c.status)}</div>
+    <button class="btn tiny" data-cat-up="${c.id}" title="上移（影响首页板块顺序）">↑</button>
+    <button class="btn tiny" data-cat-down="${c.id}" title="下移">↓</button>
     <button class="btn tiny" data-cat-rename="${c.id}" title="重命名">✏️</button>
     <button class="btn tiny danger" data-cat-delete="${c.id}" title="删除">🗑</button>
   </div>`).join('') || '<div class="note">暂无分类</div>';
@@ -557,6 +602,12 @@ async function refreshAll(){
       deleteWithChildCheck({ table:'atlas_categories', id:c.id, name:c.name, label:'分类',
         childTable:'atlas_topics', childFk:'category_id', childLabel:'专题' });
     };
+  });
+  document.querySelectorAll('[data-cat-up]').forEach(btn=>{
+    btn.onclick = ()=> moveCategory(catById[btn.getAttribute('data-cat-up')], -1);
+  });
+  document.querySelectorAll('[data-cat-down]').forEach(btn=>{
+    btn.onclick = ()=> moveCategory(catById[btn.getAttribute('data-cat-down')], +1);
   });
 
   // ── 专题 重命名 / 删除 / 发布切换 ──
