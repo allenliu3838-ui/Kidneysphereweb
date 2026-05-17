@@ -6,7 +6,7 @@
   <title>肾域 Pro · 证据图谱库</title>
   <link rel="stylesheet" href="styles.css" />
   <script type="module" src="app.js"></script>
-  <script type="module" src="atlas.js"></script>
+  <script type="module" src="atlas.js?v=20260516-1"></script>
 </head>
 <body>
   <main class="container" style="padding:16px;max-width:1100px;margin:0 auto;">
@@ -18,25 +18,13 @@
       <h1>肾域 Pro · 证据图谱库</h1>
       <p>从机制、病理到治疗决策的肾内科图谱库，肾域 Pro 六大模块之一。</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <a class="btn primary" href="#atlasCategories">立即浏览图谱</a>
+        <a class="btn primary" href="#atlasCategoryGroups">立即浏览图谱</a>
         <a class="btn" href="membership.html">解锁肾域 Pro</a>
       </div>
     </section>
 
-    <section class="stack" style="margin-top:16px;" id="atlasFeatured">
-      <h2>热门专题</h2>
-      <div id="atlasFeaturedList" class="grid"></div>
-    </section>
-
-    <section class="stack" style="margin-top:16px;" id="atlasCategories">
-      <h2>按专科浏览</h2>
-      <div id="atlasCategoryList" class="grid"></div>
-    </section>
-
-    <section class="stack" style="margin-top:16px;" id="atlasLatest">
-      <h2>最新更新</h2>
-      <div id="atlasLatestList" class="grid"></div>
-    </section>
+    <!-- 按板块分组渲染：肾小球病 / 肾移植内科 / 重症肾内和透析 / 儿童肾脏 / 血管通路 -->
+    <div id="atlasCategoryGroups"></div>
 
     <section class="card" style="margin-top:16px;padding:16px;">
       <h3>会员说明</h3>

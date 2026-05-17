@@ -7,13 +7,20 @@
   <meta name="robots" content="noindex,nofollow" />
   <link rel="stylesheet" href="styles.css" />
   <script type="module" src="app.js"></script>
-  <script type="module" src="admin-atlas.js?v=20260516-3"></script>
+  <script type="module" src="admin-atlas.js?v=20260516-4"></script>
 </head>
 <body>
   <main class="container" style="max-width:1100px;margin:0 auto;padding:16px;">
     <h1>肾域 Pro · 图谱管理</h1>
     <div id="atlasAdminGate" class="note">正在校验管理员权限…</div>
     <section id="atlasAdminPanel" hidden>
+      <div class="card" style="padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(168,85,247,.06);border:1px solid rgba(168,85,247,.25);">
+        <div style="flex:1;min-width:200px;">
+          <div style="font-weight:600;">实用工具</div>
+          <div class="small muted">老内容默认是草稿状态、首页看不到？点右边按钮把所有草稿一次发布。</div>
+        </div>
+        <button id="publishAllDraftsBtn" type="button" class="btn primary tiny">📢 一键发布所有草稿</button>
+      </div>
       <div class="card" style="padding:12px;margin-bottom:12px;">
         <h2>分类管理</h2>
         <form id="catForm" class="stack" style="gap:8px;">
