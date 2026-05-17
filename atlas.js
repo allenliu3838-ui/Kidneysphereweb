@@ -115,18 +115,39 @@ async function loadCategory(){
   document.getElementById('atlasCategoryTopics').innerHTML = (t||[]).map(x=>card(x.name,x.summary,`atlas-topic.html?slug=${encodeURIComponent(x.slug)}`)).join('') || '<div class="note">该专题正在建设中</div>';
 }
 
+// 教科书章节式专题页:
+//   顶部粘性目录 (chips, 点击平滑滚动到对应章节)
+//   主体按系列分块 (每个系列 = 一个章节, 头部 title + count + 可选 summary)
+//   图卡智能去前缀 (避免 "狼疮性肾炎 · 治疗新变革 03" 在治疗新变革章节下冗余)
+//   点图打开内嵌 lightbox, 全专题图片可左右翻 (跨章节)
+//   admin 看到 draft 系列, 标 "草稿" 灰色
+function shortAssetTitle(assetTitle, topicName, seriesTitle){
+  const t = String(assetTitle || '').trim();
+  if(!t) return '';
+  const longPrefix = `${topicName} · ${seriesTitle}`;
+  if(t.startsWith(longPrefix)){
+    const tail = t.slice(longPrefix.length).trim();
+    return tail || t;
+  }
+  if(seriesTitle && t.startsWith(seriesTitle)){
+    const tail = t.slice(seriesTitle.length).trim();
+    return tail || t;
+  }
+  return t;
+}
+
 async function loadTopic(){
   const slug = qp('slug');
-  const tabsEl = document.getElementById('atlasTopicSeriesTabs');
-  const gridEl = document.getElementById('atlasTopicAssetGrid');
-  if(!tabsEl || !gridEl) return;
-  gridEl.innerHTML = '<div class="note">加载中…</div>';
+  const tocEl = document.getElementById('atlasTopicToc');
+  const sectionsEl = document.getElementById('atlasTopicSections');
+  if(!tocEl || !sectionsEl) return;
+  sectionsEl.innerHTML = '<div class="note">加载中…</div>';
 
   const [{ data: t }, userObj] = await Promise.all([
     supabase.from('atlas_topics').select('*').eq('slug',slug).maybeSingle(),
     getCurrentUser(),
   ]);
-  if(!t){ gridEl.innerHTML = '<div class="note">专题不存在</div>'; return; }
+  if(!t){ sectionsEl.innerHTML = '<div class="note">专题不存在</div>'; return; }
 
   document.getElementById('atlasTopicTitle').textContent = t.name;
   document.getElementById('atlasTopicSummary').textContent = t.summary || '';
@@ -135,26 +156,26 @@ async function loadTopic(){
   const isAdmin = isAdminRole(normalizeRole(profile?.role));
   const pro = userObj ? await hasAtlasPro(userObj.id) : false;
 
-  // 查该专题下所有公开系列
+  // 该专题下所有公开系列 (admin 看 draft 方便预览)
   const seriesQuery = supabase.from('atlas_series')
-    .select('id,title,slug,visibility,status,sort_order')
+    .select('id,title,slug,summary,subtitle,visibility,status,sort_order')
     .eq('topic_id', t.id)
     .neq('visibility', 'hidden')
     .order('sort_order', { ascending: true })
     .order('id', { ascending: true });
-  if(!isAdmin) seriesQuery.eq('status', 'published');  // admin 也看 draft 方便预览
+  if(!isAdmin) seriesQuery.eq('status', 'published');
   const { data: seriesList } = await seriesQuery;
 
   if(!seriesList || !seriesList.length){
-    tabsEl.innerHTML = '';
-    gridEl.innerHTML = '<div class="note">该专题正在建设中，可先查看其他图谱。</div>';
+    tocEl.innerHTML = '';
+    sectionsEl.innerHTML = '<div class="note">该专题正在建设中，可先查看其他图谱。</div>';
     return;
   }
 
-  // 拉所有 series 下的 assets (非回收站)
+  // 所有 series 下的 assets (非回收站)
   const seriesIds = seriesList.map(s=>s.id);
   const { data: allAssets } = await supabase.from('atlas_assets')
-    .select('id,title,series_id,sequence_no,thumbnail_path,preview_image_path,visibility,is_preview')
+    .select('id,title,series_id,sequence_no,thumbnail_path,preview_image_path,image_path,alt_text,caption,visibility,is_preview')
     .in('series_id', seriesIds)
     .is('deleted_at', null)
     .order('series_id', { ascending: true })
@@ -165,61 +186,82 @@ async function loadTopic(){
     (assetsBySeries[a.series_id] ||= []).push(a);
   });
 
-  const totalCount = (allAssets || []).length;
-  let activeId = 'all';   // 'all' 或某个 series.id
+  // 构造扁平 asset 列表 (供 lightbox 跨章节翻页用)
+  const flatAssets = [];
+  seriesList.forEach(s=>{
+    (assetsBySeries[s.id] || []).forEach(a=>{
+      flatAssets.push({ ...a, _series: s });
+    });
+  });
 
-  function renderTabs(){
-    const onlyOneSeries = seriesList.length === 1;
-    if(onlyOneSeries){ tabsEl.innerHTML = ''; return; }  // 只有 1 个系列就不显示 tab
-    const allBtn = `<button class="btn ${activeId==='all'?'primary':''}" data-tab="all" style="font-size:13px;">全部 · ${totalCount}</button>`;
-    const seriesBtns = seriesList.map(s=>{
+  // 顶部统计
+  document.getElementById('atlasTopicStats').textContent =
+    `${seriesList.length} 章 · ${flatAssets.length} 张图谱`;
+
+  // 渲染粘性目录条
+  tocEl.innerHTML = `<div style="display:flex;gap:6px;overflow-x:auto;padding:0 2px;-webkit-overflow-scrolling:touch;">
+    ${seriesList.map(s=>{
       const n = (assetsBySeries[s.id] || []).length;
       const draftTag = s.status === 'draft' ? ' · 草稿' : '';
-      return `<button class="btn ${activeId===s.id?'primary':''}" data-tab="${s.id}" style="font-size:13px;">${esc(s.title)} · ${n}${draftTag}</button>`;
-    }).join('');
-    tabsEl.innerHTML = allBtn + seriesBtns;
-    tabsEl.querySelectorAll('[data-tab]').forEach(btn=>{
-      btn.onclick = ()=>{
-        const v = btn.getAttribute('data-tab');
-        activeId = (v === 'all') ? 'all' : Number(v);
-        renderTabs();
-        renderGrid();
-      };
-    });
-  }
+      return `<a class="btn tiny" data-toc="${esc(s.slug)}" href="#series-${esc(s.slug)}" style="flex-shrink:0;font-size:13px;white-space:nowrap;">${esc(s.title)} · ${n}${draftTag}</a>`;
+    }).join('')}
+  </div>`;
+  tocEl.querySelectorAll('[data-toc]').forEach(chip=>{
+    chip.onclick = (e)=>{
+      e.preventDefault();
+      const sl = chip.getAttribute('data-toc');
+      const target = document.getElementById(`series-${sl}`);
+      if(target){
+        const tocH = tocEl.getBoundingClientRect().height || 0;
+        const y = target.getBoundingClientRect().top + window.scrollY - tocH - 8;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+    };
+  });
 
-  function renderGrid(){
-    let items = [];
-    if(activeId === 'all'){
-      seriesList.forEach(s=>{
-        (assetsBySeries[s.id] || []).forEach(a => items.push({ ...a, _seriesTitle: s.title, _seriesSlug: s.slug }));
-      });
+  // 渲染章节
+  let flatIdxCounter = 0;
+  sectionsEl.innerHTML = seriesList.map(s=>{
+    const assets = assetsBySeries[s.id] || [];
+    const draftBadge = s.status === 'draft'
+      ? ' <span class="badge" style="background:rgba(251,191,36,.18);border:1px solid rgba(251,191,36,.4);color:#fbbf24;font-size:12px;padding:2px 7px;">草稿</span>'
+      : '';
+    const summaryHtml = s.summary
+      ? `<p style="margin:0 0 12px 0;opacity:.85;line-height:1.7;">${esc(s.summary)}</p>`
+      : '';
+    const subtitleHtml = s.subtitle
+      ? `<div class="small muted" style="margin:-4px 0 8px 0;">${esc(s.subtitle)}</div>`
+      : '';
+
+    let assetsHtml;
+    if(!assets.length){
+      assetsHtml = '<div class="note" style="opacity:.7;">本章节暂无图谱</div>';
     } else {
-      const s = seriesList.find(x=>x.id === activeId);
-      items = (assetsBySeries[activeId] || []).map(a => ({ ...a, _seriesTitle: s?.title, _seriesSlug: s?.slug }));
+      assetsHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">${
+        assets.map(a=>{
+          const idx = flatIdxCounter; flatIdxCounter += 1;
+          return assetCard(a, s, idx);
+        }).join('')
+      }</div>`;
     }
 
-    if(!items.length){
-      gridEl.innerHTML = '<div class="note">该分组暂无图谱</div>';
-      return;
-    }
+    return `<section style="margin-top:28px;scroll-margin-top:70px;" id="series-${esc(s.slug)}">
+      <h2 style="margin:0 0 4px 0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+        <span style="font-size:18px;">📖</span>
+        <span>${esc(s.title)}</span>
+        <span class="small muted" style="font-weight:normal;font-size:13px;">${assets.length} 张</span>
+        ${draftBadge}
+      </h2>
+      ${subtitleHtml}
+      ${summaryHtml}
+      ${assetsHtml}
+    </section>`;
+  }).join('');
 
-    gridEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">
-      ${items.map(a => assetCard(a)).join('')}
-    </div>`;
-
-    gridEl.querySelectorAll('[data-series-slug]').forEach(el=>{
-      el.onclick = (e)=>{
-        e.preventDefault();
-        const sslug = el.getAttribute('data-series-slug');
-        if(sslug) location.href = `atlas-series.html?slug=${encodeURIComponent(sslug)}`;
-      };
-    });
-  }
-
-  function assetCard(a){
+  function assetCard(a, s, flatIdx){
     const thumb = publicUrl('atlas_previews', a.thumbnail_path || a.preview_image_path);
-    const canHD = isAdmin || a.visibility === 'free' || a.is_preview || pro;
+    const canHD = isAdmin || a.visibility === 'free' || a.is_preview || s.visibility === 'free' || pro;
+    const shortLabel = shortAssetTitle(a.title || '', t.name, s.title);
     const lockBadge = !canHD
       ? '<span class="badge" style="position:absolute;top:8px;right:8px;background:rgba(168,85,247,.85);color:#fff;border:none;font-size:11px;padding:3px 7px;">🔒 Pro</span>'
       : '';
@@ -227,18 +269,140 @@ async function loadTopic(){
     const imgHtml = thumb
       ? `<img src="${esc(thumb)}" alt="${esc(a.title||'')}" loading="lazy" style="${imgStyle}" />`
       : `<div style="aspect-ratio:1.4;background:rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center;color:#888;font-size:13px;">无缩略图</div>`;
-    return `<div class="card" data-series-slug="${esc(a._seriesSlug || '')}" style="padding:0;cursor:pointer;overflow:hidden;position:relative;">
+    return `<div class="card" data-asset-idx="${flatIdx}" style="padding:0;cursor:pointer;overflow:hidden;position:relative;">
       ${imgHtml}
       ${lockBadge}
       <div style="padding:10px 12px;">
-        <div style="font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(a.title || '未命名')}</div>
-        ${a._seriesTitle && activeId === 'all' ? `<div class="small muted" style="margin-top:2px;font-size:12px;">${esc(a._seriesTitle)}</div>` : ''}
+        <div style="font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(shortLabel || '未命名')}</div>
       </div>
     </div>`;
   }
 
-  renderTabs();
-  renderGrid();
+  sectionsEl.querySelectorAll('[data-asset-idx]').forEach(el=>{
+    el.onclick = ()=> openTopicLightbox(Number(el.getAttribute('data-asset-idx')));
+  });
+
+  // 滚动定位 active TOC chip (IntersectionObserver)
+  setupTocSpy();
+
+  function setupTocSpy(){
+    if(!('IntersectionObserver' in window)) return;
+    const sectionEls = sectionsEl.querySelectorAll('section[id^="series-"]');
+    const chipBySlug = {};
+    tocEl.querySelectorAll('[data-toc]').forEach(c=>{ chipBySlug[c.getAttribute('data-toc')] = c; });
+    const setActive = (slug)=>{
+      Object.values(chipBySlug).forEach(c=>{
+        c.style.background = '';
+        c.style.borderColor = '';
+        c.style.color = '';
+      });
+      const a = chipBySlug[slug];
+      if(a){
+        a.style.background = 'rgba(74,144,226,.18)';
+        a.style.borderColor = 'rgba(74,144,226,.5)';
+        a.style.color = '#4a90e2';
+      }
+    };
+    const io = new IntersectionObserver((entries)=>{
+      const inView = entries.filter(e=>e.isIntersecting).sort((a,b)=>a.boundingClientRect.top - b.boundingClientRect.top);
+      if(inView.length){
+        const id = inView[0].target.id;
+        const slug = id.replace(/^series-/,'');
+        setActive(slug);
+      }
+    }, { rootMargin: '-80px 0px -60% 0px', threshold: 0 });
+    sectionEls.forEach(el=>io.observe(el));
+  }
+
+  // ── 内嵌 lightbox: 全专题图跨章节左右翻 ──
+  let lbIdx = 0;
+  let overlay = null;
+  let cachedUrls = {};   // assetId -> resolved URL
+
+  async function resolveUrl(a){
+    const previewFallback = publicUrl('atlas_previews', a.preview_image_path) || publicUrl('atlas_previews', a.thumbnail_path);
+    const canHD = isAdmin || a.visibility === 'free' || a.is_preview || a._series.visibility === 'free' || pro;
+    if(!canHD) return { url: previewFallback, canHD: false };
+    if(a.visibility === 'free' || a.is_preview || a._series.visibility === 'free'){
+      return { url: previewFallback, canHD: true };
+    }
+    if(cachedUrls[a.id]) return { url: cachedUrls[a.id], canHD: true };
+    try {
+      const token = (await supabase.auth.getSession())?.data?.session?.access_token;
+      const r = await fetch(`/api/atlas/assets/${encodeURIComponent(a.id)}/url`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      const j = await r.json();
+      const url = j.signedURL || j.url || previewFallback;
+      cachedUrls[a.id] = url;
+      return { url, canHD: true };
+    } catch {
+      return { url: previewFallback, canHD: true };
+    }
+  }
+
+  async function openTopicLightbox(startIdx){
+    if(overlay || !flatAssets.length) return;
+    lbIdx = Math.max(0, Math.min(startIdx, flatAssets.length - 1));
+    overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.94);display:flex;align-items:center;justify-content:center;padding:20px;';
+    const multi = flatAssets.length > 1;
+    overlay.innerHTML = `
+      ${multi ? '<button type="button" data-lb-prev style="position:absolute;left:16px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.1);border:none;color:#fff;font-size:32px;width:48px;height:48px;border-radius:50%;cursor:pointer;line-height:1;">‹</button>' : ''}
+      <div style="max-width:100%;max-height:100%;display:flex;flex-direction:column;align-items:center;gap:10px;">
+        <img data-lb-img alt="" style="max-width:100%;max-height:78vh;object-fit:contain;border-radius:6px;" />
+        <div data-lb-caption style="color:#ddd;text-align:center;max-width:760px;font-size:14px;line-height:1.5;"></div>
+      </div>
+      ${multi ? '<button type="button" data-lb-next style="position:absolute;right:16px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.1);border:none;color:#fff;font-size:32px;width:48px;height:48px;border-radius:50%;cursor:pointer;line-height:1;">›</button>' : ''}
+      <div data-lb-counter style="position:absolute;bottom:24px;left:50%;transform:translateX(-50%);color:#fff;background:rgba(0,0,0,.55);padding:5px 14px;border-radius:6px;font-size:13px;"></div>
+      <button type="button" data-lb-close style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.1);border:none;color:#fff;font-size:20px;width:40px;height:40px;border-radius:50%;cursor:pointer;line-height:1;">✕</button>
+    `;
+    document.body.appendChild(overlay);
+
+    const lbImg = overlay.querySelector('[data-lb-img]');
+    const lbCounter = overlay.querySelector('[data-lb-counter]');
+    const lbCaption = overlay.querySelector('[data-lb-caption]');
+
+    async function sync(){
+      const a = flatAssets[lbIdx];
+      const { url, canHD } = await resolveUrl(a);
+      lbImg.src = url || '';
+      lbImg.alt = a.alt_text || a.title || '';
+      lbImg.style.filter = canHD ? '' : 'blur(14px)';
+      const seriesName = a._series?.title || '';
+      const shortLbl = shortAssetTitle(a.title || '', t.name, seriesName);
+      lbCounter.textContent = `${lbIdx + 1} / ${flatAssets.length}  ·  ${seriesName}`;
+      lbCaption.innerHTML = canHD
+        ? `<div style="font-weight:600;margin-bottom:4px;">${esc(shortLbl || a.title || '')}</div>${a.caption ? `<div style="opacity:.8;">${esc(a.caption)}</div>` : ''}`
+        : `<div>该图谱为肾域 Pro 内容，<a href="checkout.html?product=MEMBERSHIP-YEARLY" style="color:#4a90e2;">开通 GlomCon 教育会员</a> 查看完整高清图谱。</div>`;
+    }
+
+    function navigate(delta){
+      if(flatAssets.length < 2) return;
+      lbIdx = (lbIdx + delta + flatAssets.length) % flatAssets.length;
+      sync();
+    }
+
+    lbImg.onclick = (e)=>e.stopPropagation();
+    overlay.querySelector('[data-lb-prev]')?.addEventListener('click', (e)=>{ e.stopPropagation(); navigate(-1); });
+    overlay.querySelector('[data-lb-next]')?.addEventListener('click', (e)=>{ e.stopPropagation(); navigate(+1); });
+    overlay.querySelector('[data-lb-close]')?.addEventListener('click', (e)=>{ e.stopPropagation(); closeLb(); });
+    overlay.addEventListener('click', closeLb);
+    document.addEventListener('keydown', onKey);
+    sync();
+  }
+
+  function closeLb(){
+    if(!overlay) return;
+    document.removeEventListener('keydown', onKey);
+    overlay.remove();
+    overlay = null;
+  }
+
+  function onKey(e){
+    if(!overlay) return;
+    if(e.key === 'Escape'){ closeLb(); return; }
+    if(e.key === 'ArrowLeft'){ overlay.querySelector('[data-lb-prev]')?.click(); return; }
+    if(e.key === 'ArrowRight'){ overlay.querySelector('[data-lb-next]')?.click(); return; }
+  }
 }
 
 async function loadSeries(){

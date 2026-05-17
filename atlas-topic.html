@@ -6,7 +6,7 @@
   <title>Atlas 专题</title>
   <link rel="stylesheet" href="styles.css"/>
   <script type="module" src="app.js"></script>
-  <script type="module" src="atlas.js?v=20260516-1"></script>
+  <script type="module" src="atlas.js?v=20260516-2"></script>
 </head>
 <body>
   <main class="container" style="padding:16px;max-width:1100px;margin:0 auto;">
@@ -16,9 +16,12 @@
     <section class="card" style="padding:20px;">
       <h1 id="atlasTopicTitle" style="margin:0 0 6px 0;">专题</h1>
       <p id="atlasTopicSummary" style="margin:0;opacity:.85;"></p>
+      <div id="atlasTopicStats" class="small muted" style="margin-top:8px;"></div>
     </section>
-    <div id="atlasTopicSeriesTabs" style="margin-top:16px;display:flex;gap:6px;flex-wrap:wrap;"></div>
-    <div id="atlasTopicAssetGrid" style="margin-top:12px;"></div>
+    <!-- 粘性章节目录 (滚动到顶部时贴着) -->
+    <div id="atlasTopicToc" style="position:sticky;top:0;z-index:50;margin-top:14px;background:var(--bg,#0a0e1a);backdrop-filter:blur(8px);padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);"></div>
+    <!-- 按系列分组的章节 -->
+    <div id="atlasTopicSections"></div>
     <section class="note" style="margin-top:16px;">
       本内容仅供医学教育与学术交流使用，不能替代专业医生的诊断、治疗建议或临床决策。
     </section>
