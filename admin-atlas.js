@@ -112,10 +112,9 @@ async function deleteWithChildCheck({ table, id, name, label, childTable, childF
 }
 
 async function toggleTopicPublish(topic){
+  // atlas_topics 表没有 published_at 列 (跟 atlas_series 不一样), 只更 status
   const next = topic.status === 'published' ? 'draft' : 'published';
-  const patch = { status: next };
-  if(next === 'published') patch.published_at = new Date().toISOString();
-  const { error } = await supabase.from('atlas_topics').update(patch).eq('id', topic.id);
+  const { error } = await supabase.from('atlas_topics').update({ status: next }).eq('id', topic.id);
   if(error){ alert('切换失败：' + (error.message || 'unknown')); return; }
   await refreshAll();
 }
@@ -126,7 +125,7 @@ async function publishAllDrafts(){
   if(!confirm('一键发布所有草稿状态的专题和系列?\n会让它们立刻出现在 atlas.html 上。')) return;
   const now = new Date().toISOString();
   const [topicRes, seriesRes] = await Promise.all([
-    supabase.from('atlas_topics').update({ status:'published', published_at: now }).eq('status','draft').select('id'),
+    supabase.from('atlas_topics').update({ status:'published' }).eq('status','draft').select('id'),
     supabase.from('atlas_series').update({ status:'published', published_at: now }).eq('status','draft').select('id'),
   ]);
   if(topicRes.error || seriesRes.error){
@@ -459,7 +458,7 @@ async function init(){
     const summary = String(fd.get('summary') || '').trim() || null;
     const { error } = await supabase.from('atlas_topics').insert({
       category_id: Number(fd.get('category_id')), name, slug, summary,
-      status: 'published', published_at: new Date().toISOString(),
+      status: 'published',
     });
     if(error){ alert('新增专题失败：' + (error.message || 'unknown')); return; }
     if(slug !== baseSlug) alert(`slug "${baseSlug}" 已被占用，已自动改为 "${slug}"`);
