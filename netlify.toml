@@ -84,6 +84,19 @@
   to = "/.netlify/functions/video-play-auth"
   status = 200
 
+# Video upload credentials (admin only): POST /api/videos/upload-credentials
+# Both /upload-credentials and /upload-credentials/refresh dispatch to the same
+# function; the function's handler routes internally by path.
+[[redirects]]
+  from = "/api/videos/upload-credentials"
+  to = "/.netlify/functions/video-upload-auth"
+  status = 200
+
+[[redirects]]
+  from = "/api/videos/upload-credentials/refresh"
+  to = "/.netlify/functions/video-upload-auth"
+  status = 200
+
 # Dev/admin manual entitlement grant
 [[redirects]]
   from = "/api/dev/grant-access"
