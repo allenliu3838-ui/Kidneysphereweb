@@ -46,11 +46,14 @@ function netlifyAdapter(handlerFn) {
 // ── Load Netlify Function handlers ──
 const videoAccess = require('../netlify/functions/video-access.js');
 const videoPlayAuth = require('../netlify/functions/video-play-auth.js');
+const videoUploadAuth = require('../netlify/functions/video-upload-auth.js');
 const devGrantAccess = require('../netlify/functions/dev-grant-access.js');
 
 // ── Routes ──
 app.get('/api/videos/:id/access', netlifyAdapter(videoAccess.handler));
 app.post('/api/videos/:id/play-auth', netlifyAdapter(videoPlayAuth.handler));
+app.post('/api/videos/upload-credentials', netlifyAdapter(videoUploadAuth.handler));
+app.post('/api/videos/upload-credentials/refresh', netlifyAdapter(videoUploadAuth.refreshHandler));
 app.post('/api/dev/grant-access', netlifyAdapter(devGrantAccess.handler));
 
 // Health check

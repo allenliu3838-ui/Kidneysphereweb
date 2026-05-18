@@ -920,7 +920,20 @@ async function init(){
               </div>
               <div style="flex:1;min-width:240px" id="videoAliyunVidWrap">
                 <label>阿里云视频ID *</label>
-                <input class="input" id="videoAliyunVid" placeholder="如：93d2f12b0c6e71ed..." />
+                <input class="input" id="videoAliyunVid" placeholder="自动获取，或手动粘贴已有视频 ID" />
+                <div id="videoAliyunUploadBox" style="margin-top:8px;padding:10px;border:1px dashed rgba(168,85,247,.4);border-radius:8px;background:rgba(168,85,247,.04);">
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <input type="file" id="videoAliyunFile" accept="video/*,.mp4,.mov,.m4v,.mkv,.avi,.flv,.wmv,.webm,.ts" style="display:none;" />
+                    <button type="button" class="btn tiny primary" id="videoAliyunFileBtn">📤 上传视频文件</button>
+                    <span class="small muted" id="videoAliyunFileStatus">支持 mp4 / mov / mkv 等，单文件 ≤ 2 GB</span>
+                  </div>
+                  <div id="videoAliyunUploadProgress" style="margin-top:10px;display:none;">
+                    <div style="background:rgba(255,255,255,.08);border-radius:4px;height:8px;overflow:hidden;">
+                      <div id="videoAliyunUploadBar" style="background:#4a90e2;height:100%;width:0%;transition:width .2s;"></div>
+                    </div>
+                    <div class="small muted" id="videoAliyunUploadText" style="margin-top:4px;">准备中…</div>
+                  </div>
+                </div>
               </div>
               <div style="flex:1;min-width:240px" id="videoUrlWrap" hidden>
                 <label>外部视频链接</label>
@@ -1123,6 +1136,9 @@ async function init(){
 
   els.videoAccessType?.addEventListener('change', applyAccessConsistency);
   applyAccessConsistency();
+
+  // ── Aliyun VOD direct upload (admin only) ──
+  setupAliyunDirectUpload();
 
   // Listen for specialty checkbox changes (delegated)
   els.videoSpecialtyChecks?.addEventListener('change', (e)=>{
@@ -1328,6 +1344,153 @@ async function loadTrainingProjects(){
     if(/learning_projects.*does not exist/i.test(msg)) return;
     gridEl.innerHTML = `<div class="note small muted">项目加载失败：${esc(msg)}</div>`;
   }
+}
+
+// ──────────────────────────────────────────────────────────
+// 阿里云 VOD 直传 (admin 直接在浏览器选文件 -> 服务器签发凭证 ->
+// OSS SDK 直传到阿里云 -> 自动填写视频 ID)
+// 流程参考: https://help.aliyun.com/zh/vod/developer-reference/upload-media-files-by-using-the-vod-upload-sdk-for-javascript
+// 但我们直接用 OSS SDK + CreateUploadVideo, 不依赖 aliyun-upload-sdk.
+// ──────────────────────────────────────────────────────────
+const OSS_SDK_URL = 'https://gosspublic.alicdn.com/aliyun-oss-sdk-6.20.0.min.js';
+
+function loadOssSdk() {
+  if (window.OSS) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[src="${OSS_SDK_URL}"]`);
+    if (existing) {
+      existing.addEventListener('load', () => resolve());
+      existing.addEventListener('error', () => reject(new Error('OSS SDK 加载失败')));
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = OSS_SDK_URL;
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('OSS SDK 加载失败 (网络问题?)'));
+    document.head.appendChild(s);
+  });
+}
+
+function setupAliyunDirectUpload() {
+  const fileInput = document.getElementById('videoAliyunFile');
+  const fileBtn = document.getElementById('videoAliyunFileBtn');
+  const statusEl = document.getElementById('videoAliyunFileStatus');
+  const progressEl = document.getElementById('videoAliyunUploadProgress');
+  const barEl = document.getElementById('videoAliyunUploadBar');
+  const textEl = document.getElementById('videoAliyunUploadText');
+  const vidInput = document.getElementById('videoAliyunVid');
+  const titleInput = document.getElementById('videoTitle');
+  if (!fileInput || !fileBtn || !vidInput) return;
+  if (fileBtn.dataset.wired === '1') return;
+  fileBtn.dataset.wired = '1';
+
+  fileBtn.addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+
+    if (!/\.(mp4|mov|m4v|mkv|avi|flv|wmv|webm|ts)$/i.test(file.name)) {
+      alert('请选择视频文件 (mp4 / mov / mkv / avi 等)');
+      fileInput.value = '';
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024 * 1024) {
+      alert('文件 > 2 GB, 请压缩后再传');
+      fileInput.value = '';
+      return;
+    }
+
+    const title = String(titleInput?.value || '').trim() || file.name.replace(/\.[^.]+$/, '');
+
+    statusEl.textContent = `已选: ${file.name} · ${(file.size / 1024 / 1024).toFixed(1)} MB`;
+    progressEl.style.display = 'block';
+    barEl.style.width = '0%';
+    barEl.style.background = '#4a90e2';
+    textEl.textContent = '请求上传凭证…';
+    fileBtn.disabled = true;
+
+    try {
+      // 1. 拿 supabase session token (作为 admin 鉴权)
+      const sess = (await supabase.auth.getSession())?.data?.session;
+      const token = sess?.access_token;
+      if (!token) throw new Error('未登录, 请先登录');
+
+      // 2. 服务器签发 UploadAuth / UploadAddress / VideoId
+      const credRes = await fetch('/api/videos/upload-credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ title, fileName: file.name }),
+      });
+      const cred = await credRes.json().catch(() => ({}));
+      if (!credRes.ok) {
+        throw new Error(cred.message || cred.error || `凭证签发失败 (HTTP ${credRes.status})`);
+      }
+
+      // 3. base64 解码 UploadAuth / UploadAddress
+      const auth = JSON.parse(atob(cred.uploadAuth));
+      const addr = JSON.parse(atob(cred.uploadAddress));
+
+      // 4. 加载 OSS SDK
+      textEl.textContent = '加载上传 SDK…';
+      await loadOssSdk();
+
+      // 5. 创建 OSS client (用 STS 临时凭证)
+      const client = new window.OSS({
+        region: 'oss-' + auth.Region,
+        accessKeyId: auth.AccessKeyId,
+        accessKeySecret: auth.AccessKeySecret,
+        stsToken: auth.SecurityToken,
+        bucket: addr.Bucket,
+        endpoint: addr.Endpoint,
+        secure: true,
+        refreshSTSToken: async () => {
+          const r = await fetch('/api/videos/upload-credentials/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ videoId: cred.videoId }),
+          });
+          const rd = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(rd.message || rd.error || 'STS 续签失败');
+          const newAuth = JSON.parse(atob(rd.uploadAuth));
+          return {
+            accessKeyId: newAuth.AccessKeyId,
+            accessKeySecret: newAuth.AccessKeySecret,
+            stsToken: newAuth.SecurityToken,
+          };
+        },
+      });
+
+      // 6. 分片上传到 OSS, 报告进度
+      textEl.textContent = '上传中…';
+      const partSize = Math.min(8 * 1024 * 1024, Math.max(1024 * 1024, Math.floor(file.size / 100)));
+      await client.multipartUpload(addr.FileName, file, {
+        partSize,
+        parallel: 4,
+        progress: (p) => {
+          const pct = Math.round(p * 100);
+          barEl.style.width = pct + '%';
+          textEl.textContent = `上传中 ${pct}%${pct < 100 ? '' : ' · 阿里云正在收尾'}`;
+        },
+      });
+
+      // 7. 成功, 自动填写 VideoId
+      vidInput.value = cred.videoId;
+      barEl.style.width = '100%';
+      barEl.style.background = '#22c55e';
+      textEl.innerHTML = `✅ 上传成功 · 视频 ID 已自动填写 (<code>${cred.videoId}</code>)`;
+      statusEl.textContent = '点击下方"保存并上架"完成入库';
+    } catch (err) {
+      console.error('[aliyun-upload]', err);
+      barEl.style.background = '#e74c3c';
+      textEl.textContent = `❌ ${err?.message || err}`;
+      vidInput.value = '';
+    } finally {
+      fileBtn.disabled = false;
+      fileInput.value = '';
+    }
+  });
 }
 
 // Run after DOM is ready
