@@ -151,8 +151,22 @@ async function aliyunCall(action, extra) {
   return data;
 }
 
-// ── Main handler ──
+// ── Main handler (dispatches by path) ──
+// Netlify functions only have one default exports.handler, so dispatch
+// internally based on event.path:
+//   /api/videos/upload-credentials          -> issueUploadCreds (main)
+//   /api/videos/upload-credentials/refresh  -> refreshUploadCreds
 exports.handler = async (event) => {
+  const p = event.path || '';
+  if (p.endsWith('/refresh')) return refreshUploadCreds(event);
+  return issueUploadCreds(event);
+};
+
+// Express server compat: separate name still works so server/index.js
+// can route both paths cleanly without relying on path matching.
+exports.refreshHandler = (event) => refreshUploadCreds(event);
+
+async function issueUploadCreds(event) {
   console.log('[video-upload-auth] invoked, path:', event.path, 'method:', event.httpMethod);
   try {
     const ip = getClientIp(event);
@@ -207,13 +221,11 @@ exports.handler = async (event) => {
     if (!title || !fileName) {
       return json(400, { error: 'missing_fields', message: '需要 title 和 fileName' });
     }
-    // sanity check on extension — restrict to common video types
     const okExt = /\.(mp4|mov|m4v|mkv|avi|flv|wmv|webm|ts)$/i.test(fileName);
     if (!okExt) {
       return json(400, { error: 'unsupported_file_type', message: '只支持常见视频格式 (mp4/mov/mkv/avi 等)' });
     }
 
-    // Call Aliyun CreateUploadVideo
     const data = await aliyunCall('CreateUploadVideo', { Title: title, FileName: fileName });
     if (data.Code) {
       console.log('[video-upload-auth] Aliyun error:', data.Code, data.Message);
@@ -234,12 +246,9 @@ exports.handler = async (event) => {
     console.error('[video-upload-auth] error:', e);
     return json(500, { error: 'internal_error', message: String(e?.message || e) });
   }
-};
+}
 
-// ── Refresh handler (for long uploads, when uploadAuth expires) ──
-// POST /api/videos/upload-credentials/refresh
-// Body: { videoId }
-exports.refreshHandler = async (event) => {
+async function refreshUploadCreds(event) {
   try {
     if (!rateCheck(getClientIp(event), 30)) return json(429, { error: 'rate_limited' });
     if (event.httpMethod !== 'POST') return json(405, { error: 'method_not_allowed' });
@@ -276,4 +285,4 @@ exports.refreshHandler = async (event) => {
   } catch (e) {
     return json(500, { error: 'internal_error', message: String(e?.message || e) });
   }
-};
+}
