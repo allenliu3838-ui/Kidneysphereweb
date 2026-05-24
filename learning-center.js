@@ -383,7 +383,8 @@ function renderVideoAdminList(rows){
       : 'padding:12px';
 
     const actionBtn = isDeleted
-      ? `<button class="btn tiny" type="button" data-video-restore="${esc(v.id)}">恢复</button>`
+      ? `<button class="btn tiny" type="button" data-video-restore="${esc(v.id)}">恢复</button>
+         <button class="btn tiny danger" type="button" data-video-purge="${esc(v.id)}" data-aliyun-vid="${esc(v.aliyun_vid || '')}" title="从数据库和阿里云一起删除, 不可恢复">永久删除</button>`
       : `<button class="btn tiny danger" type="button" data-video-del="${esc(v.id)}">删除</button>`;
 
     return `
@@ -646,6 +647,44 @@ async function deleteVideo(id){
     const rawMsg = String(e?.message || e?.code || e || '');
     console.error('[deleteVideo] raw error:', e);
     alert('删除失败（管理员可见原始错误）:\n\n' + rawMsg);
+  }
+}
+
+async function purgeVideo(id, aliyunVid){
+  if(!id) return;
+  if(!isConfigured() || !supabase) return;
+  if(!confirm('⚠️ 永久删除这个视频？\n\n会同时清理:\n· 数据库记录 (不可恢复)\n· 阿里云 VOD 文件 (省存储费)\n\n确定继续吗？')) return;
+  try{
+    // 1. 先删阿里云视频文件 (best effort, 失败也继续删 DB)
+    if(aliyunVid){
+      try {
+        const sess = (await supabase.auth.getSession())?.data?.session;
+        const token = sess?.access_token;
+        if(token){
+          const r = await fetch('/api/videos/upload-credentials/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ videoId: aliyunVid }),
+          });
+          if(!r.ok){
+            const rd = await r.json().catch(() => ({}));
+            console.warn('[purgeVideo] aliyun delete failed:', rd);
+          }
+        }
+      } catch(e){ console.warn('[purgeVideo] aliyun delete exception:', e); }
+    }
+    // 2. 硬删 DB 行
+    const { error } = await supabase
+      .from('learning_videos')
+      .delete()
+      .eq('id', id);
+    if(error) throw error;
+    toast('已永久删除', aliyunVid ? '数据库 + 阿里云 VOD 都已清理。' : '数据库已清理。', 'ok');
+    await loadAdminVideos();
+  }catch(e){
+    const rawMsg = String(e?.message || e?.code || e || '');
+    console.error('[purgeVideo] raw error:', e);
+    alert('永久删除失败（管理员可见原始错误）:\n\n' + rawMsg);
   }
 }
 
@@ -925,6 +964,7 @@ async function init(){
                   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                     <input type="file" id="videoAliyunFile" accept="video/*,.mp4,.mov,.m4v,.mkv,.avi,.flv,.wmv,.webm,.ts" style="display:none;" />
                     <button type="button" class="btn tiny primary" id="videoAliyunFileBtn">📤 上传视频文件</button>
+                    <button type="button" class="btn tiny danger" id="videoAliyunCancelBtn" style="display:none;">⏹ 停止上传</button>
                     <span class="small muted" id="videoAliyunFileStatus">支持 mp4 / mov / mkv 等，单文件 ≤ 2 GB</span>
                   </div>
                   <div id="videoAliyunUploadProgress" style="margin-top:10px;display:none;">
@@ -1189,6 +1229,14 @@ async function init(){
       e.preventDefault();
       const id = String(restoreBtn.getAttribute('data-video-restore') || '').trim();
       if(id) await restoreVideo(id);
+      return;
+    }
+    const purgeBtn = e.target?.closest?.('[data-video-purge]');
+    if(purgeBtn){
+      e.preventDefault();
+      const id = String(purgeBtn.getAttribute('data-video-purge') || '').trim();
+      const aliyunVid = String(purgeBtn.getAttribute('data-aliyun-vid') || '').trim();
+      if(id) await purgeVideo(id, aliyunVid);
     }
   });
 }
@@ -1372,9 +1420,25 @@ function loadOssSdk() {
   });
 }
 
+// 当前上传状态 (供取消按钮访问).
+// 不同时支持多个上传 — admin 一般也只传一个文件.
+let _currentUpload = null;  // { client, videoId, token, cancelled }
+
+async function aliyunDeleteOrphan(videoId, token) {
+  if (!videoId || !token) return;
+  try {
+    await fetch('/api/videos/upload-credentials/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ videoId }),
+    });
+  } catch (_e) { /* best effort, 失败也无所谓 */ }
+}
+
 function setupAliyunDirectUpload() {
   const fileInput = document.getElementById('videoAliyunFile');
   const fileBtn = document.getElementById('videoAliyunFileBtn');
+  const cancelBtn = document.getElementById('videoAliyunCancelBtn');
   const statusEl = document.getElementById('videoAliyunFileStatus');
   const progressEl = document.getElementById('videoAliyunUploadProgress');
   const barEl = document.getElementById('videoAliyunUploadBar');
@@ -1386,6 +1450,15 @@ function setupAliyunDirectUpload() {
   fileBtn.dataset.wired = '1';
 
   fileBtn.addEventListener('click', () => fileInput.click());
+
+  cancelBtn?.addEventListener('click', async () => {
+    if (!_currentUpload) return;
+    if (!confirm('确定停止上传？已上传的分片会被丢弃，需要从头开始重传。')) return;
+    _currentUpload.cancelled = true;
+    try { _currentUpload.client?.cancel(); } catch {}
+    textEl.textContent = '正在停止…';
+    cancelBtn.disabled = true;
+  });
 
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files?.[0];
@@ -1410,12 +1483,16 @@ function setupAliyunDirectUpload() {
     barEl.style.background = '#4a90e2';
     textEl.textContent = '请求上传凭证…';
     fileBtn.disabled = true;
+    cancelBtn.style.display = '';
+    cancelBtn.disabled = false;
+    _currentUpload = { client: null, videoId: null, token: null, cancelled: false };
 
     try {
       // 1. 拿 supabase session token (作为 admin 鉴权)
       const sess = (await supabase.auth.getSession())?.data?.session;
       const token = sess?.access_token;
       if (!token) throw new Error('未登录, 请先登录');
+      _currentUpload.token = token;
 
       // 2. 服务器签发 UploadAuth / UploadAddress / VideoId
       const credRes = await fetch('/api/videos/upload-credentials', {
@@ -1427,6 +1504,7 @@ function setupAliyunDirectUpload() {
       if (!credRes.ok) {
         throw new Error(cred.message || cred.error || `凭证签发失败 (HTTP ${credRes.status})`);
       }
+      _currentUpload.videoId = cred.videoId;
 
       // 3. base64 解码 UploadAuth / UploadAddress
       const auth = JSON.parse(atob(cred.uploadAuth));
@@ -1437,6 +1515,8 @@ function setupAliyunDirectUpload() {
       await loadOssSdk();
 
       // 5. 创建 OSS client (用 STS 临时凭证)
+      // timeout 120s: 默认 60s 在慢网络上经常 TCP 握手都超时
+      // 创建后立刻挂到 _currentUpload, 让 cancelBtn 能调 client.cancel()
       const client = new window.OSS({
         region: 'oss-' + auth.Region,
         accessKeyId: auth.AccessKeyId,
@@ -1445,6 +1525,7 @@ function setupAliyunDirectUpload() {
         bucket: addr.Bucket,
         endpoint: addr.Endpoint,
         secure: true,
+        timeout: 120000,
         refreshSTSToken: async () => {
           const r = await fetch('/api/videos/upload-credentials/refresh', {
             method: 'POST',
@@ -1461,13 +1542,23 @@ function setupAliyunDirectUpload() {
           };
         },
       });
+      _currentUpload.client = client;
 
       // 6. 分片上传到 OSS, 报告进度
+      // 分片策略: 大文件用大分片 (减少并发开销), 小文件用小分片 (避免一片传太久没进度)
+      //   - <100 MB  -> 1 MB 分片
+      //   - 100-500 MB -> 4 MB 分片
+      //   - >500 MB  -> 8 MB 分片
+      // 并发 2: 比 4 慢但慢网络下成功率高很多 (60s timeout 内能跑完 1 个分片)
       textEl.textContent = '上传中…';
-      const partSize = Math.min(8 * 1024 * 1024, Math.max(1024 * 1024, Math.floor(file.size / 100)));
+      const sizeMB = file.size / 1024 / 1024;
+      const partSize = sizeMB < 100 ? 1 * 1024 * 1024
+                     : sizeMB < 500 ? 4 * 1024 * 1024
+                                    : 8 * 1024 * 1024;
       await client.multipartUpload(addr.FileName, file, {
         partSize,
-        parallel: 4,
+        parallel: 2,
+        timeout: 120000,
         progress: (p) => {
           const pct = Math.round(p * 100);
           barEl.style.width = pct + '%';
@@ -1482,13 +1573,26 @@ function setupAliyunDirectUpload() {
       textEl.innerHTML = `✅ 上传成功 · 视频 ID 已自动填写 (<code>${cred.videoId}</code>)`;
       statusEl.textContent = '点击下方"保存并上架"完成入库';
     } catch (err) {
+      const wasCancelled = _currentUpload?.cancelled || err?.name === 'cancel' || /cancel/i.test(String(err?.message || ''));
       console.error('[aliyun-upload]', err);
-      barEl.style.background = '#e74c3c';
-      textEl.textContent = `❌ ${err?.message || err}`;
+      barEl.style.background = wasCancelled ? '#888' : '#e74c3c';
+      textEl.textContent = wasCancelled
+        ? '⏹ 已停止上传，孤儿记录已清理'
+        : `❌ ${err?.message || err}`;
       vidInput.value = '';
+      // 失败/取消都要清理已在阿里云创建的视频记录 (CreateUploadVideo 已经
+      // 写了一条 status=Uploading 的 video, 不删的话永远是孤儿)
+      const orphanId = _currentUpload?.videoId;
+      const t = _currentUpload?.token;
+      if (orphanId && t) {
+        aliyunDeleteOrphan(orphanId, t);
+      }
     } finally {
       fileBtn.disabled = false;
       fileInput.value = '';
+      cancelBtn.style.display = 'none';
+      cancelBtn.disabled = false;
+      _currentUpload = null;
     }
   });
 }
