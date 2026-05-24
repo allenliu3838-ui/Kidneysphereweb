@@ -156,15 +156,18 @@ async function aliyunCall(action, extra) {
 // internally based on event.path:
 //   /api/videos/upload-credentials          -> issueUploadCreds (main)
 //   /api/videos/upload-credentials/refresh  -> refreshUploadCreds
+//   /api/videos/upload-credentials/delete   -> deleteUploadedVideo (cleanup)
 exports.handler = async (event) => {
   const p = event.path || '';
   if (p.endsWith('/refresh')) return refreshUploadCreds(event);
+  if (p.endsWith('/delete')) return deleteUploadedVideo(event);
   return issueUploadCreds(event);
 };
 
-// Express server compat: separate name still works so server/index.js
-// can route both paths cleanly without relying on path matching.
+// Express server compat: separate names still work so server/index.js
+// can route each path cleanly without relying on path matching.
 exports.refreshHandler = (event) => refreshUploadCreds(event);
+exports.deleteHandler = (event) => deleteUploadedVideo(event);
 
 async function issueUploadCreds(event) {
   console.log('[video-upload-auth] invoked, path:', event.path, 'method:', event.httpMethod);
@@ -244,6 +247,55 @@ async function issueUploadCreds(event) {
     });
   } catch (e) {
     console.error('[video-upload-auth] error:', e);
+    return json(500, { error: 'internal_error', message: String(e?.message || e) });
+  }
+}
+
+// 删除 Aliyun VOD 上的视频. 三种场景:
+//   1. 用户中途取消上传 -> 清理半成品 "Uploading" 状态的孤儿记录
+//   2. 上传失败 (timeout etc) -> 同上, 清理 orphan
+//   3. admin 在视频列表里 "永久删除" -> 清掉 OSS 存储 (省钱)
+// Aliyun DeleteVideo API 接受逗号分隔的多个 VideoId, 这里只支持单个.
+async function deleteUploadedVideo(event) {
+  try {
+    if (!rateCheck(getClientIp(event), 30)) return json(429, { error: 'rate_limited' });
+    if (event.httpMethod !== 'POST') return json(405, { error: 'method_not_allowed' });
+    const token = pickToken(event);
+    if (!token) return json(401, { error: 'unauthorized' });
+
+    let user = null;
+    try {
+      const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+      if (payload.sub && payload.aud === 'authenticated' && payload.exp > Date.now() / 1000) {
+        user = { id: payload.sub };
+      }
+    } catch {}
+    if (!user) return json(401, { error: 'invalid_token' });
+
+    const profRes = await sbQuery(`profiles?id=eq.${encodeURIComponent(user.id)}&select=role&limit=1`, token);
+    const profile = (await profRes.json())[0];
+    const role = String(profile?.role || '').toLowerCase().trim();
+    if (!['admin', 'super_admin', 'owner'].includes(role)) return json(403, { error: 'admin_required' });
+
+    let body = {};
+    try { body = JSON.parse(event.body || '{}'); } catch {}
+    const videoId = String(body.videoId || '').trim();
+    if (!videoId) return json(400, { error: 'missing_videoId' });
+
+    console.log('[video-upload-auth] DeleteVideo:', videoId);
+    const data = await aliyunCall('DeleteVideo', { VideoIds: videoId });
+    if (data.Code) {
+      // Aliyun DeleteVideo 对不存在的 videoId 返回错误, 我们不应该让这个拖累
+      // 调用方的 "删除" 流程. 仍然记录但不阻塞.
+      console.log('[video-upload-auth] DeleteVideo soft-failed:', data.Code, data.Message);
+      // 把 NotFound 当成成功 (幂等)
+      if (/NotFound|InvalidVideo\.NotFound/i.test(data.Code)) {
+        return json(200, { ok: true, alreadyDeleted: true });
+      }
+      return json(502, { error: 'aliyun_delete_failed', code: data.Code, message: data.Message || '' });
+    }
+    return json(200, { ok: true, videoId, requestId: data.RequestId });
+  } catch (e) {
     return json(500, { error: 'internal_error', message: String(e?.message || e) });
   }
 }

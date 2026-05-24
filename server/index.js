@@ -54,6 +54,7 @@ app.get('/api/videos/:id/access', netlifyAdapter(videoAccess.handler));
 app.post('/api/videos/:id/play-auth', netlifyAdapter(videoPlayAuth.handler));
 app.post('/api/videos/upload-credentials', netlifyAdapter(videoUploadAuth.handler));
 app.post('/api/videos/upload-credentials/refresh', netlifyAdapter(videoUploadAuth.refreshHandler));
+app.post('/api/videos/upload-credentials/delete', netlifyAdapter(videoUploadAuth.deleteHandler));
 app.post('/api/dev/grant-access', netlifyAdapter(devGrantAccess.handler));
 
 // Health check

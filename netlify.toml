@@ -97,6 +97,11 @@
   to = "/.netlify/functions/video-upload-auth"
   status = 200
 
+[[redirects]]
+  from = "/api/videos/upload-credentials/delete"
+  to = "/.netlify/functions/video-upload-auth"
+  status = 200
+
 # Dev/admin manual entitlement grant
 [[redirects]]
   from = "/api/dev/grant-access"
