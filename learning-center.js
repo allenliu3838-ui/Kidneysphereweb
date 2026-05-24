@@ -1437,6 +1437,7 @@ function setupAliyunDirectUpload() {
       await loadOssSdk();
 
       // 5. 创建 OSS client (用 STS 临时凭证)
+      // timeout 120s: 默认 60s 在慢网络上经常 TCP 握手都超时
       const client = new window.OSS({
         region: 'oss-' + auth.Region,
         accessKeyId: auth.AccessKeyId,
@@ -1445,6 +1446,7 @@ function setupAliyunDirectUpload() {
         bucket: addr.Bucket,
         endpoint: addr.Endpoint,
         secure: true,
+        timeout: 120000,
         refreshSTSToken: async () => {
           const r = await fetch('/api/videos/upload-credentials/refresh', {
             method: 'POST',
@@ -1463,11 +1465,20 @@ function setupAliyunDirectUpload() {
       });
 
       // 6. 分片上传到 OSS, 报告进度
+      // 分片策略: 大文件用大分片 (减少并发开销), 小文件用小分片 (避免一片传太久没进度)
+      //   - <100 MB  -> 1 MB 分片
+      //   - 100-500 MB -> 4 MB 分片
+      //   - >500 MB  -> 8 MB 分片
+      // 并发 2: 比 4 慢但慢网络下成功率高很多 (60s timeout 内能跑完 1 个分片)
       textEl.textContent = '上传中…';
-      const partSize = Math.min(8 * 1024 * 1024, Math.max(1024 * 1024, Math.floor(file.size / 100)));
+      const sizeMB = file.size / 1024 / 1024;
+      const partSize = sizeMB < 100 ? 1 * 1024 * 1024
+                     : sizeMB < 500 ? 4 * 1024 * 1024
+                                    : 8 * 1024 * 1024;
       await client.multipartUpload(addr.FileName, file, {
         partSize,
-        parallel: 4,
+        parallel: 2,
+        timeout: 120000,
         progress: (p) => {
           const pct = Math.round(p * 100);
           barEl.style.width = pct + '%';
