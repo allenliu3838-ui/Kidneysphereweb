@@ -107,9 +107,15 @@ async function sbQuery(path, token) {
 }
 
 // ── Aliyun signing (identical pattern to video-play-auth.js) ──
+// 但加强了 percentEncode: encodeURIComponent 不编码 ! ' ( ) *,
+// 阿里云签名按 RFC 3986 严格模式, 必须编码这些字符. 否则文件名带括号
+// (比如 "video (Connor).mp4") 就会签名不匹配, 报 SignatureDoesNotMatch.
 function percentEncode(str) {
   return encodeURIComponent(str)
-    .replace(/\+/g, '%20')
+    .replace(/!/g, '%21')
+    .replace(/'/g, '%27')
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29')
     .replace(/\*/g, '%2A')
     .replace(/%7E/g, '~');
 }
