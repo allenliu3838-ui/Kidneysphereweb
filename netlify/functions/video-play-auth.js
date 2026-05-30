@@ -131,9 +131,14 @@ async function sbInsert(table, row) {
 }
 
 // ── Aliyun VOD helpers ──
+// 严格 RFC 3986 编码 (Aliyun 签名要求). encodeURIComponent 不编码
+// ! ' ( ) *, 我们手动补上, 否则文件名带括号会签名失败.
 function percentEncode(str) {
   return encodeURIComponent(str)
-    .replace(/\+/g, '%20')
+    .replace(/!/g, '%21')
+    .replace(/'/g, '%27')
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29')
     .replace(/\*/g, '%2A')
     .replace(/%7E/g, '~');
 }
