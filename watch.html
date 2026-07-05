@@ -437,12 +437,59 @@
   // TODO: re-enable when Aliplayer License is configured
 
   // ── Initialize player with temporary URL (native HTML5 video) ──
+  const VIDEO_STYLE = 'width:100%;max-width:980px;height:560px;border-radius:16px;background:#000;border:1px solid rgba(255,255,255,.12)';
+
   function initUrlPlayer(url, format){
     if(!url){
       wrap.innerHTML = '<div class="note" style="border-color:rgba(255,120,120,.4)">没有可用的播放地址。</div>';
       return;
     }
-    wrap.innerHTML = `<video controls playsinline style="width:100%;max-width:980px;height:560px;border-radius:16px;background:#000;border:1px solid rgba(255,255,255,.12)"><source src="${esc(url)}" type="video/${format || 'mp4'}" />你的浏览器不支持播放。</video>`;
+    // Force https: page is served over https, so http media is blocked as
+    // mixed content (Aliyun VOD returns http:// URLs by default).
+    url = String(url).replace(/^http:\/\//i, 'https://');
+
+    // HLS (m3u8) needs a JS player on desktop Chrome/Firefox (native <video>
+    // only plays HLS on Safari/iOS). Detect by URL or format.
+    const isHls = /\.m3u8(\?|$)/i.test(url) || /m3u8|hls|mpegurl/i.test(String(format || ''));
+    if(isHls){
+      wrap.innerHTML = `<video id="ksVideo" controls playsinline style="${VIDEO_STYLE}"></video>`;
+      const videoEl = document.getElementById('ksVideo');
+      if(videoEl.canPlayType('application/vnd.apple.mpegurl')){
+        // Safari / iOS: native HLS
+        videoEl.src = url;
+      }else{
+        loadHlsJs().then((Hls) => {
+          if(Hls && Hls.isSupported()){
+            const hls = new Hls();
+            hls.loadSource(url);
+            hls.attachMedia(videoEl);
+          }else{
+            videoEl.src = url; // last resort
+          }
+        }).catch((e) => {
+          console.error('[watch] hls.js load failed:', e);
+          wrap.innerHTML = `<div class="note" style="border-color:rgba(255,120,120,.4)">播放组件加载失败，请刷新重试，或使用 Safari 打开。</div>`;
+        });
+      }
+      return;
+    }
+
+    wrap.innerHTML = `<video controls playsinline style="${VIDEO_STYLE}"><source src="${esc(url)}" type="video/${format || 'mp4'}" />你的浏览器不支持播放。</video>`;
+  }
+
+  // Lazy-load hls.js from jsdelivr (whitelisted in CSP script-src).
+  let _hlsPromise = null;
+  function loadHlsJs(){
+    if(window.Hls) return Promise.resolve(window.Hls);
+    if(_hlsPromise) return _hlsPromise;
+    _hlsPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js';
+      s.onload = () => resolve(window.Hls);
+      s.onerror = () => reject(new Error('hls.js load failed'));
+      document.head.appendChild(s);
+    });
+    return _hlsPromise;
   }
 
   // ── Render Bilibili player (for static free videos) ──

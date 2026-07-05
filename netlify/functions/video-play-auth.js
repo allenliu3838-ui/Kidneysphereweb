@@ -186,10 +186,17 @@ async function aliyunGetPlayInfo(videoId) {
     const res = await httpRequest(url);
     const data = await res.json();
     console.log('[video-play-auth] Aliyun GetPlayInfo response:', JSON.stringify(data).substring(0, 200));
-    if (data.PlayInfoList?.PlayInfo?.length > 0) {
-      const info = data.PlayInfoList.PlayInfo[0];
+    const list = data.PlayInfoList?.PlayInfo;
+    if (Array.isArray(list) && list.length > 0) {
+      // Prefer an MP4 stream: native <video> plays it in every browser.
+      // HLS/m3u8 needs a JS player (desktop Chrome/Firefox can't play it natively).
+      const mp4 = list.find(p => /^mp4$/i.test(String(p.Format || '')));
+      const info = mp4 || list[0];
+      // Aliyun returns http:// URLs by default; the site is https, so http media
+      // is blocked as mixed content (and by our CSP media-src https:). Force https.
+      const playURL = String(info.PlayURL || '').replace(/^http:\/\//i, 'https://');
       return {
-        playURL: info.PlayURL,
+        playURL,
         format: info.Format,
         duration: info.Duration,
         definition: info.Definition,
@@ -328,8 +335,8 @@ exports.handler = async (event) => {
       console.log('[video-play-auth] Aliyun GetPlayInfo failed:', playInfo.error, playInfo.message);
     }
 
-    // Fallback: direct URL
-    const fallbackUrl = video.mp4_url || video.source_url || '';
+    // Fallback: direct URL (force https to avoid mixed-content blocking)
+    const fallbackUrl = (video.mp4_url || video.source_url || '').replace(/^http:\/\//i, 'https://');
     if (fallbackUrl) {
       console.log('[video-play-auth] returning fallback URL');
       return json(200, {
