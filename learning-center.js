@@ -108,8 +108,9 @@ function extractAliyunVid(input){
   if(!s) return null;
   // Direct vid (hex string, 32 chars)
   if(/^[0-9a-f]{20,}$/i.test(s)) return s;
-  // vid:"..." or vid:'...' in embed code
-  const m = s.match(/vid\s*[:=]\s*["']([0-9a-f]{20,})["']/i);
+  // vid:"..." / vid:'...' in script embeds, and bare vid=... as it appears in the
+  // iframe embed URL the Aliyun console hands out (no quotes around the value there)
+  const m = s.match(/vid\s*[:=]\s*["']?([0-9a-f]{20,})["']?/i);
   if(m) return m[1];
   return null;
 }
@@ -582,6 +583,12 @@ async function saveVideo(currentUser, publish = true){
     if(description) row.description = description;
     if(coverImage) row.cover_image = coverImage;
 
+    // 兜底: 绝不允许存入"播放源全空"的记录. 这种记录在后台看起来保存成功,
+    // 但播放页只会报"该视频没有可用的播放源", 而且没人知道是哪一步丢的.
+    if(!row.aliyun_vid && !row.mp4_url && !row.source_url && !row.bvid){
+      throw new Error('这条视频没有任何播放源（阿里云视频 ID / 播放地址 / B 站 BV 号都为空），请补齐后再保存。');
+    }
+
     let { error } = await supabase.from('learning_videos').insert(row);
 
     // Fallback: if new columns not yet migrated, retry without them
@@ -600,10 +607,14 @@ async function saveVideo(currentUser, publish = true){
     // Fallback: if 'aliyun' kind not supported yet (kind check constraint / aliyun_vid column missing).
     // 只在错误确实指向这两处时才降级 — 否则任何插入错误都会把 aliyun_vid 悄悄丢掉, 存成一条没有播放源的记录
     if(error && kind === 'aliyun' && /aliyun_vid|kind/i.test(String(error.message || ''))){
-      delete row.aliyun_vid;
-      row.kind = 'mp4';
-      const r2 = await supabase.from('learning_videos').insert(row);
-      error = r2.error;
+      // 这个降级会丢掉 aliyun_vid, 只有在还剩别的播放源时才可接受;
+      // 否则宁可把原始错误报给管理员, 也不要静默存一条播不了的空壳记录.
+      if(row.mp4_url || row.source_url){
+        delete row.aliyun_vid;
+        row.kind = 'mp4';
+        const r2 = await supabase.from('learning_videos').insert(row);
+        error = r2.error;
+      }
     }
     if(error) throw error;
 
@@ -793,6 +804,10 @@ function openEditModal(videoId){
           <label>视频链接 / 阿里云 MP4 地址</label>
           <input class="input" id="editUrl" value="${esc(v.mp4_url || v.source_url || '')}" />
         </div>
+        <div>
+          <label>阿里云视频 ID（阿里云点播视频靠它播放，丢了就播不了）</label>
+          <input class="input" id="editAliyunVid" value="${esc(v.aliyun_vid || '')}" placeholder="在阿里云点播控制台复制，例如 b05a2943aacc71f180256633b79f0102" />
+        </div>
         <div class="form-row">
           <div style="min-width:180px">
             <label>内容来源</label>
@@ -869,6 +884,9 @@ async function saveEdit(){
   const speaker = String(document.getElementById('editSpeaker')?.value || '').trim() || null;
   const category = String(document.getElementById('editCategory')?.value || '').trim();
   const urlVal = String(document.getElementById('editUrl')?.value || '').trim();
+  // 允许管理员直接粘贴阿里云控制台的 HTML 嵌入代码, 自动提取其中的视频 ID
+  const aliyunVidRaw = String(document.getElementById('editAliyunVid')?.value || '').trim();
+  const aliyunVid = looksLikeHtml(aliyunVidRaw) ? (extractAliyunVid(aliyunVidRaw) || '') : aliyunVidRaw;
   const specialtyIds = getCheckedSpecialtyIds('edit');
   const contentSource = String(document.getElementById('editContentSource')?.value || 'external').trim();
   const isPaid = !!document.getElementById('editIsPaid')?.checked;
@@ -876,6 +894,18 @@ async function saveEdit(){
   const isPublished = !!document.getElementById('editIsPublished')?.checked;
 
   if(!title){ toast('请输入名称', '', 'err'); if(btn) btn.disabled = false; return; }
+  if(aliyunVidRaw && !aliyunVid){
+    toast('视频 ID 无法识别', '粘贴的内容里没找到阿里云视频 ID，请直接填写 ID 本身。', 'err');
+    if(btn) btn.disabled = false;
+    return;
+  }
+  // B 站视频靠 bvid 播放, 链接框可能是空的 — 别把它们误拦下来
+  const existingBvid = _allAdminVideos.find(r => r.id === _editingVideoId)?.bvid || '';
+  if(!aliyunVid && !urlVal && !existingBvid){
+    toast('缺少播放源', '阿里云视频 ID 和播放地址至少要填一个，否则这条视频将无法播放。', 'err');
+    if(btn) btn.disabled = false;
+    return;
+  }
 
   try{
     const updates = {
@@ -889,6 +919,7 @@ async function saveEdit(){
       is_published: isPublished,
       specialty_id: specialtyIds[0] || null,
       specialty_ids: specialtyIds,
+      aliyun_vid: aliyunVid || null,
       updated_at: new Date().toISOString(),
     };
 
@@ -908,15 +939,19 @@ async function saveEdit(){
       }
     }
 
+    // 有阿里云视频 ID 时以它为准: 它才是真正的播放源, 不能被上面的链接判断覆盖成 external
+    if(aliyunVid) updates.kind = 'aliyun';
+
     let { error } = await supabase
       .from('learning_videos')
       .update(updates)
       .eq('id', _editingVideoId);
     // Fallback: if specialty_ids column not yet migrated, retry without it
-    if(error && /specialty_ids|source|is_published/i.test(String(error.message || ''))){
+    if(error && /specialty_ids|source|is_published|aliyun_vid/i.test(String(error.message || ''))){
       delete updates.specialty_ids;
       delete updates.source;
       delete updates.is_published;
+      delete updates.aliyun_vid;
       const r2 = await supabase.from('learning_videos').update(updates).eq('id', _editingVideoId);
       error = r2.error;
     }
