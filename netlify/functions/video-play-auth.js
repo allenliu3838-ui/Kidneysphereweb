@@ -12,6 +12,11 @@
  * POST /api/videos/:id/play-auth
  * Headers: Authorization: Bearer <supabase_jwt>
  * Response: { playURL, playerType, expiresIn }
+ *
+ * Required Aliyun RAM permissions on the AccessKey:
+ *   vod:GetPlayInfo
+ *   vod:GetVideoInfo (only used to explain why GetPlayInfo returned no stream)
+ *   (AliyunVODFullAccess / AliyunVODReadOnlyAccess cover both.)
  */
 
 const https = require('https');
@@ -201,6 +206,62 @@ async function aliyunGetPlayInfo(videoId) {
   }
 }
 
+// 拿不到播放流时查一下视频状态, 把真实原因 (转码中 / 不存在 / 转码失败) 带回前端.
+// 需要 RAM 权限 vod:GetVideoInfo; 没权限时返回 error, 上层会退回通用提示.
+async function aliyunGetVideoStatus(videoId) {
+  const params = {
+    Action: 'GetVideoInfo',
+    VideoId: videoId,
+    Format: 'JSON',
+    Version: '2017-03-21',
+    AccessKeyId: ALIYUN_VOD_ACCESS_KEY_ID,
+    SignatureMethod: 'HMAC-SHA1',
+    SignatureVersion: '1.0',
+    SignatureNonce: generateNonce(),
+    Timestamp: formatISODate(),
+  };
+  try {
+    const res = await httpRequest(buildAliyunSignedUrl(params));
+    const data = await res.json();
+    console.log('[video-play-auth] Aliyun GetVideoInfo response:', JSON.stringify(data).substring(0, 200));
+    if (data.Video && data.Video.Status) return { status: String(data.Video.Status) };
+    return { error: data.Code || 'no_video_info', message: data.Message || '' };
+  } catch (e) {
+    return { error: 'aliyun_fetch_failed', message: String(e?.message || e) };
+  }
+}
+
+// 把阿里云的视频状态 / 错误码翻译成前端能直接展示、管理员能据此行动的原因.
+// 状态含义见 VOD 文档: Uploading / UploadSucc / Transcoding / TranscodeFail / Checking / Blocked / Normal
+function describeAliyunFailure(playInfo, statusInfo) {
+  const code = String(playInfo?.error || '');
+  const status = String(statusInfo?.status || '');
+  const statusErr = String(statusInfo?.error || '');
+
+  if (status === 'Uploading' || status === 'UploadSucc' || status === 'Transcoding') {
+    return { error: 'video_transcoding', message: '视频正在阿里云转码中，通常需要几分钟到几十分钟，请稍后再试。' };
+  }
+  if (status === 'TranscodeFail') {
+    return { error: 'video_transcode_failed', message: '阿里云转码失败，请管理员在 VOD 控制台重新转码或重新上传。' };
+  }
+  if (status === 'UploadFail') {
+    return { error: 'video_upload_failed', message: '视频在阿里云上传失败，请管理员重新上传。' };
+  }
+  if (status === 'Checking' || status === 'Blocked') {
+    return { error: 'video_blocked', message: '视频在阿里云处于审核中 / 已屏蔽状态，暂时无法播放。' };
+  }
+  if (/InvalidVideo\.NotFound/i.test(code) || /InvalidVideo\.NotFound/i.test(statusErr)) {
+    return { error: 'aliyun_video_not_found', message: '阿里云上找不到该视频 ID（可能已被删除），请管理员检查后台填写的阿里云视频 ID。' };
+  }
+  if (/Forbidden/i.test(code)) {
+    return { error: 'aliyun_forbidden', message: '阿里云拒绝了播放请求（AccessKey 权限不足），请管理员检查 RAM 权限。' };
+  }
+  return {
+    error: 'no_playback_source',
+    message: `该视频没有可用的播放源${code ? `（阿里云：${code}）` : ''}。`,
+  };
+}
+
 // ── Main handler ──
 exports.handler = async (event) => {
   console.log('[video-play-auth] invoked, path:', event.path, 'method:', event.httpMethod);
@@ -313,7 +374,9 @@ exports.handler = async (event) => {
 
     // Aliyun VOD signed URL
     const aliyunVid = video.aliyun_vid;
-    if (aliyunVid && ALIYUN_VOD_ACCESS_KEY_ID && ALIYUN_VOD_ACCESS_KEY_SECRET) {
+    const aliyunConfigured = !!(ALIYUN_VOD_ACCESS_KEY_ID && ALIYUN_VOD_ACCESS_KEY_SECRET);
+    let aliyunFailure = null;
+    if (aliyunVid && aliyunConfigured) {
       const playInfo = await aliyunGetPlayInfo(aliyunVid);
       if (playInfo.playURL) {
         console.log('[video-play-auth] returning Aliyun signed URL');
@@ -326,6 +389,10 @@ exports.handler = async (event) => {
         });
       }
       console.log('[video-play-auth] Aliyun GetPlayInfo failed:', playInfo.error, playInfo.message);
+      // 没拿到流: 查一下视频状态, 让前端能区分"转码中"和"真的没源"
+      const statusInfo = await aliyunGetVideoStatus(aliyunVid);
+      aliyunFailure = describeAliyunFailure(playInfo, statusInfo);
+      console.log('[video-play-auth] Aliyun failure classified as:', aliyunFailure.error, 'status:', statusInfo.status || statusInfo.error);
     }
 
     // Fallback: direct URL
@@ -340,9 +407,16 @@ exports.handler = async (event) => {
       });
     }
 
+    if (aliyunFailure) {
+      // 转码中是暂时的 → 503 让前端自动重试; 其他情况 500
+      return json(aliyunFailure.error === 'video_transcoding' ? 503 : 500, aliyunFailure);
+    }
+    if (aliyunVid && !aliyunConfigured) {
+      return json(500, { error: 'aliyun_not_configured', message: '服务器未配置阿里云 VOD 密钥，无法生成播放地址。' });
+    }
     return json(500, {
       error: 'no_playback_source',
-      message: '该视频没有可用的播放源。',
+      message: '该视频没有关联阿里云视频 ID，也没有填写播放地址，请管理员在后台「编辑」中补填。',
     });
 
   } catch (e) {

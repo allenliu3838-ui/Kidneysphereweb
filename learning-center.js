@@ -349,6 +349,8 @@ function renderVideoAdminList(rows){
 
   els.videoAdminList.innerHTML = list.map(v=>{
     const isDeleted = !!v.deleted_at;
+    // 草稿 (enabled=false): 后台能看到, 但前台列表 (RLS) 和播放授权都会当作不存在
+    const isDraft = !isDeleted && v.enabled === false;
     const cat = catMap.get(String(v.category || ''));
     const tag = cat ? (String(cat.zh || '').trim() ? `${String(cat.zh).trim()}${cat.en ? ' / ' + String(cat.en).trim() : ''}` : (cat.en || cat.key)) : (v.category || '未分类');
     const kindLabel = v.kind === 'mp4' ? 'MP4' : (v.kind === 'bilibili' ? 'B站' : (v.kind === 'aliyun' ? '阿里云' : '链接'));
@@ -361,6 +363,9 @@ function renderVideoAdminList(rows){
       : '';
     const deletedBadge = isDeleted
       ? `<span class="badge" style="border-color:rgba(160,160,160,.5);background:rgba(160,160,160,.12);color:#aaa">已删除</span>`
+      : '';
+    const draftBadge = isDraft
+      ? `<span class="badge" style="border-color:rgba(251,146,60,.6);background:rgba(251,146,60,.12);color:#fb923c">草稿 · 未上架</span>`
       : '';
     const paidBadge = v.is_paid
       ? `<span class="badge" style="border-color:rgba(234,179,8,.5);background:rgba(234,179,8,.1);color:#fbbf24">付费</span>`
@@ -380,7 +385,7 @@ function renderVideoAdminList(rows){
 
     const cardStyle = isDeleted
       ? 'padding:12px;opacity:0.5;border-left:3px solid rgba(160,160,160,.4)'
-      : 'padding:12px';
+      : (isDraft ? 'padding:12px;border-left:3px solid rgba(251,146,60,.6)' : 'padding:12px');
 
     const actionBtn = isDeleted
       ? `<button class="btn tiny" type="button" data-video-restore="${esc(v.id)}">恢复</button>
@@ -393,7 +398,7 @@ function renderVideoAdminList(rows){
           <div style="min-width:0;flex:1">
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
               <b style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:420px${isDeleted ? ';text-decoration:line-through' : ''}">${esc(v.title || '（无标题）')}</b>
-              ${paidBadge}${memberBadge}${specBadge}${deletedBadge}${expiredBadge}
+              ${draftBadge}${paidBadge}${memberBadge}${specBadge}${deletedBadge}${expiredBadge}
             </div>
             <div class="small muted" style="margin-top:6px">
               ${speakerText}${esc(tag)} · ${esc(kindLabel)} · ${esc(fmtDate(v.created_at))}
@@ -401,6 +406,7 @@ function renderVideoAdminList(rows){
             <div class="small" style="margin-top:6px;word-break:break-all">${openUrl ? `<a class="auto-link" href="${esc(openUrl)}" target="_blank" rel="noopener">${esc(openUrl.length > 80 ? openUrl.slice(0,80) + '…' : openUrl)}</a>` : ''}</div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex-shrink:0">
+            ${isDraft ? `<button class="btn tiny primary" type="button" data-video-publish="${esc(v.id)}" title="上架后用户才能在视频库看到并播放">上架</button>` : ''}
             ${isDeleted ? '' : `<button class="btn tiny" type="button" data-video-edit="${esc(v.id)}">编辑</button>`}
             ${isDeleted ? '' : `<a class="btn tiny" href="watch.html?id=${encodeURIComponent(v.id)}">预览</a>`}
             ${actionBtn}
@@ -591,8 +597,9 @@ async function saveVideo(currentUser, publish = true){
       const r2 = await supabase.from('learning_videos').insert(row);
       error = r2.error;
     }
-    // Fallback: if 'aliyun' kind not supported yet
-    if(error && kind === 'aliyun'){
+    // Fallback: if 'aliyun' kind not supported yet (kind check constraint / aliyun_vid column missing).
+    // 只在错误确实指向这两处时才降级 — 否则任何插入错误都会把 aliyun_vid 悄悄丢掉, 存成一条没有播放源的记录
+    if(error && kind === 'aliyun' && /aliyun_vid|kind/i.test(String(error.message || ''))){
       delete row.aliyun_vid;
       row.kind = 'mp4';
       const r2 = await supabase.from('learning_videos').insert(row);
@@ -707,6 +714,30 @@ async function restoreVideo(id){
   }
 }
 
+async function publishVideo(id){
+  if(!id) return;
+  if(!isConfigured() || !supabase) return;
+  if(!confirm('确定上架这个视频吗？（用户将能在视频库看到并播放）')) return;
+  try{
+    // enabled 控制前台列表可见 (RLS), is_published 控制播放授权, 两者必须一起改
+    const updates = { enabled: true, is_published: true, updated_at: new Date().toISOString() };
+    let { error } = await supabase.from('learning_videos').update(updates).eq('id', id);
+    // Backward compat: is_published column may not exist on older schemas
+    if(error && /is_published/i.test(String(error.message || ''))){
+      delete updates.is_published;
+      const r2 = await supabase.from('learning_videos').update(updates).eq('id', id);
+      error = r2.error;
+    }
+    if(error) throw error;
+    toast('已上架', '视频已对用户可见，可点击"预览"确认能正常播放。', 'ok');
+    await loadAdminVideos();
+  }catch(e){
+    const rawMsg = String(e?.message || e?.code || e || '');
+    console.error('[publishVideo] raw error:', e);
+    alert('上架失败（管理员可见原始错误）:\n\n' + rawMsg);
+  }
+}
+
 // ── Edit video (inline modal) ──
 let _editingVideoId = null;
 
@@ -781,6 +812,10 @@ function openEditModal(videoId){
             <input type="checkbox" id="editMembershipAccessible" ${v.membership_accessible ? 'checked' : ''} />
             <label for="editMembershipAccessible" style="margin:0;cursor:pointer">会员可看</label>
           </div>
+          <div style="min-width:160px;display:flex;align-items:center;gap:8px">
+            <input type="checkbox" id="editIsPublished" ${v.enabled !== false ? 'checked' : ''} />
+            <label for="editIsPublished" style="margin:0;cursor:pointer" title="不勾选 = 草稿：用户看不到，也无法播放">已上架（用户可见）</label>
+          </div>
         </div>
         <div style="display:flex;gap:10px;margin-top:4px">
           <button class="btn primary" type="button" id="editSaveBtn">保存修改</button>
@@ -838,6 +873,7 @@ async function saveEdit(){
   const contentSource = String(document.getElementById('editContentSource')?.value || 'external').trim();
   const isPaid = !!document.getElementById('editIsPaid')?.checked;
   const membershipAccessible = !!document.getElementById('editMembershipAccessible')?.checked;
+  const isPublished = !!document.getElementById('editIsPublished')?.checked;
 
   if(!title){ toast('请输入名称', '', 'err'); if(btn) btn.disabled = false; return; }
 
@@ -849,6 +885,8 @@ async function saveEdit(){
       source: contentSource,
       is_paid: isPaid,
       membership_accessible: membershipAccessible,
+      enabled: isPublished,
+      is_published: isPublished,
       specialty_id: specialtyIds[0] || null,
       specialty_ids: specialtyIds,
       updated_at: new Date().toISOString(),
@@ -875,15 +913,16 @@ async function saveEdit(){
       .update(updates)
       .eq('id', _editingVideoId);
     // Fallback: if specialty_ids column not yet migrated, retry without it
-    if(error && /specialty_ids|source/i.test(String(error.message || ''))){
+    if(error && /specialty_ids|source|is_published/i.test(String(error.message || ''))){
       delete updates.specialty_ids;
       delete updates.source;
+      delete updates.is_published;
       const r2 = await supabase.from('learning_videos').update(updates).eq('id', _editingVideoId);
       error = r2.error;
     }
     if(error) throw error;
 
-    toast('已更新', '视频信息已保存。', 'ok');
+    toast('已更新', isPublished ? '视频信息已保存。' : '视频信息已保存（当前为草稿，用户不可见）。', 'ok');
     closeEditModal();
     await loadAdminVideos();
   }catch(e){
@@ -1215,6 +1254,13 @@ async function init(){
       e.preventDefault();
       const id = String(editBtn.getAttribute('data-video-edit') || '').trim();
       if(id) openEditModal(id);
+      return;
+    }
+    const pubBtn = e.target?.closest?.('[data-video-publish]');
+    if(pubBtn){
+      e.preventDefault();
+      const id = String(pubBtn.getAttribute('data-video-publish') || '').trim();
+      if(id) await publishVideo(id);
       return;
     }
     const delBtn = e.target?.closest?.('[data-video-del]');
