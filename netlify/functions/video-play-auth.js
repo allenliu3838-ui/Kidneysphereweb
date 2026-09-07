@@ -253,8 +253,14 @@ function describeAliyunFailure(playInfo, statusInfo) {
   if (/InvalidVideo\.NotFound/i.test(code) || /InvalidVideo\.NotFound/i.test(statusErr)) {
     return { error: 'aliyun_video_not_found', message: '阿里云上找不到该视频 ID（可能已被删除），请管理员检查后台填写的阿里云视频 ID。' };
   }
-  if (/Forbidden/i.test(code)) {
-    return { error: 'aliyun_forbidden', message: '阿里云拒绝了播放请求（AccessKey 权限不足），请管理员检查 RAM 权限。' };
+  // Forbidden.* 有两类含义, 不能笼统当成权限问题:
+  //   Forbidden.IllegalStatus -> 视频当前状态不可播放 (多半还在转码 / 被屏蔽)
+  //   Forbidden.RAM / .AccessKey / .Subscription -> 真的是账号或授权问题
+  if (/Forbidden\.IllegalStatus/i.test(code) || /Forbidden\.IllegalStatus/i.test(statusErr)) {
+    return { error: 'video_transcoding', message: '视频在阿里云尚未处理完成（状态不可播放），请稍后再试。' };
+  }
+  if (/Forbidden/i.test(code) || /Forbidden/i.test(statusErr)) {
+    return { error: 'aliyun_forbidden', message: '阿里云拒绝了播放请求（账号或 AccessKey 授权问题），请管理员检查 RAM 权限与 VOD 服务状态。' };
   }
   return {
     error: 'no_playback_source',
