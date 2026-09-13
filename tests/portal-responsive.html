@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>首页响应式验收 · KidneySphere</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #e8eef5; color: #18314f; font: 15px/1.6 system-ui,sans-serif; }
+    header { position: sticky; top: 0; z-index: 2; padding: 12px 20px; background: #fff; border-bottom: 1px solid #ccd9e8; }
+    h1 { margin: 0; font-size: 18px; }
+    p { margin: 4px 0 10px; font-size: 12px; }
+    .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    button, select, a { min-height: 44px; padding: 9px 14px; border: 1px solid #b4c7df; border-radius: 7px; color: #164f99; background: white; font: inherit; }
+    button { cursor: pointer; }
+    main { padding: 20px; overflow-x: auto; }
+    iframe { display: block; width: 390px; height: 844px; background: white; border: 0; box-shadow: 0 6px 28px #112d5033; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 15px 20px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>首页响应式验收</h1>
+    <p>使用同一份首页源码，在指定 CSS 视口内检查布局；不是实体手机测试。此页不提交表单、不模拟已购权限。</p>
+    <div class="controls">
+      <label for="viewport">视口宽度</label>
+      <select id="viewport"><option>320</option><option>360</option><option selected>390</option><option>430</option><option>768</option><option>1024</option><option>1440</option></select>
+      <button id="audit" type="button">检查布局</button>
+      <a href="../index.html">独立打开首页</a>
+    </div>
+  </header>
+  <main><iframe id="preview" title="首页响应式预览"></iframe></main>
+  <pre id="report" role="status">正在读取同源首页…</pre>
+  <script>
+    const frame = document.getElementById('preview');
+    const report = document.getElementById('report');
+    const widthSelect = document.getElementById('viewport');
+    function audit() {
+      try {
+        const doc = frame.contentDocument;
+        if (!doc?.querySelector('[data-portal-home]')) throw new Error('预览尚未载入或当前环境不允许嵌入');
+        const win = frame.contentWindow;
+        const width = doc.documentElement.clientWidth;
+        const overflowing = [...doc.querySelectorAll('main > section, main .container, .portal-training-card, .portal-video-card, .nav-inner, .portal-footer-top')]
+          .filter(el => { const r = el.getBoundingClientRect(); return r.width > 0 && (r.left < -1 || r.right > width + 1); })
+          .map(el => el.className || el.tagName);
+        const controls = [...doc.querySelectorAll('button, .portal-mobile-bar a, .portal-actions .btn, .drawer-links a')]
+          .filter(el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && win.getComputedStyle(el).visibility !== 'hidden' && !el.closest('[inert]'); });
+        const smallControls = controls.filter(el => el.getBoundingClientRect().height < 43.9).map(el => ({ label: el.textContent.trim() || el.getAttribute('aria-label'), height: el.getBoundingClientRect().height }));
+        const bar = doc.querySelector('.portal-mobile-bar');
+        report.textContent = JSON.stringify({ width, documentWidth: doc.documentElement.scrollWidth, overflowing, smallControls,
+          courseColumns: win.getComputedStyle(doc.querySelector('.portal-training-grid')).gridTemplateColumns,
+          videoColumns: win.getComputedStyle(doc.querySelector('.portal-video-grid')).gridTemplateColumns,
+          menuVisible: win.getComputedStyle(doc.querySelector('.menu-toggle')).display !== 'none',
+          bottomBarVisible: win.getComputedStyle(bar).display !== 'none',
+          footerPaddingBottom: win.getComputedStyle(doc.querySelector('footer')).paddingBottom,
+          videoCards: doc.querySelectorAll('.portal-video-card').length,
+          experts: doc.querySelectorAll('.home-showcase-card').length,
+          videoStatus: doc.querySelector('[data-portal-video-status]').textContent,
+        }, null, 2);
+      } catch (error) { report.textContent = error.message; }
+    }
+    widthSelect.addEventListener('change', () => {
+      frame.style.width = widthSelect.value + 'px';
+      frame.style.height = Number(widthSelect.value) < 600 ? '844px' : '1000px';
+      requestAnimationFrame(() => requestAnimationFrame(audit));
+    });
+    document.getElementById('audit').addEventListener('click', audit);
+    (async () => {
+      try {
+        const response = await fetch('../index.html?v=20260913_002', { cache: 'no-store' });
+        if (!response.ok) throw new Error('无法读取首页源码');
+        const html = await response.text();
+        const root = new URL('../', location.href);
+        frame.srcdoc = html.replace('<head>', '<head><base href="' + root.href + '">');
+        frame.addEventListener('load', audit, { once: true });
+      } catch (error) { report.textContent = error.message; }
+    })();
+  </script>
+</body>
+</html>

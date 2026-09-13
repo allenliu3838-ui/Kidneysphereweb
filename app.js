@@ -116,11 +116,9 @@ function injectNav(){
   const primaryLinks = isPortalHome
     ? `
         <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
-        <a data-nav href="learning.html"><span class="zh">学术学习</span><span class="en">Learning</span></a>
-        <a data-nav href="community.html"><span class="zh">病例社区</span><span class="en">Community</span></a>
-        <a data-nav href="research-pilot.html"><span class="zh">科研合作</span><span class="en">Research</span></a>
-        <a data-nav href="events.html"><span class="zh">会议活动</span><span class="en">Events</span></a>
-        <a data-nav href="about.html"><span class="zh">关于肾域</span><span class="en">About</span></a>`
+        <a data-nav href="videos.html"><span class="zh">视频课程</span><span class="en">Videos</span></a>
+        <a data-nav href="academy.html"><span class="zh">培训报名</span><span class="en">Training</span></a>
+        <a data-nav href="my-learning.html"><span class="zh">我的学习</span><span class="en">My Learning</span></a>`
     : `
         <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
         <a data-nav href="community.html"><span class="zh">社区</span><span class="en">Community</span></a>
@@ -135,16 +133,16 @@ function injectNav(){
         <img src="assets/logo.png" alt="肾域 Logo" />
         <div class="title">
           <b>肾域</b>
+          ${isPortalHome ? '<span>KidneySphere</span>' : ''}
         </div>
       </a>
       <nav class="menu" aria-label="Primary">
         ${primaryLinks}
-        <a data-nav href="my-learning.html" data-nav-auth-only hidden><span class="zh">我的</span><span class="en">My</span></a>
+        ${isPortalHome ? '' : '<a data-nav href="my-learning.html" data-nav-auth-only hidden><span class="zh">我的</span><span class="en">My</span></a>'}
       </nav>
-      <div class="nav-dropdown">
+      ${isPortalHome ? '' : `<div class="nav-dropdown">
         <button type="button" class="nav-dropdown-trigger" aria-haspopup="true" aria-expanded="false"><span class="zh">更多</span><span class="en">More</span><span class="chev">▾</span></button>
         <div class="nav-dropdown-menu">
-          ${isPortalHome ? '<a href="nephro-pro.html">肾域 Pro</a><a href="moments.html">社区动态</a>' : ''}
           <a href="academy.html">📋 培训与定价</a>
           <a href="qbank.html">🧪 题库</a>
           <a href="research-pilot.html">🔬 科研试点</a>
@@ -156,7 +154,7 @@ function injectNav(){
       </div>
       <form class="nav-search" data-nav-search role="search" action="search.html" method="get">
         <input class="nav-search-input" name="q" type="search" placeholder="🔍 搜索病例 / 文章 / 视频…" autocomplete="off" aria-label="全站搜索" />
-      </form>
+      </form>`}
       <a class="nav-bell" data-nav-bell href="notifications.html" hidden aria-label="通知" title="通知">
         <span aria-hidden="true">🔔</span>
         <span class="nav-bell-badge" data-nav-bell-badge hidden>0</span>
@@ -178,6 +176,13 @@ function injectTopbarExtraStyles(){
     [data-nav-bell][hidden],
     [data-nav-bell-badge][hidden],
     [data-nav-member-badge][hidden]{display:none !important}
+    [data-portal-home] .menu-toggle,
+    [data-portal-home] .mobile-drawer .icon-btn{min-width:44px;min-height:44px}
+    [data-portal-home] .drawer-links a,
+    [data-portal-home] .mobile-drawer [data-auth] .btn,
+    [data-portal-home] .mobile-drawer .user-trigger,
+    [data-portal-home] .mobile-drawer .user-dropdown a,
+    [data-portal-home] .mobile-drawer .user-dropdown button{min-height:44px}
     .nav-search{display:flex;align-items:center;margin-left:auto;margin-right:6px;flex-shrink:0}
     .nav-search-input{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:inherit;border-radius:8px;padding:6px 12px;font-size:13px;width:200px;transition:width .2s,background .2s}
     .nav-search-input::placeholder{color:rgba(255,255,255,.4)}
@@ -426,6 +431,7 @@ function initMobileDrawer(){
   const brand = document.querySelector('.brand');
   const menu = document.querySelector('.menu');
   if(!navInner || !brand || !menu) return;
+  const isPortalHome = document.body.hasAttribute('data-portal-home');
 
   // 1) Toggle button
   let toggle = navInner.querySelector('[data-menu-toggle]');
@@ -496,10 +502,17 @@ function initMobileDrawer(){
       const dot = bt ? `<span class="badge-dot" aria-hidden="true"></span>` : '';
       return `<a data-nav${badgeAttr}${authAttr}${hiddenAttr} href="${escapeAttr(href)}">${l.html}${dot}</a>`;
     }).join('')
-    + `<div class="drawer-divider"></div>
+    + (isPortalHome ? '' : `<div class="drawer-divider"></div>
        <div class="drawer-section-title">肾域产品</div>
        <a href="https://kidneysphereregistry.cn" target="_blank" rel="noopener">🔬 肾域·科研</a>
-       <span class="small muted" style="padding:6px 0;opacity:.6">更多产品即将上线</span>`;
+       <span class="small muted" style="padding:6px 0;opacity:.6">更多产品即将上线</span>`);
+  }
+
+  // Keep legacy pages' drawer behavior unchanged. The streamlined home page
+  // gets its own accessible state/focus handling without touching auth logic.
+  if(isPortalHome){
+    initPortalMobileDrawer(toggle, drawer, brand);
+    return;
   }
 
   const body = document.body;
@@ -537,6 +550,108 @@ function initMobileDrawer(){
   document.addEventListener('keydown', (e)=>{
     if(e.key === 'Escape' && body.classList.contains('menu-open')) close();
   });
+}
+
+function initPortalMobileDrawer(toggle, drawer, brand){
+  if(drawer.dataset.portalDrawerBound === '1') return;
+  const panel = drawer.querySelector('.drawer-panel');
+  const closeButton = drawer.querySelector('button[data-drawer-close]');
+  if(!panel || !closeButton) return;
+  drawer.dataset.portalDrawerBound = '1';
+  panel.id = 'portal-mobile-menu';
+  toggle.setAttribute('aria-controls', panel.id);
+  toggle.setAttribute('aria-haspopup', 'dialog');
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.setAttribute('aria-label', '打开导航菜单');
+  drawer.setAttribute('aria-hidden', 'true');
+  drawer.inert = true;
+  const body = document.body;
+  let opened = false;
+
+  function isVisible(element){
+    return Boolean(element && !element.hidden && element.getClientRects().length);
+  }
+
+  function focusClose(){
+    if(opened) closeButton.focus({ preventScroll: true });
+  }
+
+  function open(){
+    if(opened || !isVisible(toggle)) return;
+    opened = true;
+    drawer.inert = false;
+    drawer.setAttribute('aria-hidden', 'false');
+    body.classList.add('menu-open');
+    toggle.setAttribute('aria-expanded', 'true');
+    toggle.setAttribute('aria-label', '关闭导航菜单');
+    focusClose();
+  }
+
+  function close(returnFocus = true){
+    if(!opened) return;
+    opened = false;
+    // Move focus before making the panel inert/hidden to assistive technology.
+    if(returnFocus){
+      const target = isVisible(toggle) ? toggle : brand;
+      target?.focus?.({ preventScroll: true });
+    }else if(drawer.contains(document.activeElement)){
+      document.activeElement?.blur?.();
+    }
+    body.classList.remove('menu-open');
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-label', '打开导航菜单');
+    drawer.setAttribute('aria-hidden', 'true');
+    drawer.inert = true;
+  }
+
+  toggle.addEventListener('click', () => opened ? close() : open());
+  drawer.querySelectorAll('[data-drawer-close]').forEach(button => {
+    button.addEventListener('click', () => close());
+  });
+  drawer.addEventListener('click', event => {
+    if(event.target?.closest?.('a[href], [data-logout]')) close(false);
+  });
+
+  document.addEventListener('keydown', event => {
+    if(!opened) return;
+    if(event.key === 'Escape'){
+      event.preventDefault();
+      close();
+      return;
+    }
+    if(event.key !== 'Tab') return;
+    // Re-read controls on every keypress: the existing login/account renderer
+    // can update the drawer while it is open.
+    const controls = Array.from(panel.querySelectorAll(
+      'a[href], button, input, select, textarea, summary, [tabindex]'
+    )).filter(element => !element.disabled && element.tabIndex >= 0 &&
+      !element.closest('[hidden], [inert]') && isVisible(element));
+    const first = controls[0] || closeButton;
+    const last = controls[controls.length - 1] || closeButton;
+    const active = document.activeElement;
+    if(event.shiftKey && (active === first || !controls.includes(active))){
+      event.preventDefault();
+      last.focus();
+    }else if(!event.shiftKey && (active === last || !controls.includes(active))){
+      event.preventDefault();
+      first.focus();
+    }
+  });
+  document.addEventListener('focusin', event => {
+    if(opened && !panel.contains(event.target)) focusClose();
+  });
+  window.addEventListener('resize', () => {
+    if(opened && !isVisible(toggle)) close();
+  }, { passive: true });
+  window.addEventListener('pagehide', () => close(false));
+
+  // Auth UI replacement must not leave keyboard focus behind on the page.
+  if(typeof MutationObserver !== 'undefined'){
+    const observer = new MutationObserver(() => {
+      if(opened && !panel.contains(document.activeElement)) focusClose();
+    });
+    observer.observe(panel, { childList: true, subtree: true });
+  }
 }
 
 function escapeAttr(str){
