@@ -11,6 +11,13 @@ const utilitySource = readProjectFile('portal-home.js');
 const appSource = readProjectFile('app.js');
 const indexHtml = readProjectFile('index.html');
 
+test('portal homepage uses a single document scroller, not a fixed-height scrolling body', () => {
+  const css = readProjectFile('portal-home.css');
+  assert.match(indexHtml, /<html[^>]+class="portal-document"/);
+  assert.match(css, /html\.portal-document\s*\{[^}]*height:\s*auto;[^}]*overflow-x:\s*clip;/);
+  assert.match(css, /\.portal-home\s*\{[^}]*height:\s*auto;[^}]*overflow-x:\s*clip;/);
+});
+
 // The repository is a static site, not a type:module Node package. A data URL
 // tests the actual module exports without changing package metadata or running
 // browser initialization (Node has no document).

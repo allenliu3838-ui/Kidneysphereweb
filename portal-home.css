@@ -1,5 +1,11 @@
 /* Portal-only presentation. Other product, checkout and admin pages keep styles.css. */
+/* Keep one document scroller: the legacy height:100% + overflow-x:hidden
+   combination creates a second body scroller and misses window scroll events. */
+html.portal-document { height: auto; min-height: 100%; overflow-x: clip; }
 .portal-home {
+  height: auto;
+  min-height: 100vh;
+  overflow-x: clip;
   --bg: #08192b;
   --panel: #10263b;
   --text: #edf3f5;
