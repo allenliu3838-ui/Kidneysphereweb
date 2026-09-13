@@ -112,6 +112,22 @@ function applyVersionParamToLinks(){
 function injectNav(){
   const header = document.querySelector('header.nav');
   if(!header) return;
+  const isPortalHome = document.body.hasAttribute('data-portal-home');
+  const primaryLinks = isPortalHome
+    ? `
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="learning.html"><span class="zh">学术学习</span><span class="en">Learning</span></a>
+        <a data-nav href="community.html"><span class="zh">病例社区</span><span class="en">Community</span></a>
+        <a data-nav href="research-pilot.html"><span class="zh">科研合作</span><span class="en">Research</span></a>
+        <a data-nav href="events.html"><span class="zh">会议活动</span><span class="en">Events</span></a>
+        <a data-nav href="about.html"><span class="zh">关于肾域</span><span class="en">About</span></a>`
+    : `
+        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
+        <a data-nav href="community.html"><span class="zh">社区</span><span class="en">Community</span></a>
+        <a data-nav href="moments.html"><span class="zh">动态</span><span class="en">Moments</span></a>
+        <a data-nav href="learning.html"><span class="zh">学习</span><span class="en">Learning</span></a>
+        <a data-nav href="nephro-pro.html"><span class="zh">肾域 Pro</span><span class="en">Nephro Pro</span></a>
+        <a data-nav href="events.html"><span class="zh">活动</span><span class="en">Events</span></a>`;
   injectTopbarExtraStyles();
   header.innerHTML = `
     <div class="container nav-inner">
@@ -122,17 +138,13 @@ function injectNav(){
         </div>
       </a>
       <nav class="menu" aria-label="Primary">
-        <a data-nav href="index.html"><span class="zh">首页</span><span class="en">Home</span></a>
-        <a data-nav href="community.html"><span class="zh">社区</span><span class="en">Community</span></a>
-        <a data-nav href="moments.html"><span class="zh">动态</span><span class="en">Moments</span></a>
-        <a data-nav href="learning.html"><span class="zh">学习</span><span class="en">Learning</span></a>
-        <a data-nav href="nephro-pro.html"><span class="zh">肾域 Pro</span><span class="en">Nephro Pro</span></a>
-        <a data-nav href="events.html"><span class="zh">活动</span><span class="en">Events</span></a>
+        ${primaryLinks}
         <a data-nav href="my-learning.html" data-nav-auth-only hidden><span class="zh">我的</span><span class="en">My</span></a>
       </nav>
       <div class="nav-dropdown">
         <button type="button" class="nav-dropdown-trigger" aria-haspopup="true" aria-expanded="false"><span class="zh">更多</span><span class="en">More</span><span class="chev">▾</span></button>
         <div class="nav-dropdown-menu">
+          ${isPortalHome ? '<a href="nephro-pro.html">肾域 Pro</a><a href="moments.html">社区动态</a>' : ''}
           <a href="academy.html">📋 培训与定价</a>
           <a href="qbank.html">🧪 题库</a>
           <a href="research-pilot.html">🔬 科研试点</a>
@@ -162,6 +174,10 @@ function injectTopbarExtraStyles(){
   const s = document.createElement('style');
   s.id = 'ks-topbar-extra-styles';
   s.textContent = `
+    [data-nav-auth-only][hidden],
+    [data-nav-bell][hidden],
+    [data-nav-bell-badge][hidden],
+    [data-nav-member-badge][hidden]{display:none !important}
     .nav-search{display:flex;align-items:center;margin-left:auto;margin-right:6px;flex-shrink:0}
     .nav-search-input{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:inherit;border-radius:8px;padding:6px 12px;font-size:13px;width:200px;transition:width .2s,background .2s}
     .nav-search-input::placeholder{color:rgba(255,255,255,.4)}
@@ -196,12 +212,12 @@ async function populateTopbarExtras(){
   const memberBadge = document.querySelector('[data-nav-member-badge]');
   const bell        = document.querySelector('[data-nav-bell]');
   const bellBadge   = document.querySelector('[data-nav-bell-badge]');
-  const myLink      = document.querySelector('[data-nav-auth-only]');
+  const myLinks     = document.querySelectorAll('[data-nav-auth-only]');
 
   // Default: hide everything that requires auth
   if(memberBadge) memberBadge.hidden = true;
   if(bell)        bell.hidden = true;
-  if(myLink)      myLink.hidden = true;
+  myLinks.forEach(link => { link.hidden = true; });
 
   if(!isConfigured()) return;
 
@@ -210,7 +226,7 @@ async function populateTopbarExtras(){
   if(!session?.user) return;
 
   // Authenticated → show "我的" link + bell
-  if(myLink) myLink.hidden = false;
+  myLinks.forEach(link => { link.hidden = false; });
   if(bell)   bell.hidden = false;
 
   await ensureSupabase();
@@ -458,7 +474,12 @@ function initMobileDrawer(){
     // Fill links from desktop menu
     const linksRoot = drawer.querySelector('[data-drawer-links]');
     const links = Array.from(menu.querySelectorAll('a[data-nav]'))
-      .map(a => ({ href: a.getAttribute('href'), html: a.innerHTML }));
+      .map(a => ({
+        href: a.getAttribute('href'),
+        html: a.innerHTML,
+        authOnly: a.hasAttribute('data-nav-auth-only'),
+        hidden: a.hidden,
+      }));
     function badgeTypeForHref(href){
       const h = String(href || '').split('#')[0].split('?')[0];
       if(h.endsWith('community.html') || h.endsWith('board.html')) return 'cases';
@@ -470,8 +491,10 @@ function initMobileDrawer(){
       const href = l.href ? String(l.href) : '#';
       const bt = badgeTypeForHref(href);
       const badgeAttr = bt ? ` data-badge="${escapeAttr(bt)}"` : '';
+      const authAttr = l.authOnly ? ' data-nav-auth-only' : '';
+      const hiddenAttr = l.hidden ? ' hidden' : '';
       const dot = bt ? `<span class="badge-dot" aria-hidden="true"></span>` : '';
-      return `<a data-nav${badgeAttr} href="${escapeAttr(href)}">${l.html}${dot}</a>`;
+      return `<a data-nav${badgeAttr}${authAttr}${hiddenAttr} href="${escapeAttr(href)}">${l.html}${dot}</a>`;
     }).join('')
     + `<div class="drawer-divider"></div>
        <div class="drawer-section-title">肾域产品</div>
@@ -487,7 +510,7 @@ function initMobileDrawer(){
     toggle.setAttribute('aria-expanded','true');
     // focus close button for accessibility
     setTimeout(()=>{
-      drawer.querySelector('[data-drawer-close]')?.focus?.();
+      drawer.querySelector('button[data-drawer-close]')?.focus?.();
     }, 0);
   }
 

@@ -27,8 +27,6 @@ const showcaseTabs = Array.from(document.querySelectorAll('[data-home-showcase-t
 const showcasePrevBtn = document.querySelector('[data-home-showcase-prev]');
 const showcaseNextBtn = document.querySelector('[data-home-showcase-next]');
 
-let showcaseActiveKind = 'experts';
-
 function esc(str){
   return String(str ?? '').replace(/[&<>"']/g, s => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
@@ -193,7 +191,8 @@ function setTabActive(kind){
     const k = btn.getAttribute('data-home-showcase-tab');
     const active = k === kind;
     btn.classList.toggle('active', active);
-    btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    btn.removeAttribute('aria-selected');
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
   });
 }
 
@@ -231,7 +230,8 @@ function bindCarouselNav(){
 
   function scrollByStep(dir){
     const s = step();
-    showcaseCardsEl.scrollBy({ left: dir * s, behavior: 'smooth' });
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    showcaseCardsEl.scrollBy({ left: dir * s, behavior: reducedMotion ? 'auto' : 'smooth' });
   }
 
   showcasePrevBtn && showcasePrevBtn.addEventListener('click', (e)=>{
@@ -300,66 +300,25 @@ function bindShowcaseExpand(){
 }
 
 
-function startAutoCarousel(){
-  if(!showcaseCardsEl) return;
-  let last = Date.now();
-  function touch(){ last = Date.now(); }
-  showcaseCardsEl.addEventListener('pointerdown', touch, { passive: true });
-  showcaseCardsEl.addEventListener('wheel', touch, { passive: true });
-  showcaseCardsEl.addEventListener('scroll', ()=>{
-    last = Date.now();
-  }, { passive: true });
-
-  let stopped = false;
-  function tick(){
-    if(stopped || !document.body.contains(showcaseCardsEl)) return;
-    const kind = showcaseActiveKind || 'experts';
-    const interval = (kind === 'experts') ? 2800 : 6500;
-    const pauseAfterInteractionMs = (kind === 'experts') ? 3500 : 6000;
-
-    if(showcaseCardsEl.querySelector('.home-showcase-card.expanded')){
-      setTimeout(tick, interval);
-      return;
-    }
-
-    if(Date.now() - last >= pauseAfterInteractionMs){
-      const max = showcaseCardsEl.scrollWidth - showcaseCardsEl.clientWidth;
-      if(max > 0){
-        const atEnd = showcaseCardsEl.scrollLeft >= max - 10;
-        if(atEnd){
-          showcaseCardsEl.scrollTo({ left: 0, behavior: 'auto' });
-        }else{
-          const first = showcaseCardsEl.querySelector('.home-showcase-card');
-          const rect = first ? first.getBoundingClientRect() : null;
-          const s = rect ? (rect.width + 12) : 320;
-          showcaseCardsEl.scrollBy({ left: s, behavior: 'smooth' });
-        }
-      }
-    }
-
-    setTimeout(tick, interval);
-  }
-  setTimeout(tick, 3200);
-  window.addEventListener('beforeunload', ()=>{ stopped = true; }, { once: true });
+// No autoplay: visitors control the reading pace with buttons or swipe.
+function showShowcaseUnavailable(){
+  if(showcaseStatsEl) showcaseStatsEl.textContent = '';
+  showcaseCardsEl.innerHTML = '<p class="muted small">展示目录暂时未能加载，请通过下方入口查看专家与合作信息。</p>';
+  showcaseTabs.forEach(btn => { btn.disabled = true; });
+  if(showcasePrevBtn) showcasePrevBtn.disabled = true;
+  if(showcaseNextBtn) showcaseNextBtn.disabled = true;
+  if(showcaseActionsEl) showcaseActionsEl.innerHTML = `
+    <a class="btn" href="experts-cn.html">国内专家</a>
+    <a class="btn" href="experts-intl.html">国际专家</a>
+    <a class="btn" href="partners.html">合作目录</a>
+  `;
 }
 
 async function loadHomeShowcase(){
   if(!showcaseSection || !showcaseCardsEl) return;
 
   if(!isConfigured() || !supabase){
-    if(showcaseStatsEl){
-      showcaseStatsEl.innerHTML = `
-        <span class="chip">核心专家 0</span>
-        <span class="chip">旗舰中心 0</span>
-        <span class="chip">共建单位 0</span>
-        <span class="chip">合作单位 0</span>
-      `;
-    }
-    showcaseCardsEl.innerHTML = `
-      <div class="muted small">配置数据源后将自动展示核心专家、旗舰中心与合作单位。</div>
-    `;
-    updateShowcaseActions('experts');
-    bindCarouselNav();
+    showShowcaseUnavailable();
     return;
   }
 
@@ -419,7 +378,6 @@ async function loadHomeShowcase(){
 
     function render(kind){
       const list = byTab[kind] || [];
-      showcaseActiveKind = kind || 'experts';
       setTabActive(kind);
       updateShowcaseActions(kind);
       if(list.length === 0){
@@ -444,10 +402,9 @@ async function loadHomeShowcase(){
     bindCarouselNav();
     bindShowcaseExpand();
     render('experts');
-    startAutoCarousel();
   }catch(e){
     console.error('Home showcase load failed', e);
-    showcaseCardsEl.innerHTML = `<div class="muted small">读取展示内容失败。</div>`;
+    showShowcaseUnavailable();
   }
 }
 
