@@ -1409,6 +1409,9 @@ populateTopbarExtras();
 
 // 语音录入模块 — 自动为所有文本框添加麦克风按钮
 (function loadVoiceModule(){
+  // The compact home search has its own submit button; the shared microphone
+  // overlays that action. Keep voice input unchanged on every other page.
+  if(document.body.hasAttribute('data-portal-home')) return;
   var link = document.createElement('link');
   link.rel = 'stylesheet';
   link.href = 'shared/ks-voice.css';

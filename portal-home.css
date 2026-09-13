@@ -14,6 +14,10 @@ html.portal-document { height: auto; min-height: 100%; overflow-x: clip; }
   color: var(--text); background: #fff; line-height: 1.65;
 }
 .portal-home [hidden] { display: none !important; }
+/* Netlify injects this preview-only toolbar, which the site's existing CSP
+   blocks. Hide that exact toolbar so it cannot cover learning controls; do
+   not change frame policy or hide any course/player iframe. */
+.portal-home iframe[title="Netlify Drawer"] { display: none !important; }
 .portal-home main:focus { outline: none; }
 .portal-home [id] { scroll-margin-top: 96px; }
 .portal-home :is(a,button,input,summary):focus-visible { outline: 3px solid #216fe3; outline-offset: 4px; }

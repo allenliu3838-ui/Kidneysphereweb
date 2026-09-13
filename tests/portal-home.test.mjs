@@ -961,3 +961,9 @@ test('scoped member badge state colors override later shared style injection on 
     assert.ok(contrastRatio(cssHex(rule, 'color'), '#eef5ff') >= 4.5, `Insufficient member badge state contrast: ${state}`);
   }
 });
+
+test('compact homepage search keeps its submit action free of the shared voice overlay', () => {
+  const loader = appSource.slice(appSource.indexOf('(function loadVoiceModule(){'));
+  assert.match(loader, /hasAttribute\('data-portal-home'\)\) return;[\s\S]*shared\/ks-voice\.js/);
+  assert.match(indexHtml, /<button type="submit" aria-label="搜索视频">搜索<\/button>/);
+});

@@ -16,6 +16,7 @@
     button { cursor: pointer; }
     main { padding: 20px; overflow-x: auto; }
     iframe { display: block; width: 390px; height: 844px; background: white; border: 0; box-shadow: 0 6px 28px #112d5033; }
+    iframe[title="Netlify Drawer"] { display: none !important; }
     pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 15px 20px; font-size: 12px; }
   </style>
 </head>
@@ -69,7 +70,7 @@
     document.getElementById('audit').addEventListener('click', audit);
     (async () => {
       try {
-        const response = await fetch('../index.html?v=20260913_002', { cache: 'no-store' });
+        const response = await fetch('../index.html?v=20260913_003', { cache: 'no-store' });
         if (!response.ok) throw new Error('无法读取首页源码');
         const html = await response.text();
         const root = new URL('../', location.href);
