@@ -22,6 +22,8 @@ body:not(.portal-home) :is(.tier-for, .p-label, .p-includes, .flow-desc, .ci-ind
 }
 body:not(.portal-home) :is(.curriculum-item, .module-heading, .faq-item, .order-summary .total) { border-color: var(--border); }
 body:not(.portal-home) .module-heading { color: #1758a9; }
+body:not(.portal-home) .price-option .rec-tag { color: #1758a9; }
+body:not(.portal-home) .enroll-opt [style*="color:#3f83f8"] { color: #1758a9 !important; }
 body:not(.portal-home) .flow-num { background: #e4efff; color: #1758a9; }
 body:not(.portal-home) :is(.early-bird-bar, .bundle-banner, .eb-notice) { background: #fff8e8; border-color: #e6cc91; }
 body:not(.portal-home) :is(.eb-label, .eb-notice b, .active-banner b) { color: #875300; }
