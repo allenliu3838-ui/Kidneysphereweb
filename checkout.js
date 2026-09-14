@@ -6,6 +6,7 @@ import {
   supabase, ensureSupabase, isConfigured,
   getCurrentUser, getUserProfile, toast, formatBeijingDateTime,
 } from './supabaseClient.js?v=20260401_fix';
+import { classifyTrainingProduct, isRetiredTrainingReplay, checkoutOrderSummary } from './training-commerce.js?v=20260914_pricing1';
 
 /* ── helpers ── */
 function esc(s) {
@@ -44,7 +45,7 @@ async function loadExistingOrder() {
 
   const { data: order, error } = await supabase
     .from('orders')
-    .select('id, order_no, total_amount_cny, status, channel, order_items(product_id, product_title, amount_cny, quantity)')
+    .select('id, user_id, order_no, total_amount_cny, status, channel, order_items(product_id, product_title, amount_cny, quantity)')
     .eq('id', orderId)
     .eq('user_id', _user.id)
     .single();
@@ -59,15 +60,12 @@ async function loadExistingOrder() {
     return false;
   }
 
-  // Build a product-like object from the order for display
-  const items = Array.isArray(order.order_items) ? order.order_items : [];
-  const title = items.map(i => i.product_title).filter(Boolean).join('、') || '订单商品';
-  _product = {
-    id: items[0]?.product_id || null,
-    title,
-    price_cny: order.total_amount_cny,
-    subtitle: order.status === 'rejected' ? '重新提交付款凭证' : null,
-  };
+  try {
+    _product = checkoutOrderSummary(order, _user.id);
+  } catch (err) {
+    gate.innerHTML = `<b>${esc(err.message)}</b>`;
+    return false;
+  }
   _order = { id: order.id, order_no: order.order_no };
   if (order.channel) _channel = order.channel;
 
@@ -99,6 +97,10 @@ async function loadProduct() {
     gate.innerHTML = '<b>商品未找到。</b>该商品可能已下架或编码有误。';
     return false;
   }
+  if (isRetiredTrainingReplay(data)) {
+    gate.innerHTML = '<b>该回放版已停止销售。</b>请到 <a href="academy.html">肾域学院</a>选择培训报名或专科整套课。已购课程可在 <a href="my-learning.html">我的学习</a>中访问。';
+    return false;
+  }
 
   _product = data;
   return true;
@@ -119,7 +121,7 @@ function renderSummary() {
   wrap.innerHTML = `
     <div class="line"><span>${esc(_product.title)}</span><span>¥${esc(String(_product.price_cny))}</span></div>
     ${_product.subtitle ? `<div class="small muted" style="padding:2px 0">${esc(_product.subtitle)}</div>` : ''}
-    ${_product.list_price_cny ? `<div class="line small muted"><span>原价</span><span><s>¥${esc(String(_product.list_price_cny))}</s></span></div>` : ''}
+    ${_product.list_price_cny && !classifyTrainingProduct(_product) ? `<div class="line small muted"><span>原价</span><span><s>¥${esc(String(_product.list_price_cny))}</s></span></div>` : ''}
     <div class="line total"><span>合计</span><span>¥${esc(String(_product.price_cny))}</span></div>
   `;
 }
@@ -142,9 +144,22 @@ async function createOrder() {
     if (error) throw error;
     if (!data?.ok) throw new Error(data?.message || '创建订单失败');
 
-    _order = { id: data.order_id, order_no: data.order_no };
-    document.getElementById('displayOrderNo').textContent = data.order_no;
-    toast('订单已创建', `订单号: ${data.order_no}`, 'ok');
+    // The RPC can reuse an older pending order. Its stored amount is authoritative.
+    const { data: storedOrder, error: orderError } = await supabase.from('orders')
+      .select('id, user_id, order_no, total_amount_cny, status, channel, order_items(product_id, product_title, amount_cny, quantity)')
+      .eq('id', data.order_id).eq('user_id', _user.id).single();
+    if (orderError) throw orderError;
+    const summary = checkoutOrderSummary(storedOrder, _user.id);
+    if (storedOrder.order_items.length !== 1 || summary.id !== _product.id
+        || storedOrder.order_items[0].quantity !== 1) {
+      throw new Error('返回的订单与所选商品不一致，请在“我的学习”核对订单。');
+    }
+    _product = summary;
+    _order = { id: storedOrder.id, order_no: storedOrder.order_no };
+    if (storedOrder.channel) _channel = storedOrder.channel;
+    document.getElementById('displayOrderNo').textContent = _order.order_no;
+    renderSummary();
+    toast('订单已确认', `订单号: ${_order.order_no}`, 'ok');
     showPayStep();
   } catch (err) {
     toast('创建订单失败', err.message, 'err');
@@ -156,6 +171,8 @@ async function createOrder() {
 
 /* ── show payment step ── */
 function showPayStep() {
+  const amount = document.getElementById('displayOrderAmount');
+  if (amount) amount.textContent = `¥${Number(_product.price_cny).toFixed(2)}`;
   setStep(2);
   updatePayUI();
 }

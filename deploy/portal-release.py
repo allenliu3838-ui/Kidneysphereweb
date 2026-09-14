@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Pinned, offline portal releases with fixed scopes. Python 3.8+, stdlib only."""
 import argparse
+import base64
 import contextlib
 import datetime
 import fcntl
@@ -15,6 +16,9 @@ import stat
 import subprocess
 import sys
 import tempfile
+import urllib.error
+import urllib.parse
+import urllib.request
 import zipfile
 
 DOMAIN = 'kidneysphere.com'
@@ -49,6 +53,27 @@ BLUE_DEPTH_FILES = (
     'portal-home.css', 'portal-home.js', 'home.js', 'app.js', 'portal-motion.js',
     'styles.css',
 ) + SITE_THEME_HTML + ('index.html',)
+TRAINING_PRICING_FILES = (
+    'training-commerce.js', 'academy.js', 'trainingprograms.js', 'checkout.js',
+    'learning-center.js', 'academy.html', 'checkout.html', 'learning.html',
+    'training-icu.html', 'training-tx.html', 'training-patho.html',
+    'training-glom.html', 'training-da.html',
+)
+TRAINING_PRICING_REQUIRED_FILES = ('supabaseClient.js', 'assets/config.js',
+    'assets/lib/supabase.min.js', 'app.js', 'styles.css', 'vod-upload.js',
+    'media-batch.js', 'media-batch-save.js', 'media-batch-ui.js', 'media-batch.css')
+TRAINING_PRICING_GUARDS = (
+    'index.html', 'home.js', 'portal-home.js', 'portal-home.css', 'app.js',
+    'assets/config.js', 'assets/videos.js', 'assets/lib/supabase.min.js',
+    'server/index.js', 'server/package.json',
+    'netlify/functions/video-access.js', 'netlify/functions/dev-grant-access.js',
+    'netlify/functions/video-upload-auth.js', 'netlify/functions/video-play-auth.js',
+    'media-upload.js', 'media-player.js', 'media-player.css', 'vod-upload.js',
+    'media-batch.js', 'media-batch-save.js', 'media-batch.css', 'media-batch-ui.js',
+)
+TRAINING_PREFIXES = ('GLOM', 'ICU', 'TX', 'PATHO', 'DA')
+CATALOG_HOST = 'eaatpwakhcjxjonlyfii.supabase.co'
+CATALOG_RESPONSE_LIMIT = 512 * 1024
 GUARD_PATHS = tuple(ROOT / p for p in ('login.html', 'register.html', 'watch.html',
     'my-learning.html', 'videos.html', 'academy.html', 'supabaseClient.js', 'styles.css')) + (
     Path('/var/www/kidneysphere-doctor/dist/index.html'),
@@ -117,7 +142,8 @@ def read_state(path):
 def release_files(manifest):
     profile = manifest.get('release_profile', 'homepage-v1')
     profiles = {'homepage-v1': FILES, 'site-theme-v1': SITE_THEME_FILES,
-                'blue-depth-v1': BLUE_DEPTH_FILES}
+                'blue-depth-v1': BLUE_DEPTH_FILES,
+                'training-pricing-v1': TRAINING_PRICING_FILES}
     require(profile in profiles, 'UNKNOWN_RELEASE_PROFILE')
     return profiles[profile]
 
@@ -131,6 +157,10 @@ def guard_states(manifest=None):
             'index.html', 'home.js', 'portal-home.js', 'portal-home.css', 'app.js',
             'assets/config.js', 'assets/videos.js', 'assets/lib/supabase.min.js',
         ))
+        paths = [path for path in paths if path not in payload_paths]
+    if manifest is not None and manifest.get('release_profile') == 'training-pricing-v1':
+        payload_paths = {ROOT / name for name in release_files(manifest)}
+        paths.extend(ROOT / name for name in TRAINING_PRICING_GUARDS)
         paths = [path for path in paths if path not in payload_paths]
     for path in dict.fromkeys(paths):
         # Configs in sites-enabled may legitimately be links; guards are read-only.
@@ -167,9 +197,122 @@ def validate_manifest(manifest):
         if manifest.get('release_profile') == 'blue-depth-v1':
             require(entry['path'] in ('site-light.css', 'site-page-themes.css', 'portal-motion.js') or
                     not entry['allow_missing'], 'EXISTING_DEPTH_RESOURCE_MUST_EXIST')
+        if manifest.get('release_profile') == 'training-pricing-v1':
+            require(entry['path'] == 'training-commerce.js' or not entry['allow_missing'],
+                    'EXISTING_PRICING_RESOURCE_MUST_EXIST')
     require(isinstance(manifest.get('required_files'), list), 'INVALID_REQUIRED_FILES')
     for name in manifest['required_files']:
         relative_path(name)
+    if manifest.get('release_profile') == 'training-pricing-v1':
+        require(manifest['required_files'] == list(TRAINING_PRICING_REQUIRED_FILES),
+                'PRICING_DEPENDENCY_ALLOWLIST_MISMATCH')
+
+
+def public_catalog_config():
+    """Read only the two public constants, without evaluating runtime JavaScript."""
+    unused, data = read_state(ROOT / 'assets/config.js')
+    require(data is not None and len(data) <= 256 * 1024, 'PUBLIC_CONFIG_UNAVAILABLE')
+    try:
+        source = data.decode('utf-8')
+        values = {}
+        for name in ('SUPABASE_URL', 'SUPABASE_ANON_KEY'):
+            matches = re.findall(r'^export\s+const\s+' + name +
+                r'\s*=\s*([\"\'])([^\"\'\r\n\\]+)\1\s*;', source, flags=re.M)
+            require(len(matches) == 1, 'PUBLIC_CONFIG_FORMAT_NOT_SUPPORTED')
+            values[name] = matches[0][1]
+        require(values['SUPABASE_URL'] == 'https://' + CATALOG_HOST,
+                'PUBLIC_CATALOG_PROJECT_MISMATCH')
+        key = values['SUPABASE_ANON_KEY']
+        require(re.fullmatch(r'[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+', key)
+                is not None, 'PUBLIC_ANON_KEY_REQUIRED')
+        encoded = key.split('.')[1]
+        claims = json.loads(base64.urlsafe_b64decode(encoded + '=' * (-len(encoded) % 4)))
+        require(isinstance(claims, dict) and claims.get('role') == 'anon' and
+                claims.get('ref') == CATALOG_HOST.split('.')[0], 'PUBLIC_ANON_KEY_REQUIRED')
+    except (UnicodeError, ValueError, KeyError, TypeError) as error:
+        raise ReleaseError('PUBLIC_CONFIG_FORMAT_NOT_SUPPORTED') from error
+    return values['SUPABASE_URL'], key
+
+
+class NoCatalogRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        # Public credentials must never follow a server-controlled redirect.
+        raise ReleaseError('PUBLIC_CATALOG_REDIRECT_REFUSED')
+
+
+def public_catalog_get(config, table, query):
+    require(table in ('products', 'learning_projects', 'product_price_versions'),
+            'PUBLIC_CATALOG_TABLE_NOT_ALLOWED')
+    base, key = config
+    require(base == 'https://' + CATALOG_HOST, 'PUBLIC_CATALOG_PROJECT_MISMATCH')
+    address = base + '/rest/v1/' + table + '?' + urllib.parse.urlencode(query)
+    request = urllib.request.Request(address, method='GET', headers={
+        'apikey': key, 'Authorization': 'Bearer ' + key,
+        'Accept': 'application/json', 'Cache-Control': 'no-cache',
+    })
+    try:
+        with urllib.request.build_opener(NoCatalogRedirect()).open(request, timeout=15) as response:
+            require(response.status == 200, 'PUBLIC_CATALOG_HTTP_FAILED')
+            raw = response.read(CATALOG_RESPONSE_LIMIT + 1)
+        require(len(raw) <= CATALOG_RESPONSE_LIMIT, 'PUBLIC_CATALOG_RESPONSE_TOO_LARGE')
+        rows = json.loads(raw.decode('utf-8'))
+    except (urllib.error.URLError, OSError, UnicodeError, ValueError) as error:
+        # Do not echo headers, key, response body or credentials in exception text.
+        raise ReleaseError('PUBLIC_CATALOG_UNAVAILABLE; check connectivity and SQL migration') from error
+    require(isinstance(rows, list) and all(isinstance(row, dict) for row in rows),
+            'PUBLIC_CATALOG_INVALID_RESPONSE')
+    return rows
+
+
+def check_training_catalog():
+    """Fail closed until public catalog reflects the separately applied SQL migration."""
+    config = public_catalog_config()
+    product_codes = tuple(prefix + suffix for prefix in TRAINING_PREFIXES
+        for suffix in ('-REG-FULL-2026', '-BUNDLE-2026', '-REG-VIDEO-2026'))
+    rows = public_catalog_get(config, 'products', {
+        'select': 'id,product_code,product_type,price_cny,list_price_cny,early_bird_deadline,is_active',
+        'product_code': 'in.(' + ','.join(product_codes) + ')', 'limit': '16',
+    })
+    products = {row.get('product_code'): row for row in rows}
+    require(len(rows) == 15 and len(products) == 15 and set(products) == set(product_codes),
+            'TRAINING_CATALOG_NOT_READY: expected all 15 product records')
+    for code, product in products.items():
+        require(set(('id', 'product_code', 'product_type', 'price_cny', 'list_price_cny',
+                    'early_bird_deadline', 'is_active')).issubset(product),
+                'TRAINING_CATALOG_NOT_READY: missing product fields')
+        require(re.fullmatch(r'[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}',
+                    str(product.get('id', ''))) is not None,
+                'TRAINING_CATALOG_NOT_READY: invalid product identifier')
+        require(product.get('list_price_cny') is None and product.get('early_bird_deadline') is None,
+                'TRAINING_CATALOG_NOT_READY: old promotion remains for ' + code)
+        if '-REG-VIDEO-' in code:
+            require(product.get('product_type') == 'project_registration' and
+                    product.get('is_active') is False,
+                    'TRAINING_CATALOG_NOT_READY: replay SKU still on sale: ' + code)
+        else:
+            bundle = '-BUNDLE-' in code
+            require(product.get('product_type') == ('specialty_bundle' if bundle else 'project_registration')
+                    and type(product.get('price_cny')) in (int, float)
+                    and product['price_cny'] == (1200 if bundle else 1580)
+                    and type(product.get('is_active')) is bool,
+                    'TRAINING_CATALOG_NOT_READY: price or type mismatch for ' + code)
+    project_codes = tuple('PROJ-' + prefix + '-2026' for prefix in TRAINING_PREFIXES)
+    projects = public_catalog_get(config, 'learning_projects', {
+        'select': 'project_code,registration_fee_cny',
+        'project_code': 'in.(' + ','.join(project_codes) + ')', 'limit': '6',
+    })
+    require(len(projects) == 5 and {p.get('project_code') for p in projects} == set(project_codes)
+            and all(type(p.get('registration_fee_cny')) in (int, float) and
+                    p['registration_fee_cny'] == 1580 for p in projects),
+            'TRAINING_CATALOG_NOT_READY: expected five project fees of 1580')
+    versions = public_catalog_get(config, 'product_price_versions', {
+        'select': 'product_id,status', 'product_id': 'in.(' +
+            ','.join(products[code]['id'] for code in product_codes) + ')',
+        'status': 'eq.active', 'limit': '1',
+    })
+    require(not versions, 'TRAINING_CATALOG_NOT_READY: active legacy price version remains')
+    return {'status': 'CATALOG_OK', 'products': 15, 'projects': 5,
+            'replay_products_off_sale': 5, 'active_legacy_price_versions': 0}
 
 
 def load_package(package_path=None):
@@ -238,7 +381,7 @@ def disk_check(old_bytes, new_bytes):
                 'INSUFFICIENT_DISK_SPACE: ' + str(path))
 
 
-def preflight(package):
+def preflight(package, require_catalog=True):
     manifest = package['manifest']
     validate_manifest(manifest)
     for entry in manifest['files']:
@@ -266,9 +409,17 @@ def preflight(package):
     require(not unknown, 'BASELINE_CHECK_FAILED; no website files written')
     disk_check(sum(s.get('size', 0) for s in states.values()),
                sum(e['size'] for e in manifest['files']))
-    return {'states': states, 'guards': guard_states(manifest),
-            'no_change': all(states[e['path']].get('sha256') == e['sha256']
-                             for e in manifest['files'])}
+    result = {'states': states, 'guards': guard_states(manifest),
+              'no_change': all(states[e['path']].get('sha256') == e['sha256']
+                               for e in manifest['files'])}
+    if manifest.get('release_profile') == 'training-pricing-v1':
+        try:
+            result['catalog'] = check_training_catalog()
+        except ReleaseError as error:
+            if require_catalog:
+                raise
+            result['catalog'] = {'status': 'CATALOG_NOT_READY', 'reason': str(error)}
+    return result
 
 
 def fsync_directory(path):
@@ -505,6 +656,9 @@ def apply_release(package):
                 temporary.unlink(missing_ok=True)
         print('RELEASE_OK: all ' + str(len(files)) +
               ' local file hashes and unchanged guards verified; no services restarted', flush=True)
+        if package['manifest'].get('release_profile') == 'training-pricing-v1':
+            print('CATALOG_OK: 15 products and 5 project fees verified by read-only public queries. '
+                  'This package did not change the database. File rollback does not roll back SQL.', flush=True)
         print('Public website and authenticated video checks remain to be completed.', flush=True)
         return backup
 
@@ -523,9 +677,16 @@ def main(argv=None):
         elif arguments.rollback:
             rollback_release(arguments.rollback, package)
         else:
-            checked = preflight(package)
-            print('NO_CHANGE' if checked['no_change'] else 'CHECK_OK: ' +
-                  str(len(release_files(package['manifest']))) + '-file release ready; no files written')
+            checked = preflight(package, require_catalog=False)
+            catalog = checked.get('catalog')
+            if catalog and catalog['status'] != 'CATALOG_OK':
+                print('FILES_CHECK_OK; ' + catalog['reason'] +
+                      '; apply is blocked until the SQL migration and catalog checks succeed; no files written')
+            else:
+                if catalog:
+                    print(json.dumps(catalog, ensure_ascii=False))
+                print('NO_CHANGE' if checked['no_change'] else 'CHECK_OK: ' +
+                      str(len(release_files(package['manifest']))) + '-file release ready; no files written')
         return 0
     except (ReleaseError, OSError, ValueError, KeyError, TypeError, zipfile.BadZipFile,
             subprocess.SubprocessError) as error:

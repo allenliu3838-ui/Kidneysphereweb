@@ -20,6 +20,7 @@ import { createVodUploader } from './vod-upload.js?v=20260914_batch1';
 import { BatchQueue } from './media-batch.js?v=20260914_batch1';
 import { mountBatchUpload } from './media-batch-ui.js?v=20260914_batch1';
 import { saveBatchCourse } from './media-batch-save.js?v=20260914_batch1';
+import { classifyTrainingProduct, isRetiredTrainingReplay } from './training-commerce.js?v=20260914_pricing1';
 
 const videoAddForm = document.getElementById('videoAddForm');
 const videoAdminPanelEl = document.getElementById('videoAdminPanel')
@@ -1314,7 +1315,7 @@ async function loadTrainingProjects(){
       return;
     }
 
-    // Fetch related products for buy buttons (full+video editions)
+    // Fetch active registration products. Retired replay editions are never sold.
     const { data: allProducts } = await supabase
       .from('products')
       .select('id, product_code, title, subtitle, price_cny, list_price_cny, product_type, project_id')
@@ -1324,6 +1325,7 @@ async function loadTrainingProjects(){
 
     const productsByProject = {};
     for(const p of (allProducts || [])){
+      if (isRetiredTrainingReplay(p)) continue;
       if(p.project_id){
         if(!productsByProject[p.project_id]) productsByProject[p.project_id] = [];
         productsByProject[p.project_id].push(p);
@@ -1352,12 +1354,11 @@ async function loadTrainingProjects(){
         const sl = PROJECT_STATUS_LABELS[proj.status] || { label: proj.status, color: 'gray' };
         const hasAccess = userEnts.has(proj.id);
         const prods = productsByProject[proj.id] || [];
-        const fullProd  = prods.find(p => /full|完整|报名/.test(p.product_code + p.title));
+        const fullProd = prods.find(p => classifyTrainingProduct(p) === 'registration');
 
         function priceTag(p){
           if(!p) return '';
-          const early = p.list_price_cny ? `<s class="muted" style="font-weight:400">¥${esc(String(p.list_price_cny))}</s> ` : '';
-          return `${early}<b>¥${esc(String(p.price_cny))}</b>`;
+          return `<b>¥${esc(String(p.price_cny))}</b>`;
         }
 
         let ctaHtml = '';
