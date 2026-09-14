@@ -18,7 +18,8 @@
     .order-summary{background:rgba(255,255,255,.04);border-radius:14px;padding:16px;margin:12px 0}
     .order-summary .line{display:flex;justify-content:space-between;padding:4px 0}
     .order-summary .total{font-size:20px;font-weight:700;border-top:1px solid rgba(255,255,255,.1);padding-top:8px;margin-top:8px}
-    .step-indicator{display:flex;gap:8px;margin:16px 0;font-size:13px}
+    .step-indicator{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0;font-size:13px}
+    .pay-methods .btn,#proofForm .btn{min-height:44px}
     .step-indicator .step{padding:6px 14px;border-radius:999px;background:rgba(255,255,255,.06)}
     .step-indicator .step.active{background:var(--brand);color:#fff}
     .step-indicator .step.done{background:rgba(34,197,94,.15);color:#22c55e}
@@ -105,14 +106,20 @@
           <!-- Step 3: Upload proof -->
           <div class="card" id="step3" hidden>
             <h3>上传支付凭证</h3>
+            <div class="note small" id="proofOrderNotice"></div>
             <form id="proofForm">
               <label>支付截图 *
-                <input class="input" type="file" name="proof" accept="image/*,.pdf" required />
+                <input class="input" type="file" name="proof" accept="image/jpeg,image/png,image/webp,application/pdf" required />
               </label>
+              <p class="small muted">支持 JPG、PNG、WebP 或 PDF，单文件不超过 10 MB。</p>
+              <label>实际付款金额（元） *
+                <input class="input" type="number" name="paid_amount" min="0.01" step="0.01" inputmode="decimal" required />
+              </label>
+              <p class="small muted">请按付款记录核对金额。管理员核实到账后开通所购课程和项目。</p>
 
               <!-- 联系方式（至少填一项，方便拉群） -->
               <div style="margin-top:14px;padding:12px 14px;background:rgba(255,255,255,.04);border-radius:10px;border:1px solid rgba(255,255,255,.08)">
-                <p class="small" style="margin:0 0 8px;opacity:.85">📱 请至少填写一种联系方式，方便我们拉您进入学习群：</p>
+                <p class="small" style="margin:0 0 8px;opacity:.85">请至少填写一种联系方式，便于核款和通知培训安排：</p>
                 <div class="grid cols-3" style="gap:10px">
                   <label>微信号<input class="input" name="contact_wechat" placeholder="推荐填写" /></label>
                   <label>手机号<input class="input" name="contact_phone" type="tel" placeholder="可选" /></label>
@@ -126,7 +133,7 @@
                 <label>流水号后4位<input class="input" name="ref_last4" maxlength="4" placeholder="可选" /></label>
               </div>
               <label style="margin-top:10px">备注<input class="input" name="note" placeholder="可选" /></label>
-              <div id="proofHint" class="small muted" style="margin-top:8px"></div>
+              <div id="proofHint" class="small muted" style="margin-top:8px" role="status" aria-live="polite"></div>
               <button class="btn primary" type="submit" style="margin-top:12px">提交凭证</button>
             </form>
           </div>
@@ -135,8 +142,8 @@
           <div class="card" id="stepDone" hidden>
             <div style="text-align:center;padding:20px 0 8px">
               <div style="font-size:40px;margin-bottom:8px">✅</div>
-              <h3>凭证已提交</h3>
-              <p class="muted" style="margin-top:6px">审核通常在 1 个工作日内完成，通过后权益自动开通。</p>
+              <h3 id="proofDoneTitle">凭证已提交，等待核款</h3>
+              <p class="muted" id="proofDoneMessage" style="margin-top:6px">管理员核实到账后，会自动开通所购权益。</p>
               <p class="muted small" style="margin-top:6px">订单号：<code id="doneOrderNo">—</code></p>
             </div>
 
@@ -146,7 +153,7 @@
               <div style="font-size:13px;line-height:2;opacity:.8">
                 <div>1. 等待管理员审核（24小时内）</div>
                 <div>2. 审核通过后，在「<a href="my-learning.html">我的学习</a>」查看已开通权益</div>
-                <div>3. 报名版学员：在「已报名项目」获取微信群二维码</div>
+                <div>3. 完整版报名学员：在「已报名项目」查看班期与可用的入群入口</div>
                 <div>4. 班期确定后，通知中心会推送开课提醒</div>
                 <div>5. 有问题请联系 <a href="mailto:china@kidneysphere.com">china@kidneysphere.com</a></div>
               </div>
@@ -179,6 +186,6 @@
   <footer class="footer"></footer>
 
   <script type="module" src="app.js?v=20260323_001"></script>
-  <script type="module" src="checkout.js?v=20260914_pricing1"></script>
+  <script type="module" src="checkout.js?v=20260914_payment1"></script>
 </body>
 </html>

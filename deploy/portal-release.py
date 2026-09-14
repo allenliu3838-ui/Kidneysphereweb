@@ -71,6 +71,27 @@ TRAINING_PRICING_GUARDS = (
     'media-upload.js', 'media-player.js', 'media-player.css', 'vod-upload.js',
     'media-batch.js', 'media-batch-save.js', 'media-batch.css', 'media-batch-ui.js',
 )
+PAYMENT_TRAINING_BASELINES = (
+    '4a3e70af6fecf9ec59daee4e731b464154ece573',
+    'dca7f2c23d2d90358268b4df008f95f3f7063ecd',
+)
+PAYMENT_TRAINING_FILES = (
+    'training-commerce.js', 'my-learning-display.js', 'admin-commerce-review.js',
+    'academy.js', 'trainingprograms.js', 'checkout.js', 'learning-center.js',
+    'admin-commerce-orders.js', 'admin-commerce-products.js', 'admin-commerce-config.js',
+    'admin-commerce-entitlements.js', 'admin-commerce-projects.js',
+    'admin-commerce-cohorts.js', 'admin-commerce-groups.js', 'admin-commerce-templates.js',
+    'admin-commerce-audit.js', 'admin-commerce.js', 'my-learning.js',
+    'academy.html', 'checkout.html', 'learning.html', 'training-icu.html',
+    'training-tx.html', 'training-patho.html', 'training-glom.html', 'training-da.html',
+    'videos.html', 'admin-commerce.html', 'my-learning.html',
+)
+PAYMENT_TRAINING_NEW_FILES = ('training-commerce.js', 'my-learning-display.js',
+                              'admin-commerce-review.js')
+PAYMENT_TRAINING_VERSION = {
+    'payment_release': 'payment-enrollment-20260914-v1', 'payment_state': 'applied',
+    'pricing_release': 'training-prices-20260914-v1', 'pricing_state': 'applied',
+}
 TRAINING_PREFIXES = ('GLOM', 'ICU', 'TX', 'PATHO', 'DA')
 CATALOG_HOST = 'eaatpwakhcjxjonlyfii.supabase.co'
 CATALOG_RESPONSE_LIMIT = 512 * 1024
@@ -143,7 +164,8 @@ def release_files(manifest):
     profile = manifest.get('release_profile', 'homepage-v1')
     profiles = {'homepage-v1': FILES, 'site-theme-v1': SITE_THEME_FILES,
                 'blue-depth-v1': BLUE_DEPTH_FILES,
-                'training-pricing-v1': TRAINING_PRICING_FILES}
+                'training-pricing-v1': TRAINING_PRICING_FILES,
+                'payment-training-v1': PAYMENT_TRAINING_FILES}
     require(profile in profiles, 'UNKNOWN_RELEASE_PROFILE')
     return profiles[profile]
 
@@ -158,7 +180,7 @@ def guard_states(manifest=None):
             'assets/config.js', 'assets/videos.js', 'assets/lib/supabase.min.js',
         ))
         paths = [path for path in paths if path not in payload_paths]
-    if manifest is not None and manifest.get('release_profile') == 'training-pricing-v1':
+    if manifest is not None and manifest.get('release_profile') in ('training-pricing-v1', 'payment-training-v1'):
         payload_paths = {ROOT / name for name in release_files(manifest)}
         paths.extend(ROOT / name for name in TRAINING_PRICING_GUARDS)
         paths = [path for path in paths if path not in payload_paths]
@@ -200,12 +222,34 @@ def validate_manifest(manifest):
         if manifest.get('release_profile') == 'training-pricing-v1':
             require(entry['path'] == 'training-commerce.js' or not entry['allow_missing'],
                     'EXISTING_PRICING_RESOURCE_MUST_EXIST')
+        if manifest.get('release_profile') == 'payment-training-v1':
+            require(entry['path'] in PAYMENT_TRAINING_NEW_FILES or not entry['allow_missing'],
+                    'EXISTING_PAYMENT_RESOURCE_MUST_EXIST')
     require(isinstance(manifest.get('required_files'), list), 'INVALID_REQUIRED_FILES')
     for name in manifest['required_files']:
         relative_path(name)
-    if manifest.get('release_profile') == 'training-pricing-v1':
+    if manifest.get('release_profile') in ('training-pricing-v1', 'payment-training-v1'):
         require(manifest['required_files'] == list(TRAINING_PRICING_REQUIRED_FILES),
                 'PRICING_DEPENDENCY_ALLOWLIST_MISMATCH')
+    if manifest.get('release_profile') == 'payment-training-v1':
+        groups = manifest.get('baseline_groups')
+        require(isinstance(groups, list) and len(groups) == 2 and all(isinstance(g, dict) for g in groups) and
+                [g.get('commit') for g in groups] == list(PAYMENT_TRAINING_BASELINES),
+                'PAYMENT_BASELINE_COMMITS_MISMATCH')
+        for group in groups:
+            hashes = group.get('files')
+            require(isinstance(hashes, dict) and list(hashes) == list(PAYMENT_TRAINING_FILES),
+                    'PAYMENT_BASELINE_ALLOWLIST_MISMATCH')
+            for entry in entries:
+                value = hashes[entry['path']]
+                require((value is None and entry['path'] in PAYMENT_TRAINING_NEW_FILES) or
+                        (isinstance(value, str) and re.fullmatch(r'[0-9a-f]{64}', value)),
+                        'INVALID_PAYMENT_BASELINE_HASH')
+        for entry in entries:
+            values = [g['files'][entry['path']] for g in groups]
+            require(entry['allowed_before'] == list(dict.fromkeys(v for v in values if v is not None))
+                    and entry['allow_missing'] == (None in values),
+                    'PAYMENT_BASELINE_ENTRY_MISMATCH')
 
 
 def public_catalog_config():
@@ -315,6 +359,34 @@ def check_training_catalog():
             'replay_products_off_sale': 5, 'active_legacy_price_versions': 0}
 
 
+def public_payment_release_get(config):
+    """One fixed, argument-free GET RPC exposes release metadata only."""
+    base, key = config
+    require(base == 'https://' + CATALOG_HOST, 'PUBLIC_CATALOG_PROJECT_MISMATCH')
+    request = urllib.request.Request(base + '/rest/v1/rpc/get_payment_enrollment_release',
+        method='GET', headers={'apikey': key, 'Authorization': 'Bearer ' + key,
+                             'Accept': 'application/json', 'Cache-Control': 'no-cache'})
+    try:
+        with urllib.request.build_opener(NoCatalogRedirect()).open(request, timeout=15) as response:
+            require(response.status == 200, 'PAYMENT_VERSION_HTTP_FAILED')
+            raw = response.read(8193)
+        require(len(raw) <= 8192, 'PAYMENT_VERSION_RESPONSE_TOO_LARGE')
+        version = json.loads(raw.decode('utf-8'))
+    except (urllib.error.URLError, OSError, UnicodeError, ValueError) as error:
+        raise ReleaseError('PAYMENT_VERSION_UNAVAILABLE; check connectivity and combined SQL migration') from error
+    require(isinstance(version, dict), 'PAYMENT_VERSION_INVALID_RESPONSE')
+    return version
+
+
+def check_payment_training_catalog():
+    version = public_payment_release_get(public_catalog_config())
+    require(version == PAYMENT_TRAINING_VERSION,
+            'PAYMENT_SQL_NOT_READY: both exact release versions must be applied')
+    result = check_training_catalog()
+    result['releases'] = version
+    return result
+
+
 def load_package(package_path=None):
     source = Path(package_path or sys.argv[0])
     with zipfile.ZipFile(str(source)) as archive:
@@ -407,14 +479,25 @@ def preflight(package, require_catalog=True):
             unknown.append(entry['path'])
             print('UNKNOWN_BASELINE ' + entry['path'] + ' ' + state.get('sha256', 'MISSING'), flush=True)
     require(not unknown, 'BASELINE_CHECK_FAILED; no website files written')
+    no_change = all(states[e['path']].get('sha256') == e['sha256'] for e in manifest['files'])
+    matched_baseline = None
+    if manifest.get('release_profile') == 'payment-training-v1' and not no_change:
+        for group in manifest['baseline_groups']:
+            if all(states[name].get('sha256') == expected for name, expected in group['files'].items()):
+                matched_baseline = group['commit']
+                break
+        require(matched_baseline is not None,
+                'MIXED_BASELINE_REFUSED: expected one complete approved baseline or complete target; no files written')
     disk_check(sum(s.get('size', 0) for s in states.values()),
                sum(e['size'] for e in manifest['files']))
     result = {'states': states, 'guards': guard_states(manifest),
-              'no_change': all(states[e['path']].get('sha256') == e['sha256']
-                               for e in manifest['files'])}
-    if manifest.get('release_profile') == 'training-pricing-v1':
+              'no_change': no_change}
+    if manifest.get('release_profile') == 'payment-training-v1':
+        result['matched_baseline'] = matched_baseline or manifest['commit']
+    if manifest.get('release_profile') in ('training-pricing-v1', 'payment-training-v1'):
         try:
-            result['catalog'] = check_training_catalog()
+            result['catalog'] = (check_payment_training_catalog() if
+                manifest.get('release_profile') == 'payment-training-v1' else check_training_catalog())
         except ReleaseError as error:
             if require_catalog:
                 raise
@@ -656,7 +739,7 @@ def apply_release(package):
                 temporary.unlink(missing_ok=True)
         print('RELEASE_OK: all ' + str(len(files)) +
               ' local file hashes and unchanged guards verified; no services restarted', flush=True)
-        if package['manifest'].get('release_profile') == 'training-pricing-v1':
+        if package['manifest'].get('release_profile') in ('training-pricing-v1', 'payment-training-v1'):
             print('CATALOG_OK: 15 products and 5 project fees verified by read-only public queries. '
                   'This package did not change the database. File rollback does not roll back SQL.', flush=True)
         print('Public website and authenticated video checks remain to be completed.', flush=True)
@@ -682,6 +765,8 @@ def main(argv=None):
             if catalog and catalog['status'] != 'CATALOG_OK':
                 print('FILES_CHECK_OK; ' + catalog['reason'] +
                       '; apply is blocked until the SQL migration and catalog checks succeed; no files written')
+                if package['manifest'].get('release_profile') == 'payment-training-v1':
+                    return 2
             else:
                 if catalog:
                     print(json.dumps(catalog, ensure_ascii=False))

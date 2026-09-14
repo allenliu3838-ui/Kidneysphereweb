@@ -4,8 +4,12 @@
  */
 import {
   supabase, ensureSupabase, isConfigured,
-  getCurrentUser, toast, canAccessNephroPro,
+  getCurrentUser, canAccessNephroPro,
 } from './supabaseClient.js?v=20260401_fix';
+import {
+  formatLearningDate as fmtDate, entitlementDisplayState, currentLearningMembership,
+  learningPeriod, learningCourseLink, safeLearningImageUrl, enrollmentDisplayState,
+} from './my-learning-display.js?v=20260914_payment1';
 
 /* ── helpers ── */
 function esc(s) {
@@ -13,32 +17,31 @@ function esc(s) {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
 }
 
-function fmtDate(ts) {
-  if (!ts) return '—';
-  const d = new Date(ts);
-  const p = n => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
-}
-
-function daysLeft(endAt) {
-  if (!endAt) return null;
-  const diff = Math.ceil((new Date(endAt) - Date.now()) / 86400000);
-  return diff;
-}
-
 /* ── tab switching ── */
 function initTabs() {
   const tabBar = document.getElementById('mlTabs');
   if (!tabBar) return;
-  tabBar.addEventListener('click', e => {
-    const btn = e.target.closest('button[data-tab]');
+  const selectTab = tab => {
+    const btn = tabBar.querySelector(`button[data-tab="${tab}"]`);
     if (!btn) return;
-    const tab = btn.dataset.tab;
     tabBar.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     document.querySelectorAll('.ml-panel').forEach(p => p.classList.remove('active'));
     document.getElementById(`ml-panel-${tab}`)?.classList.add('active');
+  };
+  tabBar.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-tab]');
+    if (!btn) return;
+    const tab = btn.dataset.tab;
+    selectTab(tab);
+    history.replaceState(null, '', `#${tab}`);
   });
+  const selectHash = () => {
+    const tab = location.hash.slice(1);
+    if (['entitlements', 'orders', 'enrollments'].includes(tab)) selectTab(tab);
+  };
+  window.addEventListener('hashchange', selectHash);
+  selectHash();
 }
 
 /* ── 权益类型标签 ── */
@@ -46,22 +49,20 @@ const ENT_TYPE_LABEL = {
   membership:      'GlomCon 中国教育会员',
   specialty_bundle:'专科整套课',
   single_video:    '单视频',
-  project_access:  '项目权限',
-  cohort_access:   '班期权限',
+  project_access:  '项目课程权益',
+  cohort_access:   '班期课程权益',
+  atlas_pro:       '肾域 Pro',
 };
 
 function entBadge(ent) {
-  const days = daysLeft(ent.end_at);
-  if (!ent.end_at) return `<span class="ent-badge active">长期有效</span>`;
-  if (days === null || days < 0) return `<span class="ent-badge expired">已过期</span>`;
-  if (days <= 30) return `<span class="ent-badge expiring">剩余 ${days} 天</span>`;
-  return `<span class="ent-badge active">有效至 ${fmtDate(ent.end_at)}</span>`;
+  const state = entitlementDisplayState(ent);
+  return `<span class="ent-badge ${state.tone}">${esc(state.label)}</span>`;
 }
 
-function renderNephroProCard(entitlements){
+async function renderNephroProCard(entitlements){
   const card = document.getElementById('nephroProCard');
   if(!card) return;
-  const hasAccess = canAccessNephroPro(entitlements || []);
+  const hasAccess = await canAccessNephroPro((entitlements || []).filter(ent => entitlementDisplayState(ent).active));
   if(hasAccess){
     card.innerHTML = `
       <div style="padding:14px 16px;border:1px solid rgba(34,197,94,.4);background:rgba(34,197,94,.08);border-radius:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -84,45 +85,22 @@ function renderNephroProCard(entitlements){
   card.hidden = false;
 }
 
-function renderEntitlements(list) {
+async function renderEntitlements(list) {
   const wrap = document.getElementById('entList');
   document.getElementById('entLoading').hidden = true;
-  renderNephroProCard(list || []);
+  await renderNephroProCard(list || []);
+  document.getElementById('entEmpty').hidden = !!list?.length;
 
-  if (!list || list.length === 0) {
-    document.getElementById('entEmpty').hidden = false;
-    return;
-  }
-
-  // Deduplicate: for specialty_bundle, keep only the one with latest end_at per specialty_id
-  const seen = new Map();
-  const deduped = [];
-  for (const e of list) {
-    if (e.entitlement_type === 'specialty_bundle' && e.specialty_id) {
-      const key = `sp_${e.specialty_id}`;
-      const prev = seen.get(key);
-      if (prev) {
-        // keep the one with later end_at
-        if ((e.end_at || '') > (prev.end_at || '')) {
-          deduped[deduped.indexOf(prev)] = e;
-          seen.set(key, e);
-        }
-        continue;
-      }
-      seen.set(key, e);
-    }
-    deduped.push(e);
-  }
-
-  // Group by type
-  const groups = {};
-  deduped.forEach(e => {
+  // Keep each server record: different orders and lifetime grants have distinct terms.
+  const groups = Object.create(null);
+  (list || []).forEach(e => {
     const t = e.entitlement_type;
     if (!groups[t]) groups[t] = [];
     groups[t].push(e);
   });
 
-  const ORDER = ['membership','specialty_bundle','project_access','cohort_access','single_video'];
+  const knownTypes = ['membership','specialty_bundle','project_access','cohort_access','single_video','atlas_pro'];
+  const ORDER = [...knownTypes, ...Object.keys(groups).filter(type => !knownTypes.includes(type))];
   let html = '';
 
   for (const type of ORDER) {
@@ -133,21 +111,13 @@ function renderEntitlements(list) {
       const sub = [
         e.specialty_name && type !== 'membership' ? `专科：${esc(e.specialty_name)}` : null,
         e.project_title ? `项目：${esc(e.project_title)}` : null,
-        e.start_at ? `开始：${fmtDate(e.start_at)}` : null,
+        e.cohort_id ? '班期：请在已报名项目查看对应班期' : (['project_access','cohort_access'].includes(type) ? '班期：未指定' : null),
+        `权益期限：${esc(learningPeriod(e))}`,
       ].filter(Boolean).join('　');
 
       // CTA button
-      let cta = '';
-      if ((type === 'specialty_bundle' || type === 'project_access') && e.specialty_id) {
-        cta = `<a class="btn tiny" href="videos.html?specialty=${encodeURIComponent(e.specialty_id)}">进入视频库</a>`;
-      } else if (type === 'project_access' && e.project_id) {
-        // project_access without specialty_id — link to learning center with project context
-        cta = `<a class="btn tiny" href="videos.html">进入视频库</a>`;
-      } else if (type === 'single_video' && e.video_id) {
-        cta = `<a class="btn tiny" href="watch.html?id=${encodeURIComponent(e.video_id)}">立即观看</a>`;
-      } else if (type === 'membership') {
-        cta = `<a class="btn tiny" href="videos.html?source=glomcon">进入 GlomCon 视频库</a>`;
-      }
+      const course = learningCourseLink(e);
+      const cta = course ? `<a class="btn tiny" href="${esc(course.href)}">${esc(course.label)}</a>` : '';
 
       html += `
         <div class="ent-card">
@@ -173,17 +143,16 @@ function renderEntitlements(list) {
   // Render membership upgrade/status card
   const memberCard = document.getElementById('membershipCard');
   if(memberCard){
-    const hasMembership = groups['membership'] && groups['membership'].length > 0;
-    if(hasMembership){
-      const m = groups['membership'][0];
-      const expiry = m.end_at ? new Date(m.end_at).toLocaleDateString('zh-CN', {year:'numeric',month:'long',day:'numeric'}) : '永久';
+    const m = currentLearningMembership(list);
+    if(m){
+      const expiry = m.end_at == null ? '长期有效' : `有效期至 ${fmtDate(m.end_at)}`;
       memberCard.style.background = 'rgba(168,85,247,.08)';
       memberCard.style.border = '1px solid rgba(168,85,247,.25)';
       memberCard.innerHTML = `
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
           <div>
             <span style="font-size:14px;font-weight:600;color:#c084fc">✓ GlomCon 教育会员</span>
-            <span class="small muted" style="margin-left:8px">有效期至 ${esc(expiry)}</span>
+            <span class="small muted" style="margin-left:8px">${esc(expiry)}</span>
           </div>
           <a class="btn tiny" href="videos.html?source=glomcon">进入 GlomCon 视频库</a>
         </div>`;
@@ -230,20 +199,20 @@ function renderOrders(list) {
 
   wrap.innerHTML = list.map(o => {
     const items = (o.items || []).map(i =>
-      `<span class="small">${esc(i.product_title)} ×${i.quantity} ¥${i.amount_cny}</span>`
+      `<span class="small">${esc(i.product_title)} ×${esc(i.quantity)} ¥${esc(i.amount_cny)}</span>`
     ).join('　');
 
     // Action based on status
     let action = '';
     if (o.status === 'pending_payment') {
-      action = `<a class="btn tiny primary" href="checkout.html?order_id=${o.id}">去付款</a>`;
+      action = `<a class="btn tiny primary" href="checkout.html?order_id=${encodeURIComponent(o.id)}">去付款</a>`;
     } else if (o.status === 'pending_review') {
       action = `<span class="small muted">等待管理员审核（通常1工作日内）</span>`;
     } else if (o.status === 'rejected') {
       const reason = o.remark ? `<span class="small" style="color:#f87171">驳回原因：${esc(o.remark)}</span><br/>` : '';
-      action = `${reason}<a class="btn tiny primary" href="checkout.html?order_id=${o.id}">重新提交凭证</a>`;
+      action = `${reason}<a class="btn tiny primary" href="checkout.html?order_id=${encodeURIComponent(o.id)}">重新提交凭证</a>`;
     } else if (o.status === 'approved') {
-      action = `<a class="btn tiny primary" href="videos.html">进入视频库</a>`;
+      action = `<a class="btn tiny primary" href="#entitlements">查看已购权益</a> <a class="btn tiny" href="#enrollments">查看项目与班期</a>`;
     }
 
     return `
@@ -285,31 +254,41 @@ function renderEnrollments(list) {
   }
 
   wrap.innerHTML = list.map(e => {
-    const groupQr = e.group_qr_url
+    const state = enrollmentDisplayState(e);
+    const qrUrl = state.active && e.cohort_id ? safeLearningImageUrl(e.group_qr_url) : null;
+    const groupQr = qrUrl
       ? `<div class="qr-wrap">
            <p class="small" style="margin:0 0 8px">扫码加入学习群</p>
-           <img src="${esc(e.group_qr_url)}" alt="学习群二维码" />
+           <a href="${esc(qrUrl)}" target="_blank" rel="noopener noreferrer"><img src="${esc(qrUrl)}" alt="${esc(e.project_title || '项目')}学习群二维码" loading="lazy" /></a>
+           <p class="small" style="margin:6px 0 0"><a href="${esc(qrUrl)}" target="_blank" rel="noopener noreferrer">打开学习群二维码</a></p>
            <p class="small muted" style="margin:6px 0 0">二维码有效期有限，请尽快扫码</p>
          </div>`
-      : (e.enrollment_status === 'confirmed' && e.approval_status === 'approved'
-          ? `<p class="small muted" style="margin-top:8px">学习群二维码由管理员配置后显示</p>`
+      : (state.active
+          ? `<p class="small muted" style="margin-top:8px">${e.cohort_id ? '学习群入口待配置，请联系项目管理员。' : '班期未指定，分班后显示对应学习群入口。'}</p>`
           : '');
+    const course = state.active ? learningCourseLink({
+      entitlement_type: 'project_access', status: 'active', specialty_id: e.specialty_id,
+      start_at: e.access_start_at, end_at: e.access_end_at,
+    }) : null;
+    const hasPeriod = e.access_status !== 'ambiguous' && (e.is_access_active === true || e.access_start_at != null || e.access_end_at != null);
+    const period = hasPeriod
+      ? learningPeriod({ start_at: e.access_start_at, end_at: e.access_end_at })
+      : '暂无可核实的对应权益期限';
 
     return `
       <div class="enroll-card">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
           <div>
             <div style="font-weight:600;font-size:15px">${esc(e.project_title || '培训项目')}</div>
-            ${e.cohort_title ? `<div class="small muted" style="margin-top:4px">班期：${esc(e.cohort_title)}</div>` : ''}
-            ${e.cohort_start_date ? `<div class="small muted">开始：${esc(String(e.cohort_start_date))}</div>` : ''}
+            ${e.product_title ? `<div class="small muted" style="margin-top:4px">所购项目：${esc(e.product_title)}</div>` : ''}
+            <div class="small muted" style="margin-top:4px">班期：${esc(e.cohort_title || (e.cohort_id ? '名称待核实' : '未指定'))}</div>
+            ${e.cohort_start_date || e.cohort_end_date ? `<div class="small muted">班期日期：${esc(fmtDate(e.cohort_start_date))} 至 ${esc(fmtDate(e.cohort_end_date))}</div>` : ''}
+            <div class="small muted" style="margin-top:4px">权益期限：${esc(period)}</div>
+            <div class="small muted" style="margin-top:4px">报名记录：${esc(ENROLL_STATUS[e.enrollment_status] || e.enrollment_status || '待核实')} · ${esc(APPROVAL_STATUS[e.approval_status] || e.approval_status || '待核实')}</div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-            <span class="ent-badge ${e.enrollment_status === 'confirmed' ? 'active' : 'expired'}">
-              ${esc(ENROLL_STATUS[e.enrollment_status] || e.enrollment_status)}
-            </span>
-            <span class="ent-badge ${e.approval_status === 'approved' ? 'active' : (e.approval_status === 'rejected' ? 'expired' : 'expiring')}">
-              ${esc(APPROVAL_STATUS[e.approval_status] || e.approval_status)}
-            </span>
+            <span class="ent-badge ${state.tone}">${esc(state.label)}</span>
+            ${course ? `<a class="btn primary tiny" href="${esc(course.href)}">进入项目课程</a>` : ''}
           </div>
         </div>
         ${groupQr}
@@ -318,7 +297,7 @@ function renderEnrollments(list) {
 }
 
 /* ── dashboard summary: membership card + recent notifications ── */
-async function renderDashboardSummary(user) {
+async function renderDashboardSummary(user, entitlements) {
   const wrap = document.getElementById('mlDashSummary');
   if (!wrap) return;
 
@@ -326,33 +305,24 @@ async function renderDashboardSummary(user) {
   const memberEl = document.getElementById('dashMembership');
   if (memberEl) {
     try {
-      const nowIso = new Date().toISOString();
-      const { data: ents } = await supabase
-        .from('user_entitlements')
-        .select('end_at, entitlement_type, status')
-        .eq('user_id', user.id)
-        .eq('entitlement_type', 'membership')
-        .eq('status', 'active')
-        .or(`end_at.is.null,end_at.gt.${nowIso}`)
-        .order('end_at', { ascending: false, nullsFirst: false })
-        .limit(1);
-      const ent = (ents || [])[0];
+      if (!Array.isArray(entitlements)) throw new Error('Entitlements unavailable');
+      const ent = currentLearningMembership(entitlements);
       if (ent) {
-        const days = ent.end_at ? Math.max(0, Math.ceil((new Date(ent.end_at) - Date.now()) / 86400000)) : null;
-        const expiry = ent.end_at ? new Date(ent.end_at).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }) : '永久有效';
+        const { days } = entitlementDisplayState(ent);
+        const expiry = ent.end_at == null ? '长期有效' : `有效期至 ${fmtDate(ent.end_at)}`;
         const expiringSoon = days != null && days <= 30;
         memberEl.innerHTML = `
           <h4>👑 会员状态</h4>
           <div style="font-size:15px;font-weight:600;color:#c084fc">✓ GlomCon 教育会员</div>
           <div class="small muted" style="margin-top:4px">
-            ${days != null ? `剩余 <b>${days}</b> 天 · ` : ''}有效期至 ${esc(expiry)}
+            ${days != null ? `剩余 <b>${days}</b> 天 · ` : ''}${esc(expiry)}
           </div>
           ${expiringSoon ? `<a class="btn tiny" href="checkout.html?product=MEMBERSHIP-YEARLY" style="margin-top:8px">续费会员</a>` : ''}
         `;
       } else {
         memberEl.innerHTML = `
           <h4>👑 会员状态</h4>
-          <div style="font-size:15px;font-weight:600">尚未开通会员</div>
+          <div style="font-size:15px;font-weight:600">当前无有效会员权益</div>
           <div class="small muted" style="margin-top:4px">¥299/年 · 视频学习、病例讨论、肾域 Pro 一站解锁</div>
           <a class="btn primary tiny" href="checkout.html?product=MEMBERSHIP-YEARLY" style="margin-top:10px">立即开通</a>
         `;
@@ -382,7 +352,7 @@ async function renderDashboardSummary(user) {
           const payload = j.payload_json || {};
           const orderNo = payload.order_no || '';
           const reason = payload.reason || '';
-          const ts = j.created_at ? new Date(j.created_at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+          const ts = fmtDate(j.created_at);
           const cls = code === 'order_approved' ? 'approved' : (code === 'order_rejected' ? 'rejected' : '');
           const sub = orderNo ? `订单 ${esc(orderNo)}${reason ? ' · ' + esc(reason) : ''}` : '';
           return `
@@ -431,17 +401,18 @@ async function init() {
   gate.hidden = true;
   main.hidden = false;
   initTabs();
-  renderDashboardSummary(user);
 
   // Load all three data sources in parallel
   const [entRes, ordRes, enrRes] = await Promise.allSettled([
     supabase.rpc('get_my_entitlements'),
     supabase.rpc('get_my_orders'),
-    supabase.rpc('get_my_enrollments'),
+    supabase.rpc('get_my_learning_enrollments'),
   ]);
 
+  const entitlements = entRes.status === 'fulfilled' && !entRes.value.error ? (entRes.value.data || []) : null;
+  renderDashboardSummary(user, entitlements);
   if (entRes.status === 'fulfilled' && !entRes.value.error) {
-    renderEntitlements(entRes.value.data || []);
+    await renderEntitlements(entitlements);
   } else {
     document.getElementById('entLoading').textContent = '加载权益失败，请刷新重试。';
     console.warn('entitlements error:', entRes.reason || entRes.value?.error);

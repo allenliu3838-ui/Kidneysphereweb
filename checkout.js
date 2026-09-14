@@ -56,7 +56,8 @@ async function loadExistingOrder() {
   }
 
   if (order.status !== 'pending_payment' && order.status !== 'rejected') {
-    gate.innerHTML = `<b>该订单状态为「${esc(order.status)}」，无法重新提交。</b>`;
+    const labels = { pending_review: '待审核', approved: '已通过', cancelled: '已取消', refunded: '已退款' };
+    gate.innerHTML = `<b>该订单${esc(labels[order.status] || '状态已改变')}。</b>请到 <a href="my-learning.html">我的学习</a> 查看进度，无需重复付款。`;
     return false;
   }
 
@@ -66,7 +67,7 @@ async function loadExistingOrder() {
     gate.innerHTML = `<b>${esc(err.message)}</b>`;
     return false;
   }
-  _order = { id: order.id, order_no: order.order_no };
+  _order = { id: order.id, order_no: order.order_no, status: order.status };
   if (order.channel) _channel = order.channel;
 
   return true;
@@ -149,13 +150,22 @@ async function createOrder() {
       .select('id, user_id, order_no, total_amount_cny, status, channel, order_items(product_id, product_title, amount_cny, quantity)')
       .eq('id', data.order_id).eq('user_id', _user.id).single();
     if (orderError) throw orderError;
+    if (storedOrder?.user_id === _user.id && storedOrder.id && storedOrder.order_no
+        && ['pending_review', 'approved'].includes(storedOrder.status)
+        && storedOrder.order_items?.length === 1
+        && storedOrder.order_items[0].product_id === _product.id
+        && storedOrder.order_items[0].quantity === 1) {
+      _order = { id: storedOrder.id, order_no: storedOrder.order_no, status: storedOrder.status };
+      showSubmissionDone(storedOrder.status);
+      return;
+    }
     const summary = checkoutOrderSummary(storedOrder, _user.id);
     if (storedOrder.order_items.length !== 1 || summary.id !== _product.id
         || storedOrder.order_items[0].quantity !== 1) {
       throw new Error('返回的订单与所选商品不一致，请在“我的学习”核对订单。');
     }
     _product = summary;
-    _order = { id: storedOrder.id, order_no: storedOrder.order_no };
+    _order = { id: storedOrder.id, order_no: storedOrder.order_no, status: storedOrder.status };
     if (storedOrder.channel) _channel = storedOrder.channel;
     document.getElementById('displayOrderNo').textContent = _order.order_no;
     renderSummary();
@@ -175,6 +185,26 @@ function showPayStep() {
   if (amount) amount.textContent = `¥${Number(_product.price_cny).toFixed(2)}`;
   setStep(2);
   updatePayUI();
+}
+
+function showProofStep() {
+  const amount = document.querySelector('[name="paid_amount"]');
+  if (amount && !amount.value) amount.value = Number(_product.price_cny).toFixed(2);
+  const notice = document.getElementById('proofOrderNotice');
+  if (notice) notice.textContent = `订单 ${_order.order_no} · 应付 ¥${Number(_product.price_cny).toFixed(2)}。已付款的订单请补交凭证，无需重复付款。`;
+  setStep(3);
+}
+
+function showSubmissionDone(status = 'pending_review') {
+  [1, 2, 3].forEach(i => { document.getElementById(`step${i}`).hidden = true; });
+  document.getElementById('stepDone').hidden = false;
+  document.getElementById('doneOrderNo').textContent = _order.order_no;
+  const approved = status === 'approved';
+  document.getElementById('proofDoneTitle').textContent = approved ? '订单已审核通过' : '凭证已提交，等待核款';
+  document.getElementById('proofDoneMessage').textContent = approved
+    ? '请进入“我的学习”查看已开通课程和项目。'
+    : '管理员核实到账后，会自动开通所购权益。无需重复付款或重复上传。';
+  document.querySelectorAll('.step-indicator .step').forEach(s => s.classList.add('done'));
 }
 
 function updatePayUI() {
@@ -221,100 +251,85 @@ async function hashFile(file) {
 
 /* ── upload proof (step 3) ── */
 let _submittingProof = false;
+let _proofUpload = null;
 async function submitProof(e) {
   e.preventDefault();
   if (_submittingProof) return;
   _submittingProof = true;
   const form = document.getElementById('proofForm');
   const hint = document.getElementById('proofHint');
-  const fd = new FormData(form);
-  const file = fd.get('proof');
-
-  if (!(file instanceof File) || !file.size) {
-    hint.textContent = '请选择支付截图。';
-    return;
-  }
-
-  // Validate at least one contact method
-  const contactWechat = fd.get('contact_wechat')?.trim() || '';
-  const contactPhone = fd.get('contact_phone')?.trim() || '';
-  const contactEmail = fd.get('contact_email')?.trim() || '';
-  const contactHint = document.getElementById('contactHint');
-  if (!contactWechat && !contactPhone && !contactEmail) {
-    if (contactHint) contactHint.style.display = 'block';
-    hint.textContent = '请至少填写一种联系方式。';
-    return;
-  }
-  if (contactHint) contactHint.style.display = 'none';
-
-  hint.textContent = '正在校验凭证…';
-
-  // Compute file hash and check for duplicate proofs
-  let fileHash = null;
+  const button = form.querySelector('button[type="submit"]');
+  const previousText = button.textContent;
+  button.disabled = true;
+  button.textContent = '提交中…';
   try {
-    fileHash = await hashFile(file);
-    const { data: dupCheck } = await supabase.rpc('check_proof_duplicate', { p_file_hash: fileHash });
-    if (dupCheck?.duplicate) {
-      hint.textContent = dupCheck.message || '该凭证图片已被使用过，请上传新的凭证。';
-      toast('凭证重复', dupCheck.message, 'err');
-      return;
+    const fd = new FormData(form);
+    const file = fd.get('proof');
+    if (!(file instanceof File) || !file.size) throw new Error('请选择支付截图或 PDF。');
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const types = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', pdf: 'application/pdf' };
+    if (!types[ext] || (file.type && file.type !== types[ext])) throw new Error('请上传 JPG、PNG、WebP 图片或 PDF。');
+    if (file.size > 10 * 1024 * 1024) throw new Error('凭证文件不能超过 10 MB。');
+    if (!_order?.id || !_user?.id) throw new Error('订单信息已失效，请重新打开本订单。');
+
+    const contactWechat = String(fd.get('contact_wechat') || '').trim();
+    const contactPhone = String(fd.get('contact_phone') || '').trim();
+    const contactEmail = String(fd.get('contact_email') || '').trim();
+    const contactHint = document.getElementById('contactHint');
+    if (contactHint) contactHint.style.display = contactWechat || contactPhone || contactEmail ? 'none' : 'block';
+    if (!contactWechat && !contactPhone && !contactEmail) throw new Error('请至少填写一种联系方式。');
+    const rawAmount = String(fd.get('paid_amount') || '').trim();
+    if (!/^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/.test(rawAmount)) throw new Error('请填写实际付款金额，最多两位小数。');
+    const paidAmount = Number(rawAmount);
+    if (!Number.isFinite(paidAmount) || paidAmount <= 0
+        || Math.round(paidAmount * 100) !== Math.round(Number(_product.price_cny) * 100)) {
+      throw new Error(`实际付款金额应与本订单应付 ¥${Number(_product.price_cny).toFixed(2)} 一致；如有差额请先联系管理员核对。`);
     }
-  } catch { /* hash check is best-effort, continue if it fails */ }
 
-  hint.textContent = '上传中…';
-
-  const bucket = 'payment_proofs';
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 80) || 'proof';
-  const path = `${_user.id}/${Date.now()}_${safeName}`;
-
-  try {
-    const { error: upErr } = await supabase.storage.from(bucket).upload(path, file, {
-      upsert: true,
-      contentType: file.type || undefined,
-    });
-    if (upErr) throw upErr;
-
-    const { error: ppErr } = await supabase
-      .from('payment_proofs')
-      .insert({
-        order_id: _order.id,
-        user_id: _user.id,
-        channel: _channel,
-        payer_name: fd.get('payer_name')?.trim() || null,
-        transfer_ref_last4: fd.get('ref_last4')?.trim() || null,
-        amount_cny: _product.price_cny,
-        proof_file_hash: fileHash,
-        proof_bucket: bucket,
-        proof_path: path,
-        submitted_at: new Date().toISOString(),
+    hint.textContent = '正在校验凭证…';
+    const fileHash = await hashFile(file);
+    const uploadKey = `${_user.id}:${_order.id}:${fileHash}`;
+    if (_proofUpload?.key !== uploadKey) {
+      hint.textContent = '正在上传凭证…';
+      const path = `${_user.id}/${_order.id}/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('payment_proofs').upload(path, file, {
+        upsert: false, contentType: types[ext],
       });
-    if (ppErr) throw ppErr;
+      if (upErr) throw upErr;
+      // Reuse the uploaded object if the following atomic request is interrupted.
+      _proofUpload = { key: uploadKey, path, fileHash };
+    }
 
-    // Update order status via RPC (server-side validates proof exists)
-    const { error: reviewErr } = await supabase.rpc('submit_order_for_review', {
+    hint.textContent = '正在提交审核…';
+    const { data, error } = await supabase.rpc('submit_payment_proof', {
       p_order_id: _order.id,
+      p_channel: _channel,
+      p_amount_cny: paidAmount,
+      p_proof_path: _proofUpload.path,
+      p_file_hash: fileHash,
+      p_payer_name: String(fd.get('payer_name') || '').trim() || null,
+      p_transfer_ref_last4: String(fd.get('ref_last4') || '').trim() || null,
       p_contact_wechat: contactWechat || null,
       p_contact_phone: contactPhone || null,
       p_contact_email: contactEmail || null,
+      p_note: String(fd.get('note') || '').trim() || null,
     });
-    if (reviewErr) throw reviewErr;
-
-    // Also save channel on order (best-effort)
-    await supabase.from('orders').update({ channel: _channel }).eq('id', _order.id).then(() => {});
-
-    // Show done
-    document.getElementById('step3').hidden = true;
-    document.getElementById('stepDone').hidden = false;
-    document.getElementById('doneOrderNo').textContent = _order.order_no;
-    document.querySelectorAll('.step-indicator .step').forEach(s => s.classList.add('done'));
-
-    toast('已提交', '凭证上传成功，等待管理员审核。', 'ok');
-    _submittingProof = false;
-    loadMyOrders();
+    if (error) throw error;
+    if (data?.ok !== true || !['pending_review', 'approved'].includes(data.status)) {
+      throw new Error(data?.message || '未能确认提交结果，请重试或在“我的学习”查看订单状态。');
+    }
+    _proofUpload = null;
+    showSubmissionDone(data.status);
+    toast(data.status === 'approved' ? '订单已通过' : '已提交',
+      data.status === 'approved' ? '请进入“我的学习”查看已开通权益。' : '管理员核实到账后开通所购权益。', 'ok');
+    void loadMyOrders().catch(() => {});
   } catch (err) {
-    hint.textContent = `上传失败: ${err.message}`;
-    toast('上传失败', err.message, 'err');
+    hint.textContent = `未完成提交：${err.message} 可修改后重试，无需再次付款。`;
+    toast('提交未完成', err.message, 'err');
+  } finally {
     _submittingProof = false;
+    button.disabled = false;
+    button.textContent = previousText;
   }
 }
 
@@ -402,9 +417,10 @@ async function init() {
     if (trustInfo) trustInfo.hidden = true;
 
     renderSummary();
-    // Skip step 1 (create order) — go directly to payment step
+    // Resume the saved order; rejected receipts go straight to proof correction.
     document.getElementById('displayOrderNo').textContent = _order.order_no;
-    showPayStep();
+    if (_order.status === 'rejected') showProofStep();
+    else showPayStep();
   } else {
     // Normal flow: load product and create new order
     const [productOk] = await Promise.all([loadProduct(), loadSysConfig()]);
@@ -426,7 +442,7 @@ async function init() {
   document.getElementById('payAlipay').addEventListener('click', () => { _channel = 'alipay'; updatePayUI(); });
   document.getElementById('payBank').addEventListener('click', () => { _channel = 'bank_transfer'; updatePayUI(); });
 
-  document.getElementById('btnGoUpload').addEventListener('click', () => setStep(3));
+  document.getElementById('btnGoUpload').addEventListener('click', showProofStep);
 
   document.getElementById('proofForm').addEventListener('submit', submitProof);
 

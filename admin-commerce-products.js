@@ -2,7 +2,8 @@
  * admin-commerce-products.js — 商品管理模块
  */
 import { supabase, toast } from './supabaseClient.js?v=20260401_fix';
-import { esc, fmtDate, showModal, closeModal } from './admin-commerce.js?v=20260325_001';
+import { esc, showModal, closeModal } from './admin-commerce.js?v=20260914_payment1';
+import { validateProductBinding, productBindingPolicy } from './admin-commerce-review.js?v=20260914_payment1';
 
 const TYPE_LABELS = {
   membership_plan: '会员方案',
@@ -56,7 +57,28 @@ async function loadProducts() {
     </table>`;
 }
 
-function productFormHtml(p) {
+function cohortOptions(projectId, cohortId, cohorts) {
+  const available = cohorts.filter(cohort => cohort.project_id === projectId);
+  const missing = cohortId && !available.some(cohort => cohort.id === cohortId);
+  return `<option value="">不指定班期（仅归属所选项目）</option>${missing ? `<option value="${esc(cohortId)}" selected>原班期不可用，请重新选择 · ${esc(cohortId)}</option>` : ''}${available.map(cohort =>
+    `<option value="${esc(cohort.id)}" ${cohort.id === cohortId ? 'selected' : ''}>${esc(cohort.title)} · ${esc(cohort.cohort_code || cohort.id)} (${esc(cohort.status || '—')})</option>`).join('')}`;
+}
+
+function projectOptions(product, projects) {
+  const policy = productBindingPolicy(product);
+  const available = policy.projectForbidden ? [] : projects.filter(project => !policy.expectedProjectCode || project.project_code === policy.expectedProjectCode);
+  return `<option value="">${policy.projectForbidden ? '不关联项目（此商品不含培训报名）' : '请选择项目或不关联项目'}</option>
+    ${product.project_id && !available.some(project => project.id === product.project_id) ? `<option value="${esc(product.project_id)}" selected>原绑定不适用，请重新选择 · ${esc(product.project_id)}</option>` : ''}
+    ${available.map(project => `<option value="${esc(project.id)}" ${product.project_id === project.id ? 'selected' : ''}>${esc(project.title)} · ${esc(project.project_code || project.id)}</option>`).join('')}`;
+}
+
+function productBindingHelp(product) {
+  const policy = productBindingPolicy(product);
+  return policy.projectForbidden ? '此商品只含视频学习权益，不建立培训报名，请勿关联项目或班期。'
+    : policy.expectedProjectCode ? `本商品只允许归属 ${policy.expectedProjectCode}，班期也必须属于该项目。` : '报名商品请选择真实项目，再选择该项目下的班期。';
+}
+
+function productFormHtml(p, projects, cohorts) {
   const isEdit = !!p;
   p = p || {};
   return `
@@ -76,9 +98,16 @@ function productFormHtml(p) {
         <label>排序(小在前)<input class="input" name="sort_order" type="number" value="${p.sort_order ?? 0}" /></label>
         <label>封面图URL<input class="input" name="cover_url" value="${esc(p.cover_url || '')}" /></label>
         <label>关联专科ID<input class="input" name="specialty_id" value="${esc(p.specialty_id || '')}" /></label>
-        <label>关联项目ID<input class="input" name="project_id" value="${esc(p.project_id || '')}" /></label>
+        <label>归属项目（报名商品必选）
+          <select class="input" name="project_id">${projectOptions(p, projects)}</select>
+        </label>
+        <label>归属班期
+          <select class="input" name="cohort_id">${cohortOptions(p.project_id, p.cohort_id, productBindingPolicy(p).projectForbidden ? [] : cohorts)}</select>
+        </label>
         <label>关联视频ID<input class="input" name="video_id" value="${esc(p.video_id || '')}" /></label>
       </div>
+      <p class="small muted" id="productBindingHelp">${esc(productBindingHelp(p))}</p>
+      <p class="small muted">未指定班期时不会自动选择或猜测班期。修改商品绑定仅影响新订单，已下单的项目和期限以购买时记录为准。</p>
       <label style="margin-top:10px">描述<textarea class="input" name="description" rows="3">${esc(p.description || '')}</textarea></label>
       <div style="display:flex;gap:16px;margin-top:10px">
         <label><input type="checkbox" name="recommended" ${p.recommended ? 'checked' : ''} /> 推荐</label>
@@ -90,16 +119,48 @@ function productFormHtml(p) {
     </form>`;
 }
 
-function showProductForm(product) {
+async function showProductForm(product) {
   const isEdit = !!product;
+  let projects, cohorts;
+  try {
+    const [projectResult, cohortResult] = await Promise.all([
+      supabase.from('learning_projects').select('id, title, project_code').order('sort_order'),
+      supabase.rpc('admin_get_cohorts', { p_project_id: null }),
+    ]);
+    if (projectResult.error) throw projectResult.error;
+    if (cohortResult.error) throw cohortResult.error;
+    projects = projectResult.data || [];
+    cohorts = cohortResult.data || [];
+  } catch (error) {
+    toast('加载项目和班期失败', error.message, 'err');
+    return;
+  }
   showModal(
     isEdit ? '编辑商品' : '新建商品',
-    productFormHtml(product),
+    productFormHtml(product, projects, cohorts),
     `<button class="btn" type="button" onclick="document.getElementById('modalContainer').innerHTML=''">取消</button>
      <button class="btn primary" id="saveProductBtn" type="button">保存</button>`,
   );
 
-  document.getElementById('saveProductBtn').addEventListener('click', async () => {
+  const form = document.getElementById('productForm');
+  const projectSelect = form.elements.namedItem('project_id');
+  const cohortSelect = form.elements.namedItem('cohort_id');
+  const currentProduct = () => ({ product_code: form.elements.namedItem('product_code').value.trim(), product_type: form.elements.namedItem('product_type').value, project_id: projectSelect.value });
+  const refreshBinding = () => {
+    const current = currentProduct();
+    projectSelect.innerHTML = projectOptions(current, projects);
+    cohortSelect.innerHTML = cohortOptions(projectSelect.value, cohortSelect.value, productBindingPolicy(current).projectForbidden ? [] : cohorts);
+    document.getElementById('productBindingHelp').textContent = productBindingHelp(current);
+  };
+  form.elements.namedItem('product_code').addEventListener('change', refreshBinding);
+  form.elements.namedItem('product_type').addEventListener('change', refreshBinding);
+  projectSelect.addEventListener('change', () => {
+    cohortSelect.innerHTML = cohortOptions(projectSelect.value, null, productBindingPolicy(currentProduct()).projectForbidden ? [] : cohorts);
+  });
+  let saving = false;
+  const saveButton = document.getElementById('saveProductBtn');
+  saveButton.addEventListener('click', async () => {
+    if (saving) return;
     const form = document.getElementById('productForm');
     if (!form.reportValidity()) return;
     const fd = new FormData(form);
@@ -116,6 +177,7 @@ function showProductForm(product) {
       sort_order: parseInt(fd.get('sort_order')) || 0,
       specialty_id: fd.get('specialty_id')?.trim() || null,
       project_id: fd.get('project_id')?.trim() || null,
+      cohort_id: fd.get('cohort_id')?.trim() || null,
       video_id: fd.get('video_id')?.trim() || null,
       recommended: !!fd.get('recommended'),
       requires_review: !!fd.get('requires_review'),
@@ -123,6 +185,10 @@ function showProductForm(product) {
       is_active: !!fd.get('is_active'),
     };
 
+    const bindingError = validateProductBinding(row, projects, cohorts);
+    if (bindingError) { toast('请检查归属', bindingError, 'err'); return; }
+    saving = true;
+    saveButton.disabled = true;
     try {
       if (isEdit) {
         const { error } = await supabase.from('products').update(row).eq('id', product.id);
@@ -137,6 +203,9 @@ function showProductForm(product) {
       loadProducts();
     } catch (err) {
       toast('保存失败', err.message, 'err');
+    } finally {
+      saving = false;
+      saveButton.disabled = false;
     }
   });
 }
