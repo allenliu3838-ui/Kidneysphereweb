@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow"><title>27 章音频批量上传测试预览</title>
+  <link rel="stylesheet" href="../styles.css?v=20260914_batch1">
+  <link rel="stylesheet" href="../media-batch.css?v=20260914_batch1">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#e8f2fc;color:#143650;font-family:system-ui,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6}
+    .preview-tools{padding:16px 22px;background:#d9e8f5;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.preview-tools p{margin:0;font-size:13px}.preview-tools select{font:inherit;padding:10px;min-height:44px;border:1px solid #9fbcd2;border-radius:7px;background:#fff;color:#17384f;font-size:16px}
+    .preview-stage{padding:20px 0}.preview-frame{display:block;width:390px;max-width:100%;height:1080px;margin:0 auto;border:1px solid #a6c2d9;background:#e8f2fc}.test-content{max-width:980px;margin:auto;padding:20px 12px}.test-content>h1{font-size:24px;margin:0 0 10px}.test-content>p{font-size:13px;margin:0 0 18px;color:#436479}.test-controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}.test-controls button{font:inherit;font-size:13px;min-height:44px;padding:9px 12px;border:1px solid #9fbcd2;border-radius:8px;background:#fff;color:#164c79;cursor:pointer}.test-controls label{display:flex;align-items:center;gap:8px;min-height:44px;font-size:13px}.test-controls input{width:18px;height:18px}.test-settings{padding:16px;min-width:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;background:#fff;border:1px solid #aec9dc;border-radius:12px}.test-settings legend{font-weight:700;padding:0 8px;color:#174f72}.test-settings label{display:block;min-width:0;font-size:13px;color:#365675}.test-settings :is(input,select){display:block;width:100%;min-width:0;font:inherit;font-size:16px;min-height:44px;padding:9px 10px;border:1px solid #b4ccdf;border-radius:7px;background:#f7fbff;color:#173454;margin-top:6px}.test-output{display:block;margin:18px 0;font-size:12px;color:#406580;overflow-wrap:anywhere}[hidden]{display:none!important}@media(max-width:600px){.test-settings{grid-template-columns:minmax(0,1fr)}.test-content>h1{font-size:21px}}
+  </style>
+</head>
+<body>
+  <header class="preview-tools" id="tools"><div><strong>批量上传 · 交互测试</strong><p>27 章模拟 MP3；上传、草稿和上架均为本页模拟。</p></div><label>视口宽度 <select id="width"><option value="320">320 px</option><option value="390" selected>390 px</option><option value="768">768 px</option><option value="1080">1080 px</option></select></label></header>
+  <main class="preview-stage" id="stage"><p id="preview-load-status" role="status">正在准备批量上传预览…</p><iframe id="preview-frame" class="preview-frame" title="批量上传在所选手机宽度下的预览" hidden></iframe></main>
+  <main class="test-content" id="content" hidden>
+    <h1>整套音频，一次加入队列</h1>
+    <p>本页不连接 VOD、Supabase 或真实课程。选入的文件只用于模拟队列，不会上传。可以修改标题、调整章节、停止和重试。</p>
+    <div class="test-controls"><button id="add-examples" type="button">加入 27 章模拟文件</button><button id="add-duplicates" type="button">再加入 3 个重复文件</button><label><input id="simulate-failure" type="checkbox" checked>模拟第 3 章上传失败、第 7 章保存失败（重试会成功）</label></div>
+    <form class="form" id="fixture-form" style="max-width:none">
+      <fieldset class="test-settings" id="common-settings">
+        <legend>本批公共信息</legend>
+        <label>频道<select id="category"><option value="glomerular">肾小球疾病</option><option value="icu">重症肾内科</option></select></label>
+        <label>主讲人<input id="speaker" value="示例主讲人" maxlength="100"></label>
+        <label>访问权限<select id="access"><option value="registered_free">注册后可播放（免费）</option><option value="paid_single">单课程付费</option><option value="paid_membership">付费会员可播放</option></select></label>
+        <label>单课程价格（元）<input id="price" type="number" min="0" step="0.01" value="9.90"></label>
+      </fieldset>
+      <fieldset id="batch"></fieldset>
+    </form>
+    <output class="test-output" id="output" aria-live="polite">等待选择示例文件。</output>
+  </main>
+  <script type="module">
+    import { BatchQueue } from '../media-batch.js?v=20260914_batch1';
+    import { mountBatchUpload } from '../media-batch-ui.js?v=20260914_batch1';
+    const frame = document.documentElement.hasAttribute('data-media-frame') || new URLSearchParams(location.search).has('frame');
+    if (!frame) {
+      const preview = document.getElementById('preview-frame');
+      const loadStatus = document.getElementById('preview-load-status');
+      document.getElementById('width').addEventListener('change', event => { preview.style.width = event.target.value + 'px'; });
+      try {
+        // Same-origin fixture only. srcdoc keeps this responsive preview usable
+        // under the site's normal X-Frame-Options without changing its headers.
+        const response = await fetch('./media-batch-preview.html?frame=1', { cache: 'no-store' });
+        if (!response.ok) throw new Error('无法读取测试页');
+        const parsed = new DOMParser().parseFromString(await response.text(), 'text/html');
+        parsed.documentElement.setAttribute('data-media-frame', '');
+        const base = parsed.createElement('base'); base.href = new URL('./', response.url).href; parsed.head.prepend(base);
+        preview.srcdoc = '<!doctype html>' + parsed.documentElement.outerHTML;
+        preview.hidden = false; loadStatus.hidden = true;
+      } catch (error) { loadStatus.textContent = '预览加载失败：' + error.message; }
+    } else {
+      document.getElementById('tools').hidden = true;
+      document.getElementById('stage').remove();
+      document.getElementById('content').hidden = false;
+      document.getElementById('fixture-form').addEventListener('submit', event => event.preventDefault());
+      const byId = id => document.getElementById(id);
+      const uploads = new Map(), saves = new Map();
+      const wait = (milliseconds, signal) => new Promise((resolve, reject) => {
+        let timer;
+        const finish = () => { signal?.removeEventListener('abort', abort); resolve(); };
+        const abort = () => { clearTimeout(timer); signal?.removeEventListener('abort', abort); reject(new DOMException('模拟上传已停止', 'AbortError')); };
+        if (signal?.aborted) { abort(); return; }
+        signal?.addEventListener('abort', abort, { once: true });
+        timer = setTimeout(finish, milliseconds);
+      });
+      const queue = new BatchQueue({
+        minUploadIntervalMs: 0,
+        async upload(item, onProgress, signal) {
+          const attempt = (uploads.get(item.id) || 0) + 1; uploads.set(item.id, attempt);
+          for (let step = 1; step <= 8; step++) {
+            await wait(45, signal); onProgress(step / 8);
+            if (byId('simulate-failure').checked && item.chapterNumber === 3 && attempt === 1 && step === 4) throw new Error('模拟网络中断，可点击“重试上传”。');
+          }
+          return { videoId: 'preview-' + item.id, mediaType: item.mediaType };
+        },
+        async save(item, settings) {
+          const attempt = (saves.get(item.id) || 0) + 1; saves.set(item.id, attempt);
+          await wait(90);
+          if (byId('simulate-failure').checked && item.chapterNumber === 7 && attempt === 1) throw new Error('模拟课程保存失败；重试保存不会再次上传。');
+          return { id: item.id, title: item.title, is_published: settings.publish, previewOnly: true };
+        },
+      });
+      const ui = mountBatchUpload(byId('batch'), {
+        queue,
+        getSettings() {
+          const speaker = byId('speaker').value.trim();
+          if (!speaker) throw new Error('请先填写上方的主讲人。');
+          return { category: byId('category').value, categoryLabel: byId('category').selectedOptions[0].textContent,
+            speaker, specialtyIds: ['preview-specialty'], specialtyLabels: ['示例专科课程'], source: 'kidneysphere', sourceLabel: '肾域原创',
+            accessType: byId('access').value, accessLabel: byId('access').selectedOptions[0].textContent, price: Number(byId('price').value),
+            description: '批量上传交互预览', coverImage: '', sortStart: 1, createdBy: 'preview-only' };
+        },
+        onBusy(busy) {
+          byId('common-settings').disabled = busy;
+          byId('add-examples').disabled = busy; byId('add-duplicates').disabled = busy;
+          byId('simulate-failure').disabled = busy;
+        },
+        onSaved(item) {
+          const uploadCount = uploads.get(item.id) || 0;
+          byId('output').textContent = `模拟保存：${item.title} · ${item.settings.publish ? '已上架' : '草稿'} · 上传调用 ${uploadCount} 次 · 保存调用 ${saves.get(item.id)} 次。`;
+        },
+      });
+      byId('common-settings').addEventListener('input', () => ui.refreshSettings());
+      byId('common-settings').addEventListener('change', () => ui.refreshSettings());
+      const titles = ['课程导读', '肾脏生理基础', '临床评估', '尿液检查', '蛋白尿', '血尿', '病理基础', '肾穿刺', '免疫机制', '诊断路径', '治疗原则', '随访方法', '急性损伤', '慢性进展', '风险评估', '血压管理', '营养支持', '合并感染', '特殊人群', '用药管理', '病例讨论', '透析准备', '肾脏替代治疗', '移植随访', '长期管理', '综合复习', '总结与答疑'];
+      const examples = titles.map((title, index) => ({ name: `第${index + 1}章_${title}.mp3`, size: (18 + index) * 1024 * 1024, lastModified: 1700000000000 + index, type: 'audio/mpeg' }));
+      byId('add-examples').addEventListener('click', () => ui.addFiles([...examples].reverse()));
+      byId('add-duplicates').addEventListener('click', () => ui.addFiles(examples.slice(0, 3)));
+      ui.addFiles([...examples].reverse());
+    }
+  </script>
+</body>
+</html>

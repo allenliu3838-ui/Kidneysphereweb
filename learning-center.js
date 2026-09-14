@@ -16,6 +16,10 @@ import {
 
 import { VIDEO_CATEGORIES } from './assets/videos.js?v=20260118_001';
 import { MEDIA_ACCEPT, validateMediaFile } from './media-upload.js?v=20260914_audio1';
+import { createVodUploader } from './vod-upload.js?v=20260914_batch1';
+import { BatchQueue } from './media-batch.js?v=20260914_batch1';
+import { mountBatchUpload } from './media-batch-ui.js?v=20260914_batch1';
+import { saveBatchCourse } from './media-batch-save.js?v=20260914_batch1';
 
 const videoAddForm = document.getElementById('videoAddForm');
 const videoAdminPanelEl = document.getElementById('videoAdminPanel')
@@ -454,6 +458,7 @@ async function loadAdminVideos(){
 async function saveVideo(currentUser, publish = true){
   if(!els.videoSave) return;
   if(_mediaSaveInProgress) return;
+  if(_batchBusy){ toast('批量上传正在处理', '请等待完成或停止后再保存单条课程。', 'err'); return; }
   if(_currentUpload){ toast('文件正在上传', '请等待上传完成后保存课程。', 'err'); return; }
   if(!els.videoTitle || !els.videoCategory) return;
   if(!isConfigured()){
@@ -509,6 +514,8 @@ async function saveVideo(currentUser, publish = true){
   }
 
   _mediaSaveInProgress = true;
+  const batchPanel = document.getElementById('mediaBatchPanel');
+  if(batchPanel) batchPanel.disabled = true;
   const uploadButton = document.getElementById('videoAliyunFileBtn');
   const uploadWasDisabled = uploadButton?.disabled || false;
   if(uploadButton) uploadButton.disabled = true;
@@ -628,6 +635,7 @@ async function saveVideo(currentUser, publish = true){
     toast('保存失败', msg, 'err');
   }finally{
     _mediaSaveInProgress = false;
+    if(batchPanel) batchPanel.disabled = false;
     if(uploadButton) uploadButton.disabled = uploadWasDisabled;
     els.videoSave.disabled = false;
     if(els.videoSaveDraft) els.videoSaveDraft.disabled = false;
@@ -1061,6 +1069,7 @@ async function init(){
               <span class="small muted" id="videoHint"></span>
             </div>
           </form>
+          <fieldset id="mediaBatchPanel" style="min-width:0;margin:22px 0 0"></fieldset>
           <div class="hr"></div>
           <div>
             <div class="section-title" style="margin:0">
@@ -1184,7 +1193,9 @@ async function init(){
   applyAccessConsistency();
 
   // ── Aliyun VOD direct upload (admin only) ──
+  _adminUploadOwner = user.id;
   setupAliyunDirectUpload();
+  setupBatchUpload(user);
 
   // Listen for specialty checkbox changes (delegated)
   els.videoSpecialtyChecks?.addEventListener('change', (e)=>{
@@ -1406,40 +1417,22 @@ async function loadTrainingProjects(){
 // 流程参考: https://help.aliyun.com/zh/vod/developer-reference/upload-media-files-by-using-the-vod-upload-sdk-for-javascript
 // 但我们直接用 OSS SDK + CreateUploadVideo, 不依赖 aliyun-upload-sdk.
 // ──────────────────────────────────────────────────────────
-const OSS_SDK_URL = 'https://gosspublic.alicdn.com/aliyun-oss-sdk-6.20.0.min.js';
-
-function loadOssSdk() {
-  if (window.OSS) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector(`script[src="${OSS_SDK_URL}"]`);
-    if (existing) {
-      existing.addEventListener('load', () => resolve());
-      existing.addEventListener('error', () => reject(new Error('OSS SDK 加载失败')));
-      return;
-    }
-    const s = document.createElement('script');
-    s.src = OSS_SDK_URL;
-    s.async = true;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error('OSS SDK 加载失败 (网络问题?)'));
-    document.head.appendChild(s);
-  });
-}
-
-// 当前上传状态 (供取消按钮访问).
-// 不同时支持多个上传 — admin 一般也只传一个文件.
-let _currentUpload = null;  // { client, videoId, token, cancelled }
+let _currentUpload = null;
 let _mediaSaveInProgress = false;
+let _batchBusy = false;
+let _adminUploadOwner = null;
+let _vodUploader;
 
-async function aliyunDeleteOrphan(videoId, token) {
-  if (!videoId || !token) return;
-  try {
-    await fetch('/api/videos/upload-credentials/delete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ videoId }),
-    });
-  } catch (_e) { /* best effort, 失败也无所谓 */ }
+function vodUploader() {
+  if (!_vodUploader) _vodUploader = createVodUploader({
+    getToken: async () => {
+      const session = (await supabase.auth.getSession())?.data?.session;
+      if (!session?.access_token) throw new Error('登录已失效，请重新登录后重试。');
+      if (session.user?.id !== _adminUploadOwner) throw new Error('当前登录账号已变化，请重新打开课程管理页面。');
+      return session.access_token;
+    },
+  });
+  return _vodUploader;
 }
 
 function setupAliyunDirectUpload() {
@@ -1452,173 +1445,117 @@ function setupAliyunDirectUpload() {
   const textEl = document.getElementById('videoAliyunUploadText');
   const vidInput = document.getElementById('videoAliyunVid');
   const titleInput = document.getElementById('videoTitle');
-  if (!fileInput || !fileBtn || !vidInput) return;
-  if (fileBtn.dataset.wired === '1') return;
+  const batchPanel = document.getElementById('mediaBatchPanel');
+  if (!fileInput || !fileBtn || !vidInput || fileBtn.dataset.wired === '1') return;
   fileBtn.dataset.wired = '1';
-
   fileBtn.addEventListener('click', () => fileInput.click());
-
-  cancelBtn?.addEventListener('click', async () => {
+  cancelBtn?.addEventListener('click', () => {
     if (!_currentUpload) return;
-    if (!confirm('确定停止上传？已上传的分片会被丢弃，需要从头开始重传。')) return;
-    _currentUpload.cancelled = true;
-    try { _currentUpload.client?.cancel(); } catch {}
+    _currentUpload.abort();
     textEl.textContent = '正在停止…';
     cancelBtn.disabled = true;
   });
-
   fileInput.addEventListener('change', async () => {
     if (_currentUpload) return;
-    if (_mediaSaveInProgress) {
-      alert('课程正在保存，请保存完成后再上传文件。');
+    if (_mediaSaveInProgress || _batchBusy) {
+      alert('课程正在保存或批量上传，请完成后再上传单个文件。');
       fileInput.value = '';
       return;
     }
     const file = fileInput.files?.[0];
     if (!file) return;
-
     const validation = validateMediaFile(file);
-    if (validation.error) {
-      alert(validation.error);
-      fileInput.value = '';
-      return;
-    }
+    if (validation.error) { alert(validation.error); fileInput.value = ''; return; }
     const mediaLabel = validation.mediaType === 'audio' ? '音频' : '视频';
     const previousVid = vidInput.value;
-    // Preserve existing disabled state (for example, while another save finishes).
-    const lockedControls = [vidInput, els.videoSave, els.videoSaveDraft, els.videoSourceType]
+    const controls = [vidInput, els.videoSave, els.videoSaveDraft, els.videoSourceType, batchPanel, fileBtn]
       .filter(Boolean).map(control => [control, control.disabled]);
-    lockedControls.forEach(([control]) => { control.disabled = true; });
-
+    controls.forEach(([control]) => { control.disabled = true; });
     const title = String(titleInput?.value || '').trim() || file.name.replace(/\.[^.]+$/, '');
-
     statusEl.textContent = `已选${mediaLabel}：${file.name} · ${(file.size / 1024 / 1024).toFixed(1)} MB`;
-    progressEl.style.display = 'block';
-    barEl.style.width = '0%';
-    barEl.style.background = '#4a90e2';
-    textEl.textContent = '请求上传凭证…';
-    fileBtn.disabled = true;
-    cancelBtn.style.display = '';
-    cancelBtn.disabled = false;
-    _currentUpload = { client: null, videoId: null, token: null, cancelled: false };
-    const checkCancelled = () => {
-      if (_currentUpload.cancelled) throw new Error('cancelled');
-    };
-
+    progressEl.style.display = 'block'; barEl.style.width = '0%'; barEl.style.background = '#4a90e2';
+    cancelBtn.style.display = ''; cancelBtn.disabled = false;
+    _currentUpload = new AbortController();
     try {
-      // 1. 拿 supabase session token (作为 admin 鉴权)
-      const sess = (await supabase.auth.getSession())?.data?.session;
-      const token = sess?.access_token;
-      if (!token) throw new Error('未登录, 请先登录');
-      _currentUpload.token = token;
-      checkCancelled();
-
-      // 2. 服务器签发 UploadAuth / UploadAddress / VideoId
-      const credRes = await fetch('/api/videos/upload-credentials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ title, fileName: file.name }),
-      });
-      const cred = await credRes.json().catch(() => ({}));
-      if (!credRes.ok) {
-        throw new Error(cred.message || cred.error || `凭证签发失败 (HTTP ${credRes.status})`);
-      }
-      _currentUpload.videoId = cred.videoId;
-      checkCancelled();
-
-      // 3. base64 解码 UploadAuth / UploadAddress
-      const auth = JSON.parse(atob(cred.uploadAuth));
-      const addr = JSON.parse(atob(cred.uploadAddress));
-
-      // 4. 加载 OSS SDK
-      textEl.textContent = '加载上传 SDK…';
-      await loadOssSdk();
-      checkCancelled();
-
-      // 5. 创建 OSS client (用 STS 临时凭证)
-      // timeout 120s: 默认 60s 在慢网络上经常 TCP 握手都超时
-      // 创建后立刻挂到 _currentUpload, 让 cancelBtn 能调 client.cancel()
-      const client = new window.OSS({
-        region: 'oss-' + auth.Region,
-        accessKeyId: auth.AccessKeyId,
-        accessKeySecret: auth.AccessKeySecret,
-        stsToken: auth.SecurityToken,
-        bucket: addr.Bucket,
-        endpoint: addr.Endpoint,
-        secure: true,
-        timeout: 120000,
-        refreshSTSToken: async () => {
-          const r = await fetch('/api/videos/upload-credentials/refresh', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ videoId: cred.videoId }),
-          });
-          const rd = await r.json().catch(() => ({}));
-          if (!r.ok) throw new Error(rd.message || rd.error || 'STS 续签失败');
-          const newAuth = JSON.parse(atob(rd.uploadAuth));
-          return {
-            accessKeyId: newAuth.AccessKeyId,
-            accessKeySecret: newAuth.AccessKeySecret,
-            stsToken: newAuth.SecurityToken,
-          };
-        },
-      });
-      _currentUpload.client = client;
-
-      // 6. 分片上传到 OSS, 报告进度
-      // 分片策略: 大文件用大分片 (减少并发开销), 小文件用小分片 (避免一片传太久没进度)
-      //   - <100 MB  -> 1 MB 分片
-      //   - 100-500 MB -> 4 MB 分片
-      //   - >500 MB  -> 8 MB 分片
-      // 并发 2: 比 4 慢但慢网络下成功率高很多 (60s timeout 内能跑完 1 个分片)
-      textEl.textContent = '上传中…';
-      const sizeMB = file.size / 1024 / 1024;
-      const partSize = sizeMB < 100 ? 1 * 1024 * 1024
-                     : sizeMB < 500 ? 4 * 1024 * 1024
-                                    : 8 * 1024 * 1024;
-      await client.multipartUpload(addr.FileName, file, {
-        partSize,
-        parallel: 2,
-        timeout: 120000,
-        progress: (p) => {
-          const pct = Math.round(p * 100);
+      const result = await vodUploader()(file, {
+        title, signal: _currentUpload.signal,
+        onStatus: message => { textEl.textContent = message; },
+        onProgress: value => {
+          const pct = Math.round(value * 100);
           barEl.style.width = pct + '%';
-          textEl.textContent = `上传中 ${pct}%${pct < 100 ? '' : ' · 阿里云正在收尾'}`;
+          textEl.textContent = `上传中 ${pct}%`;
         },
       });
-      checkCancelled();
-
-      // 7. 成功, 自动填写 VideoId
-      vidInput.value = cred.videoId;
+      vidInput.value = result.videoId;
       if (els.videoAliyunUrl) els.videoAliyunUrl.value = '';
       if (titleInput && !titleInput.value.trim()) titleInput.value = title;
-      barEl.style.width = '100%';
-      barEl.style.background = '#22c55e';
+      barEl.style.width = '100%'; barEl.style.background = '#22c55e';
       textEl.textContent = `✅ ${mediaLabel}上传成功 · 媒体 ID 已自动填写`;
       statusEl.textContent = '可先保存草稿；在阿里云确认处理完成并试听或试看后，再上架。';
-    } catch (err) {
-      const wasCancelled = _currentUpload?.cancelled || err?.name === 'cancel' || /cancel/i.test(String(err?.message || ''));
-      console.error('[aliyun-upload]', err);
-      barEl.style.background = wasCancelled ? '#888' : '#e74c3c';
-      textEl.textContent = wasCancelled
-        ? '⏹ 已停止上传，正在尝试清理本次未完成的媒体'
-        : `❌ ${err?.message || err}`;
+    } catch (error) {
+      const stopped = _currentUpload.signal.aborted || error?.name === 'AbortError';
+      barEl.style.background = stopped ? '#888' : '#e74c3c';
+      textEl.textContent = stopped ? '已停止上传，可重新选择文件。' : `上传失败：${error?.message || error}`;
       vidInput.value = previousVid;
-      // 失败/取消都要清理已在阿里云创建的视频记录 (CreateUploadVideo 已经
-      // 写了一条 status=Uploading 的 video, 不删的话永远是孤儿)
-      const orphanId = _currentUpload?.videoId;
-      const t = _currentUpload?.token;
-      if (orphanId && t) {
-        aliyunDeleteOrphan(orphanId, t);
-      }
     } finally {
-      lockedControls.forEach(([control, disabled]) => { control.disabled = disabled; });
-      fileBtn.disabled = false;
-      fileInput.value = '';
-      cancelBtn.style.display = 'none';
-      cancelBtn.disabled = false;
+      controls.forEach(([control, disabled]) => { control.disabled = disabled; });
+      fileInput.value = ''; cancelBtn.style.display = 'none'; cancelBtn.disabled = false;
       _currentUpload = null;
     }
+  });
+}
+
+function setupBatchUpload(user) {
+  const root = document.getElementById('mediaBatchPanel');
+  const form = document.getElementById('videoAddForm');
+  if (!root || !form || root.dataset.wired === '1') return;
+  root.dataset.wired = '1';
+  let lockedControls = [], listDirty = false;
+  const label = element => element?.selectedOptions?.[0]?.textContent?.trim() || '';
+  function getSettings() {
+    if (_currentUpload || _mediaSaveInProgress) throw new Error('请先完成当前单个文件的上传或保存。');
+    const category = String(els.videoCategory?.value || '').trim();
+    const source = String(els.videoContentSource?.value || 'external');
+    const accessType = source === 'glomcon' ? 'paid_membership' : String(els.videoAccessType?.value || '');
+    const specialtyIds = source === 'glomcon' ? [] : getCheckedSpecialtyIds('video');
+    const price = Number(els.videoPrice?.value || 0);
+    const sortStart = Number(els.videoSortOrder?.value || 0);
+    if (!category) throw new Error('请先在上方选择频道。');
+    if (!['registered_free', 'paid_single', 'paid_specialty', 'paid_membership'].includes(accessType)) throw new Error('请选择访问权限。');
+    if (accessType === 'paid_specialty' && !specialtyIds.length) throw new Error('请选择至少一个所属专科。');
+    if (accessType === 'paid_single' && (!Number.isFinite(price) || price <= 0 || price > 99999999.99 || Math.abs(price * 100 - Math.round(price * 100)) > 0.000001)) throw new Error('请填写大于 0 且最多两位小数的课程价格。');
+    if (!Number.isInteger(sortStart) || sortStart < 0 || sortStart > 2147383647) throw new Error('起始排序须为非负整数，且预留章节排序空间。');
+    return {
+      category, categoryLabel: label(els.videoCategory), source, sourceLabel: label(els.videoContentSource),
+      speaker: String(els.videoSpeaker?.value || '').trim(), specialtyIds,
+      specialtyLabels: specialtyIds.map(id => _specialtiesMap.get(id)?.title || id),
+      accessType, accessLabel: source === 'glomcon' ? '付费会员可播放' : label(els.videoAccessType), price, sortStart, createdBy: user.id,
+      description: String(els.videoDescription?.value || '').trim(), coverImage: String(els.videoCoverImage?.value || '').trim(),
+    };
+  }
+  const queue = new BatchQueue({
+    upload: (item, onProgress, signal) => vodUploader()(item.file, { title: item.title, onProgress, signal }),
+    save: (item, settings) => saveBatchCourse(supabase, item, settings),
+  });
+  const view = mountBatchUpload(root, {
+    queue, getSettings,
+    onSaved: () => { listDirty = true; },
+    onBusy: busy => {
+      _batchBusy = busy;
+      if (busy && !lockedControls.length) {
+        lockedControls = [...form.querySelectorAll('input,select,textarea,button')].filter(control => !root.contains(control)).map(control => [control, control.disabled]);
+        lockedControls.forEach(([control]) => { control.disabled = true; });
+      } else if (!busy) {
+        lockedControls.forEach(([control, disabled]) => { control.disabled = disabled; });
+        lockedControls = [];
+        if (listDirty) { listDirty = false; loadAdminVideos(); }
+      }
+    },
+  });
+  form.addEventListener('change', () => { view.refreshSettings(); });
+  form.addEventListener('input', () => { view.refreshSettings(); });
+  window.addEventListener('beforeunload', event => {
+    if (_batchBusy || _currentUpload || _mediaSaveInProgress) { event.preventDefault(); event.returnValue = ''; }
   });
 }
 

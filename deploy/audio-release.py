@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inspect and release eight audio resources against a verified live API process."""
+"""Inspect and release fixed audio profiles against a verified live API process."""
 import argparse
 import hashlib
 import importlib.util
@@ -35,6 +35,14 @@ FRONTEND_FILES = ('media-upload.js', 'media-player.js', 'media-player.css',
                   'learning-center.js', 'watch.html', 'learning.html')
 FILES = BACKEND_FILES + FRONTEND_FILES
 NEW_FILES = frozenset(('media-upload.js', 'media-player.js', 'media-player.css'))
+BATCH_FRONTEND_FILES = ('media-upload.js', 'media-player.js', 'media-player.css',
+                        'vod-upload.js', 'media-batch.js', 'media-batch-save.js',
+                        'media-batch.css', 'media-batch-ui.js',
+                        'learning-center.js', 'watch.html', 'learning.html')
+BATCH_NEW_FILES = NEW_FILES | frozenset(('vod-upload.js', 'media-batch.js', 'media-batch-save.js',
+                                       'media-batch.css', 'media-batch-ui.js'))
+PROFILES = {'audio-v1': (FRONTEND_FILES, NEW_FILES),
+            'audio-batch-v1': (BATCH_FRONTEND_FILES, BATCH_NEW_FILES)}
 SAFE_ENV = {'PATH': '/usr/local/bin:/usr/bin:/bin', 'LANG': 'C.UTF-8'}
 
 # Only the transport libraries are loaded: PM2's public Client auto-initializes
@@ -88,18 +96,34 @@ def canonical_json(value):
     return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode('utf-8')
 
 
+def release_profile(manifest=None):
+    name = manifest.get('profile') if manifest is not None else 'audio-v1'
+    require(name in PROFILES, 'UNKNOWN_AUDIO_RELEASE_PROFILE')
+    return PROFILES[name]
+
+
+def release_files(manifest=None):
+    return BACKEND_FILES + release_profile(manifest)[0]
+
+
+def backend_changes(before, package):
+    return any(before[name].get('sha256') != digest(package['payload'][name]) for name in BACKEND_FILES)
+
+
 def load_package(source=None):
     with zipfile.ZipFile(str(source or sys.argv[0])) as archive:
-        expected = {'__main__.py', 'release_core.py', 'manifest.json'} | {'payload/' + p for p in FILES}
-        require(len(archive.namelist()) == len(expected) and set(archive.namelist()) == expected,
-                'PACKAGE_ENTRY_MISMATCH')
+        require(len(archive.namelist()) == len(set(archive.namelist())), 'PACKAGE_ENTRY_MISMATCH')
         require(all(e.file_size <= 8 * 1024 * 1024 for e in archive.infolist()), 'PACKAGE_ENTRY_TOO_LARGE')
         manifest = json.loads(archive.read('manifest.json'))
-        require(manifest.get('schema') == 1 and manifest.get('profile') == 'audio-v1' and
+        files = release_files(manifest)
+        optional_files = release_profile(manifest)[1]
+        expected = {'__main__.py', 'release_core.py', 'manifest.json'} | {'payload/' + p for p in files}
+        require(set(archive.namelist()) == expected, 'PACKAGE_ENTRY_MISMATCH')
+        require(manifest.get('schema') == 1 and
                 manifest.get('root') == str(ROOT) and manifest.get('domain') == 'kidneysphere.com',
                 'PACKAGE_TARGET_MISMATCH')
         require(re.fullmatch('[0-9a-f]{40}', manifest.get('commit', '')) is not None, 'INVALID_COMMIT')
-        require([e.get('path') for e in manifest.get('files', [])] == list(FILES), 'PACKAGE_FILE_ALLOWLIST_MISMATCH')
+        require([e.get('path') for e in manifest.get('files', [])] == list(files), 'PACKAGE_FILE_ALLOWLIST_MISMATCH')
         for name, key in (('__main__.py', 'runner_sha256'), ('release_core.py', 'core_sha256')):
             require(digest(archive.read(name)) == manifest.get(key), 'PACKAGE_CODE_HASH_MISMATCH')
         for entry in manifest['files']:
@@ -107,12 +131,12 @@ def load_package(source=None):
                     type(entry.get('size')) is int and 0 <= entry['size'] <= 8 * 1024 * 1024,
                     'INVALID_RESOURCE_MANIFEST')
             require(type(entry.get('allow_missing')) is bool and
-                    (entry['path'] in NEW_FILES or not entry['allow_missing']) and
+                    (entry['path'] in optional_files or not entry['allow_missing']) and
                     isinstance(entry.get('allowed_before'), list) and
                     all(re.fullmatch('[0-9a-f]{64}', h) for h in entry['allowed_before']), 'INVALID_BASELINE_MANIFEST')
         require(manifest.get('server_entry_hashes') and all(re.fullmatch('[0-9a-f]{64}', h)
                 for h in manifest['server_entry_hashes']), 'INVALID_SERVER_ENTRY_HASHES')
-        payload = {name: archive.read('payload/' + name) for name in FILES}
+        payload = {name: archive.read('payload/' + name) for name in files}
     for entry in manifest['files']:
         require(len(payload[entry['path']]) == entry['size'] and digest(payload[entry['path']]) == entry['sha256'],
                 'PAYLOAD_HASH_MISMATCH: ' + entry['path'])
@@ -260,11 +284,11 @@ def discover_runtime(package):
             'entry': entry, 'entry_state': state, 'manager': manager}
 
 
-def target_paths(runtime):
+def target_paths(runtime, manifest=None):
     backend_root = Path(runtime['entry']).parent.parent
     result = {name: backend_root / name for name in BACKEND_FILES}
-    result.update((name, ROOT / name) for name in FRONTEND_FILES)
-    require(len(set(result.values())) == len(FILES), 'DUPLICATE_TARGET_PATHS')
+    result.update((name, ROOT / name) for name in release_profile(manifest)[0])
+    require(len(set(result.values())) == len(release_files(manifest)), 'DUPLICATE_TARGET_PATHS')
     for path in result.values():
         core.safe_path(path, missing=True)
     return result
@@ -304,7 +328,7 @@ def inspect_release(package):
     core.safe_path(ROOT)
     check_nginx()
     runtime = discover_runtime(package)
-    targets = target_paths(runtime)
+    targets = target_paths(runtime, package['manifest'])
     states, unknown = {}, []
     for entry in package['manifest']['files']:
         state, _ = core.read_state(targets[entry['path']])
@@ -418,11 +442,13 @@ def verify_backup(backup, record, package):
     require(backup.parent == BACKUP_ROOT, 'BACKUP_NOT_A_DIRECT_CHILD')
     core.safe_path(backup)
     require(backup.stat().st_uid == 0 and stat.S_IMODE(backup.stat().st_mode) == 0o700, 'INVALID_BACKUP_DIRECTORY')
-    require(record.get('manifest') == package['manifest'] and set(record.get('before', {})) == set(FILES),
+    require(record.get('manifest') == package['manifest'] and
+            set(record.get('before', {})) == set(release_files(package['manifest'])),
             'BACKUP_RELEASE_MISMATCH')
     require(record['runtime']['entry_state'].get('sha256') in package['manifest']['server_entry_hashes'],
             'BACKUP_SERVER_ENTRY_NOT_RECOGNIZED')
-    require(record['targets'] == {k: str(v) for k, v in target_paths(record['runtime']).items()}, 'BACKUP_TARGET_MISMATCH')
+    require(record['targets'] == {k: str(v) for k, v in target_paths(record['runtime'], record['manifest']).items()},
+            'BACKUP_TARGET_MISMATCH')
     for name, state in record['before'].items():
         if state['exists']:
             saved, _ = core.read_state(backup / 'old' / name)
@@ -432,6 +458,8 @@ def verify_backup(backup, record, package):
 def restore(backup, record, package, restart=True):
     verify_backup(backup, record, package)
     verify_restart_target(record['runtime'])
+    restart = restart and backend_changes(record['before'], package)
+    files = release_files(package['manifest'])
     targets = {k: Path(v) for k, v in record['targets'].items()}
     current = {}
     for entry in package['manifest']['files']:
@@ -444,12 +472,12 @@ def restore(backup, record, package, restart=True):
         current[name] = state
     staged = {}
     try:
-        for name in FILES:
+        for name in files:
             before = record['before'][name]
             if before['exists'] and before != current[name]:
                 _, data = core.read_state(backup / 'old' / name)
                 staged[name] = core.stage_file(targets[name], data, before)
-        for name in reversed(FILES):
+        for name in reversed(files):
             core.same_state(targets[name], current[name])
             if name in staged:
                 os.replace(staged[name], targets[name])
@@ -466,7 +494,8 @@ def restore(backup, record, package, restart=True):
     finally:
         for path in staged.values():
             path.unlink(missing_ok=True)
-    print('ROLLBACK_OK: eight original resource states restored; only the verified API target restarted.', flush=True)
+    restart_note = 'only the verified API target restarted.' if restart else 'API restart not required.'
+    print('ROLLBACK_OK: ' + str(len(files)) + ' original resource states restored; ' + restart_note, flush=True)
 
 
 def rollback_release(backup_path, package):
@@ -479,6 +508,7 @@ def rollback_release(backup_path, package):
 
 
 def apply_release(package, expected_inspection):
+    files = release_files(package['manifest'])
     require(expected_inspection and re.fullmatch('[0-9a-f]{64}', expected_inspection), 'INSPECTION_SHA_REQUIRED')
     report = inspect_release(package)
     require(report['inspection_sha256'] == expected_inspection, 'INSPECTION_CHANGED; run --inspect again')
@@ -486,7 +516,7 @@ def apply_release(package, expected_inspection):
     health_checks()
     enough_disk(report, package)
     if all(report['states'][entry['path']].get('sha256') == entry['sha256'] for entry in package['manifest']['files']):
-        print('NO_CHANGE: all eight resources already match; API auth checks passed; no restart.', flush=True)
+        print('NO_CHANGE: all ' + str(len(files)) + ' resources already match; API auth checks passed; no restart.', flush=True)
         return None
     with core.release_lock():
         current = inspect_release(package)
@@ -517,20 +547,21 @@ def apply_release(package, expected_inspection):
         staged = {}
         promoted = []
         restarted = False
+        restart_required = backend_changes(record['before'], package)
         try:
-            for name in FILES:
+            for name in files:
                 before = record['before'][name]
                 metadata = before if before['exists'] else {'mode': 0o644, 'uid': ROOT.stat().st_uid, 'gid': ROOT.stat().st_gid}
                 staged[name] = core.stage_file(targets[name], package['payload'][name], metadata)
             require(inspect_release(package)['inspection_sha256'] == expected_inspection, 'INSPECTION_CHANGED_DURING_STAGING')
-            for name in FILES:
+            for name in files:
                 core.same_state(targets[name], record['before'][name])
                 core.write_json(backup / 'journal.json', {'phase': 'applying', 'pending': name, 'promoted': promoted})
                 os.replace(staged[name], targets[name])
                 del staged[name]
                 core.fsync_directory(targets[name].parent)
                 promoted.append(name)
-                if name == BACKEND_FILES[-1]:
+                if name == BACKEND_FILES[-1] and restart_required:
                     restarted = True
                     restart_backend(report['runtime'])
                     wait_for_backend(package, report['runtime'])
@@ -538,7 +569,7 @@ def apply_release(package, expected_inspection):
             for entry in package['manifest']['files']:
                 actual, _ = core.read_state(targets[entry['path']])
                 require(actual.get('sha256') == entry['sha256'], 'POST_RELEASE_HASH_MISMATCH')
-            health_checks({name: digest(package['payload'][name]) for name in FRONTEND_FILES})
+            health_checks({name: digest(package['payload'][name]) for name in release_profile(package['manifest'])[0]})
             core.write_json(backup / 'journal.json', {'phase': 'applied', 'promoted': promoted})
         except BaseException as error:
             print('RELEASE_FAILED: restoring backed-up resources.', flush=True)
@@ -550,7 +581,10 @@ def apply_release(package, expected_inspection):
         finally:
             for path in staged.values():
                 path.unlink(missing_ok=True)
-        print('AUDIO_RELEASE_OK: eight resources, verified API restart, health/auth gates and frontend delivery passed.', flush=True)
+        marker = 'AUDIO_BATCH_RELEASE_OK' if package['manifest']['profile'] == 'audio-batch-v1' else 'AUDIO_RELEASE_OK'
+        restart_note = 'verified API restart' if restarted else 'API restart not required'
+        print(marker + ': ' + str(len(files)) +
+              ' resources, ' + restart_note + ', health/auth gates and frontend delivery passed.', flush=True)
         print('Authenticated audio upload/playback and existing paid video playback still require account testing.', flush=True)
         return backup
 
