@@ -57,7 +57,7 @@ TRAINING_PRICING_FILES = (
     'training-commerce.js', 'academy.js', 'trainingprograms.js', 'checkout.js',
     'learning-center.js', 'academy.html', 'checkout.html', 'learning.html',
     'training-icu.html', 'training-tx.html', 'training-patho.html',
-    'training-glom.html', 'training-da.html',
+    'training-glom.html', 'training-da.html', 'videos.html',
 )
 TRAINING_PRICING_REQUIRED_FILES = ('supabaseClient.js', 'assets/config.js',
     'assets/lib/supabase.min.js', 'app.js', 'styles.css', 'vod-upload.js',

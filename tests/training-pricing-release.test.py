@@ -61,6 +61,7 @@ class TrainingPricingReleaseTests(unittest.TestCase):
                             for name in cls.builder.REQUIRED_FILES}
         cls.new = {name: (cls.before[name] or b'export {};') + b'\n/* New pricing fixture. */\n'
                    for name in cls.builder.FILES}
+        cls.new['videos.html'] = cls.builder.updated_videos_html(cls.before['videos.html'])
         for html, script in cls.builder.ENTRY_MODULES.items():
             cls.new[html] = ('<script type="module" src="' + script + '?v=' +
                             cls.builder.VERSION + '"></script>').encode()
@@ -131,7 +132,7 @@ class TrainingPricingReleaseTests(unittest.TestCase):
 
     def test_fixed_payload_and_dependencies_cannot_expand_to_backend_or_sql(self):
         self.assertEqual(self.builder.FILES, self.runner.TRAINING_PRICING_FILES)
-        self.assertEqual(len(self.builder.FILES), 13)
+        self.assertEqual(len(self.builder.FILES), 14)
         self.assertEqual(self.builder.REQUIRED_FILES, self.runner.TRAINING_PRICING_REQUIRED_FILES)
         for bad_path in ('server/index.js', 'migration.sql', '../outside.js'):
             package = copy.deepcopy(self.package)
@@ -331,6 +332,16 @@ class TrainingPricingBuilderTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Batch upload dependency changed'):
             self.builder.validate_payload(payload)
 
+    def test_video_page_allows_only_one_training_price_line_and_preserves_player_script(self):
+        self.assertIn('assets/videos.js', self.builder.PRESERVED)
+        self.assertNotIn('videos.html', self.builder.PRESERVED)
+        before = self.builder.git_bytes(self.builder.BASELINE, 'videos.html')
+        self.assertEqual(self.payload['videos.html'], self.builder.updated_videos_html(before))
+        payload = dict(self.payload)
+        payload['videos.html'] += b'\n<script>changePlayerBehavior()</script>'
+        with self.assertRaisesRegex(ValueError, 'videos.html changes beyond'):
+            self.builder.validate_payload(payload)
+
     def test_zip_is_reproducible_contains_only_frontend_and_loads_checked_runner(self):
         runner = (REPOSITORY / 'deploy/portal-release.py').read_bytes()
         test_commit = 'a' * 40
@@ -352,7 +363,7 @@ class TrainingPricingBuilderTests(unittest.TestCase):
                 quiet(self.builder.build, test_commit, second)
             self.assertEqual(first.read_bytes(), second.read_bytes())
             with zipfile.ZipFile(first) as archive:
-                self.assertEqual(len(archive.namelist()), 15)
+                self.assertEqual(len(archive.namelist()), 16)
                 self.assertFalse(any(name.endswith('.sql') or '/server/' in name for name in archive.namelist()))
                 manifest = json.loads(archive.read('manifest.json'))
                 self.assertEqual(manifest['release_profile'], 'training-pricing-v1')

@@ -29,7 +29,7 @@ SQL脚本在 Supabase SQL Editor 执行，不放进网站目录。前端包只�
 
 ## 3. 前端发布的精确范围
 
-目标目录固定为 `/var/www/kidneysphere`。允许的上一版本为提交 `4a3e70af6fecf9ec59daee4e731b464154ece573`，即已包含音频批量上传的版本。以下13个资源按依赖优先、页面随后顺序发布：
+目标目录固定为 `/var/www/kidneysphere`。允许的上一版本为提交 `4a3e70af6fecf9ec59daee4e731b464154ece573`，即已包含音频批量上传的版本。以下14个资源按依赖优先、页面随后顺序发布：
 
 1. `training-commerce.js`（新增）
 2. `academy.js`
@@ -44,10 +44,11 @@ SQL脚本在 Supabase SQL Editor 执行，不放进网站目录。前端包只�
 11. `training-patho.html`
 12. `training-glom.html`
 13. `training-da.html`
+14. `videos.html`（仅修改培训推广价格一行）
 
 只有新增的 `training-commerce.js` 允许原先不存在。其他文件必须匹配已知版本或本次版本；发现服务器上有其他修改时，发布会停止，避免覆盖。
 
-本包不修改 Nginx、后端接口、登录模块、播放器或音频批量上传依赖，也不重启 Nginx、PM2 或其他服务。发布过程对相关已有文件记录并检查校验值。
+`videos.html` 仅将培训推广文案中的“¥780 起”改为“¥1,580”，构建时会确认该页面其余内容完全未变，`assets/videos.js` 继续受到保护。本包不修改 Nginx、后端接口、登录模块、播放器功能或音频批量上传依赖，也不重启 Nginx、PM2 或其他服务。发布过程对相关已有文件记录并检查校验值。
 
 ## 4. 先更新 Supabase 数据库
 
@@ -78,7 +79,7 @@ SQL脚本在 Supabase SQL Editor 执行，不放进网站目录。前端包只�
 python3 /root/kidneysphere-training-pricing-offline-20260914.pyz --check
 ```
 
-检查会验证网站目录、Nginx 目标配置、13个文件的版本及依赖。它还会读取已有 `assets/config.js` 中的公开匿名配置，向固定的 Supabase 项目发起只读 `GET` 请求，检查：
+检查会验证网站目录、Nginx 目标配置、14个文件的版本及依赖。它还会读取已有 `assets/config.js` 中的公开匿名配置，向固定的 Supabase 项目发起只读 `GET` 请求，检查：
 
 - 15个目标商品均存在，完整版1580元、整套课1200元。
 - 5个单独回放版商品均已停售。
@@ -98,7 +99,7 @@ python3 /root/kidneysphere-training-pricing-offline-20260914.pyz --apply
 
 程序会先在 `/root/kidneysphere-home-releases/` 下自动建立私有备份，再通过临时文件及原子替换发布。终端会打印本次真实的 `BACKUP=` 路径和完整 `ROLLBACK_COMMAND`。**请保留本次输出，回滚必须使用该次运行实际给出的备份目录。** 不要使用其他发布的备份路径。
 
-看到 `RELEASE_OK`，表示13个本地资源校验值与受保护文件检查通过。发生发布错误时，程序会尝试从本次备份自动恢复；如果提示 `AUTOMATIC_ROLLBACK_INCOMPLETE`，应保留原终端输出和备份进行处理。
+看到 `RELEASE_OK`，表示14个本地资源校验值与受保护文件检查通过。发生发布错误时，程序会尝试从本次备份自动恢复；如果提示 `AUTOMATIC_ROLLBACK_INCOMPLETE`，应保留原终端输出和备份进行处理。
 
 本包不重启服务，数据库也不会被这个命令再次修改。
 
@@ -130,4 +131,4 @@ python3 /root/kidneysphere-training-pricing-offline-20260914.pyz --apply
 python3 deploy/build-training-pricing-release.py --commit 完整40位提交SHA --output 发布包完整路径
 ```
 
-构建输出包含真实提交、SHA-256、文件大小和13个文件列表。交付时应提供这些真实结果。正式状态以数据库执行结果、阿里云终端结果及线上检查为准，不能把本地包生成或预览成功写成“已上线”。
+构建输出包含真实提交、SHA-256、文件大小和14个文件列表。交付时应提供这些真实结果。正式状态以数据库执行结果、阿里云终端结果及线上检查为准，不能把本地包生成或预览成功写成“已上线”。

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a pinned 13-file training-price frontend release; SQL is applied separately."""
+"""Build a pinned 14-file training-price frontend release; SQL is applied separately."""
 import argparse
 import hashlib
 import json
@@ -15,7 +15,7 @@ FILES = (
     'training-commerce.js', 'academy.js', 'trainingprograms.js', 'checkout.js',
     'learning-center.js', 'academy.html', 'checkout.html', 'learning.html',
     'training-icu.html', 'training-tx.html', 'training-patho.html',
-    'training-glom.html', 'training-da.html',
+    'training-glom.html', 'training-da.html', 'videos.html',
 )
 REQUIRED_FILES = ('supabaseClient.js', 'assets/config.js',
     'assets/lib/supabase.min.js', 'app.js', 'styles.css', 'vod-upload.js',
@@ -25,7 +25,7 @@ PRESERVED = REQUIRED_FILES + (
     'netlify/functions/dev-grant-access.js', 'netlify/functions/video-upload-auth.js',
     'netlify/functions/video-play-auth.js', 'assets/videos.js', 'home.js',
     'portal-home.js', 'portal-home.css', 'index.html', 'login.html', 'register.html',
-    'auth-callback.html', 'watch.html', 'my-learning.html', 'videos.html',
+    'auth-callback.html', 'watch.html', 'my-learning.html',
     'media-upload.js', 'media-player.js', 'media-player.css',
 )
 ENTRY_MODULES = {'academy.html': 'academy.js', 'checkout.html': 'checkout.js',
@@ -57,11 +57,21 @@ def git_bytes(commit, name, optional=False):
     return result.stdout
 
 
+def updated_videos_html(before):
+    old = '¥780 起 · 系统化课程 + 直播互动 + 学习群 + 回放'.encode('utf-8')
+    new = '¥1,580 · 系统化课程 + 直播互动 + 学习群 + 回放'.encode('utf-8')
+    if before.count(old) != 1:
+        raise ValueError('Expected one legacy training promotion in videos.html')
+    return before.replace(old, new)
+
+
 def validate_payload(payload):
     if tuple(payload) != FILES:
-        raise ValueError('Training price payload must match the fixed thirteen-file allowlist')
+        raise ValueError('Training price payload must match the fixed fourteen-file allowlist')
     if any(not data.strip() for data in payload.values()):
         raise ValueError('Empty pricing resource')
+    if payload['videos.html'] != updated_videos_html(git_bytes(BASELINE, 'videos.html')):
+        raise ValueError('videos.html changes beyond the training promotion price')
     for html, script in ENTRY_MODULES.items():
         expected = (script + '?v=' + VERSION).encode('ascii')
         if payload[html].count(expected) != 1:
