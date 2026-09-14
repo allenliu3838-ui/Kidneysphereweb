@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>全站蓝白主题验收 · KidneySphere</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #e8eef5; color: #18314f; font: 15px/1.6 system-ui,sans-serif; }
+    header { position: sticky; top: 0; z-index: 2; padding: 12px 20px; background: #fff; border-bottom: 1px solid #ccd9e8; }
+    h1 { margin: 0; font-size: 18px; }
+    p { margin: 4px 0 10px; font-size: 12px; }
+    .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    button, select, a { min-height: 44px; padding: 9px 14px; border: 1px solid #b4c7df; border-radius: 7px; color: #164f99; background: white; font: inherit; }
+    button { cursor: pointer; }
+    main { padding: 20px; overflow-x: auto; }
+    iframe { display: block; width: 390px; height: 844px; background: white; border: 0; box-shadow: 0 6px 28px #112d5033; }
+    iframe[title="Netlify Drawer"] { visibility: hidden !important; pointer-events: none !important; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 15px 20px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>全站蓝白主题验收</h1>
+    <p>同源页面在指定 CSS 视口内预览。仅检查访客可见布局，不登录、不提交表单、不模拟付费权限；对比度结果为人工复核线索。</p>
+    <div class="controls">
+      <label for="page">页面</label>
+      <select id="page">
+        <option value="videos">视频课程</option><option value="academy">培训报名</option>
+        <option value="training-patho">病理培训</option><option value="login">登录</option>
+        <option value="my-learning">我的学习</option><option value="checkout">结算</option>
+        <option value="experts">专家</option><option value="article">文章</option>
+        <option value="atlas-topic">图谱主题</option><option value="qbank">题库</option>
+        <option value="admin-commerce">商业管理</option><option value="index">首页回归</option>
+      </select>
+      <label for="viewport">视口宽度</label>
+      <select id="viewport"><option>320</option><option selected>390</option><option>768</option><option>1440</option></select>
+      <button id="audit" type="button">检查布局</button>
+      <button id="reload" type="button">重新载入</button>
+      <a id="open-page" href="../videos.html" target="_blank" rel="noopener">独立打开当前页</a>
+    </div>
+  </header>
+  <main><iframe id="preview" title="蓝白主题页面预览" sandbox="allow-scripts allow-same-origin"></iframe></main>
+  <pre id="report" role="status">正在读取页面…</pre>
+  <script>
+    const frame = document.getElementById('preview');
+    const report = document.getElementById('report');
+    const pageSelect = document.getElementById('page');
+    const widthSelect = document.getElementById('viewport');
+    const allowedPages = new Set([...pageSelect.options].map(option => option.value));
+    let loadSequence = 0;
+    let loadedPage = '';
+    function describe(el) {
+      return (el.id ? '#' + el.id : el.tagName.toLowerCase() + (el.classList.length ? '.' + [...el.classList].join('.') : '')).slice(0, 150);
+    }
+    function visible(el, win) {
+      if (!el.getClientRects().length) return false;
+      for (let node = el; node; node = node.parentElement) {
+        const style = win.getComputedStyle(node);
+        if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return false;
+      }
+      return true;
+    }
+    function color(value) {
+      const m = value.match(/^rgba?\(([^)]+)\)$/);
+      if (!m) return null;
+      const channels = m[1].split(/[\s,\/]+/).map(Number);
+      return channels.length >= 3 ? [...channels.slice(0, 3), channels[3] ?? 1] : null;
+    }
+    function over(fg, bg) {
+      const a = fg[3] + bg[3] * (1 - fg[3]);
+      return [...fg.slice(0, 3).map((v, i) => a ? (v * fg[3] + bg[i] * bg[3] * (1 - fg[3])) / a : 0), a];
+    }
+    function luminance(rgb) {
+      return rgb.slice(0, 3).map(v => v / 255).map(v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4)
+        .reduce((sum, v, i) => sum + v * [.2126, .7152, .0722][i], 0);
+    }
+    function contrastHints(doc, win) {
+      const issues = [];
+      const parents = new Set();
+      const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+      while (walker.nextNode()) {
+        const text = walker.currentNode.textContent.trim();
+        const el = walker.currentNode.parentElement;
+        if (!text || !el || parents.has(el) || !visible(el, win) || el.closest('script,style,svg,canvas,video,iframe,[data-lb-caption],[data-lb-counter]')) continue;
+        parents.add(el);
+        const cs = win.getComputedStyle(el);
+        let background = [0, 0, 0, 0];
+        let uncertain = false;
+        for (let node = el; node; node = node.parentElement) {
+          const s = win.getComputedStyle(node);
+          if (s.backgroundImage !== 'none' || Number(s.opacity) < 1) { uncertain = true; break; }
+          const bg = color(s.backgroundColor);
+          if (!bg) { uncertain = true; break; }
+          background = over(background, bg);
+          if (background[3] >= .999) break;
+        }
+        const fg = color(cs.color);
+        if (uncertain || !fg || background[3] < .999) continue;
+        const painted = over(fg, background);
+        const a = luminance(painted), b = luminance(background);
+        const ratio = (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
+        const large = parseFloat(cs.fontSize) >= 24 || (parseFloat(cs.fontSize) >= 18.66 && Number(cs.fontWeight) >= 700);
+        const target = large ? 3 : 4.5;
+        if (ratio < target) issues.push({ element: describe(el), text: text.slice(0, 65), ratio: +ratio.toFixed(2), target, foreground: cs.color, background });
+        if (issues.length >= 50) break;
+      }
+      return issues;
+    }
+    function audit() {
+      try {
+        const doc = frame.contentDocument;
+        const win = frame.contentWindow;
+        if (!doc?.querySelector('[name="site-theme-qa"]')) throw new Error('页面尚未载入；请稍后再检查。');
+        const width = doc.documentElement.clientWidth;
+        const snapshot = selector => {
+          const el = doc.querySelector(selector);
+          if (!el) return null;
+          const s = win.getComputedStyle(el), r = el.getBoundingClientRect();
+          return { element: describe(el), visible: visible(el, win), color: s.color, background: s.backgroundColor,
+            backgroundImage: s.backgroundImage, border: s.borderColor, width: +r.width.toFixed(1), fontSize: s.fontSize };
+        };
+        function inScrollContainer(el) {
+          for (let node = el.parentElement; node && node !== doc.body; node = node.parentElement) {
+            const s = win.getComputedStyle(node);
+            if (['auto', 'scroll', 'hidden', 'clip'].includes(s.overflowX) && node.scrollWidth > node.clientWidth + 1) return true;
+          }
+          return false;
+        }
+        const overflowing = [...doc.querySelectorAll('main,header,footer,.container,.card,.nav-inner,.grid,.vcard,.tier-card,.curriculum-item,.input,.modal-panel,.modal-box')]
+          .filter(el => visible(el, win) && !inScrollContainer(el))
+          .filter(el => { const r = el.getBoundingClientRect(); return r.width > 0 && (r.left < -1 || r.right > width + 1); })
+          .map(el => ({ element: describe(el), left: +el.getBoundingClientRect().left.toFixed(1), right: +el.getBoundingClientRect().right.toFixed(1) }));
+        const hiddenVisible = [...doc.querySelectorAll('[hidden]')].filter(el => visible(el, win)).map(describe);
+        const media = [...doc.querySelectorAll('video,iframe,.video-embed,.pdf-frame')].map(el => ({ element: describe(el), background: win.getComputedStyle(el).backgroundColor }));
+        const result = { page: loadedPage, width, documentWidth: doc.documentElement.scrollWidth,
+          body: snapshot('body'), nav: snapshot('.nav'), card: snapshot('.vcard,.card,.tier-card'), button: snapshot('.btn.primary'),
+          overflowing, hiddenVisible, media, contrastHints: contrastHints(doc, win) };
+        report.textContent = JSON.stringify(result, null, 2);
+        return result;
+      } catch (error) { report.textContent = error.message; return { error: error.message }; }
+    }
+    async function loadPage() {
+      const name = pageSelect.value;
+      if (!allowedPages.has(name)) throw new Error('页面不在固定验收列表中。');
+      const sequence = ++loadSequence;
+      report.textContent = '正在读取 ' + name + '.html…';
+      const root = new URL('../', location.href);
+      const url = new URL(name + '.html', root);
+      url.searchParams.set('theme-qa', '20260914_light1');
+      document.getElementById('open-page').href = url.href;
+      try {
+        const response = await fetch(url, { cache: 'no-store', credentials: 'omit' });
+        if (!response.ok) throw new Error('读取失败：HTTP ' + response.status);
+        const html = await response.text();
+        if (sequence !== loadSequence) return;
+        if (!/<head\b[^>]*>/i.test(html)) throw new Error('响应不是预期 HTML 页面。');
+        loadedPage = name;
+        frame.srcdoc = html.replace(/<head\b[^>]*>/i, match => match + '<base href="' + root.href + '"><meta name="site-theme-qa" content="1">');
+      } catch (error) { if (sequence === loadSequence) report.textContent = error.message; }
+    }
+    frame.addEventListener('load', () => {
+      frame.contentDocument?.addEventListener('submit', event => event.preventDefault(), true);
+      requestAnimationFrame(audit);
+    });
+    pageSelect.addEventListener('change', loadPage);
+    widthSelect.addEventListener('change', () => {
+      frame.style.width = widthSelect.value + 'px';
+      frame.style.height = Number(widthSelect.value) < 600 ? '844px' : '1000px';
+      requestAnimationFrame(() => requestAnimationFrame(audit));
+    });
+    document.getElementById('audit').addEventListener('click', audit);
+    document.getElementById('reload').addEventListener('click', loadPage);
+    loadPage();
+  </script>
+</body>
+</html>

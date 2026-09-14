@@ -2,7 +2,7 @@
  * admin-commerce-cohorts.js — 班期管理模块
  */
 import { supabase, toast, formatBeijingDateTime } from './supabaseClient.js?v=20260401_fix';
-import { esc, fmtDate, statusDot, showModal, closeModal } from './admin-commerce.js?v=20260325_001';
+import { esc, fmtDate, statusDot, showModal, closeModal } from './admin-commerce.js?v=20260914_payment1';
 
 const STATUS_MAP = {
   draft:      { label: '草稿', dot: 'gray' },
@@ -30,8 +30,7 @@ async function loadCohorts() {
   await loadProjectOptions();
 
   const { data, error } = await supabase
-    .from('cohorts')
-    .select('*, learning_projects(title)')
+    .rpc('admin_get_cohorts', { p_project_id: null })
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -55,7 +54,7 @@ async function loadCohorts() {
           <tr>
             <td><code>${esc(r.cohort_code)}</code></td>
             <td>${esc(r.title)}</td>
-            <td class="small">${esc(r.learning_projects?.title || '—')}</td>
+            <td class="small">${esc(_projects.find(project => project.id === r.project_id)?.title || '—')}</td>
             <td class="small">${esc(r.start_date || '—')} ~ ${esc(r.end_date || '—')}</td>
             <td>${r.enrolled_count ?? 0}${r.quota ? ` / ${r.quota}` : ''}</td>
             <td>${statusLabel(r.status)}</td>
@@ -170,7 +169,7 @@ function bindEvents() {
   document.getElementById('cohortsTableWrap')?.addEventListener('click', async e => {
     const editBtn = e.target.closest('button[data-edit-cohort]');
     if (editBtn) {
-      const { data } = await supabase.from('cohorts').select('*').eq('id', editBtn.dataset.editCohort).single();
+      const { data } = await supabase.rpc('admin_get_cohorts', { p_project_id: null }).eq('id', editBtn.dataset.editCohort).single();
       if (data) showCohortForm(data);
     }
   });

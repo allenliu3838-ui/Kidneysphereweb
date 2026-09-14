@@ -83,7 +83,7 @@ test('moments.html: composer hidden from anonymous', async ({ request }) => {
 // ─── Public pages: should render core content ───
 
 const PUBLIC_PAGES = [
-  { path: '/', mustContain: ['肾域', '临床研究'] },
+  { path: '/', mustContain: ['肾域', '视频学习与系统培训', '证据与合作生态'] },
   { path: '/about', mustContain: ['肾域'] },
   { path: '/articles', mustContain: ['文献库'] },
   { path: '/community', mustContain: ['社区讨论'] },

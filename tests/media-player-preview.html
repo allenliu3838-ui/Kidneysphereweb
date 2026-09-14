@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow"><title>音频播放器测试预览</title>
+  <link rel="stylesheet" href="../media-player.css?v=20260914_audio1">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#e8f2fc;color:#143650;font-family:system-ui,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6}
+    .preview-tools{padding:16px 22px;background:#d9e8f5;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.preview-tools p{margin:0;font-size:13px}.preview-tools select{font:inherit;padding:10px;min-height:44px;border:1px solid #9fbcd2;border-radius:7px;background:#fff;color:#17384f;font-size:16px}
+    .preview-stage{padding:20px 0}.preview-frame{display:block;width:390px;max-width:100%;height:720px;margin:0 auto;border:1px solid #a6c2d9;background:#e8f2fc}.test-content{padding:18px 12px}.test-content>h1{font-size:20px;margin:0 0 10px}.test-content>p{font-size:13px;margin:0 0 22px;color:#436479}.test-output{display:block;margin:18px 0;font-size:12px;color:#406580;overflow-wrap:anywhere}[hidden]{display:none!important}
+  </style>
+</head>
+<body>
+  <header class="preview-tools" id="tools"><div><strong>音频播放器 · 独立测试</strong><p>合成测试音，不连接登录、购买或真实课程。</p></div><label>视口宽度 <select id="width"><option value="320">320 px</option><option value="390" selected>390 px</option><option value="768">768 px</option><option value="1080">1080 px</option></select></label></header>
+  <main class="preview-stage" id="stage"><p id="preview-load-status" role="status">正在准备播放器预览…</p><iframe id="preview-frame" class="preview-frame" title="播放器在所选手机宽度下的预览" hidden></iframe></main>
+  <main class="test-content" id="content" hidden><h1>音频课程播放效果</h1><p>这是 32 秒、低音量的合成提示音，用于检查播放、进度、前后跳转和倍速。点击播放才会发声。</p><div id="player"></div><output class="test-output" id="output" aria-live="polite">等待测试音元数据…</output></main>
+  <script type="module">
+    import { renderMediaPlayer } from '../media-player.js?v=20260914_audio1';
+    const frame = document.documentElement.hasAttribute('data-media-frame') || new URLSearchParams(location.search).has('frame');
+    if (!frame) {
+      const preview = document.getElementById('preview-frame');
+      const loadStatus = document.getElementById('preview-load-status');
+      document.getElementById('width').addEventListener('change', event => {
+        preview.style.width = event.target.value + 'px';
+      });
+      try {
+        // Same-origin source + srcdoc follows the existing responsive preview
+        // harness, without changing the site's X-Frame-Options or CSP headers.
+        const response = await fetch('./media-player-preview.html?frame=1', { cache: 'no-store' });
+        if (!response.ok) throw new Error('无法读取测试页');
+        const parsed = new DOMParser().parseFromString(await response.text(), 'text/html');
+        parsed.documentElement.setAttribute('data-media-frame', '');
+        const base = parsed.createElement('base');
+        base.href = new URL('./', response.url).href;
+        parsed.head.prepend(base);
+        preview.srcdoc = '<!doctype html>' + parsed.documentElement.outerHTML;
+        preview.hidden = false;
+        loadStatus.hidden = true;
+      } catch (error) { loadStatus.textContent = '预览加载失败：' + error.message; }
+    } else {
+      document.getElementById('tools').hidden = true;
+      document.getElementById('stage').remove();
+      document.getElementById('content').hidden = false;
+      const rate = 8000, seconds = 32, samples = rate * seconds;
+      const bytes = new ArrayBuffer(44 + samples * 2), view = new DataView(bytes);
+      const text = (offset, value) => { for (let i = 0; i < value.length; i++) view.setUint8(offset + i, value.charCodeAt(i)); };
+      text(0, 'RIFF'); view.setUint32(4, 36 + samples * 2, true); text(8, 'WAVE'); text(12, 'fmt ');
+      view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+      view.setUint32(24, rate, true); view.setUint32(28, rate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+      text(36, 'data'); view.setUint32(40, samples * 2, true);
+      for (let i = 0; i < samples; i++) {
+        const t = i / rate, pulse = t % 1;
+        const envelope = pulse < .35 ? Math.sin(Math.PI * pulse / .35) ** 2 : 0;
+        view.setInt16(44 + i * 2, Math.round(Math.sin(2 * Math.PI * (440 + Math.floor(t / 8) * 55) * t) * envelope * 1800), true);
+      }
+      const blobUrl = URL.createObjectURL(new Blob([bytes], { type: 'audio/wav' }));
+      const player = renderMediaPlayer(document.getElementById('player'), {
+        // The renderer retains its production http(s)-only guard. Only this
+        // isolated fixture replaces the source with generated, local audio.
+        playURL: new URL('./media-player-test.wav', document.baseURI).href,
+        mediaType: 'audio', streamType: 'audio', format: 'wav',
+      }, { title: '肾域音频课程 · 播放器体验', speaker: '合成测试音，非课程内容' });
+      player.querySelector('source').src = blobUrl;
+      player.load();
+      const output = document.getElementById('output');
+      const report = () => {
+        output.textContent = `原生 ${player.tagName.toLowerCase()} · 时长 ${Number.isFinite(player.duration) ? player.duration.toFixed(0) : '…'} 秒 · 速度 ${player.playbackRate}× · ${player.paused ? '已暂停' : '播放中'} · ${document.documentElement.clientWidth}px 视口`;
+      };
+      ['loadedmetadata', 'ratechange', 'play', 'pause', 'seeked'].forEach(name => player.addEventListener(name, report));
+      window.addEventListener('resize', report);
+      window.addEventListener('pagehide', () => { player.pause(); URL.revokeObjectURL(blobUrl); }, { once: true });
+    }
+  </script>
+</body>
+</html>

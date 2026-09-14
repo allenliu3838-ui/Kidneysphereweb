@@ -12,6 +12,7 @@ import {
   formatBeijingDateTime,
   toast,
 } from './supabaseClient.js?v=20260401_fix';
+import { classifyTrainingProduct, isRetiredTrainingReplay } from './training-commerce.js?v=20260914_pricing1';
 
 const homeListEl = document.getElementById('homeTrainingList');
 const gridEl = document.getElementById('trainingProgramsGrid');
@@ -39,7 +40,7 @@ function chip(status){
 }
 
 function normalize(rows){
-  const arr = Array.isArray(rows) ? rows.slice() : [];
+  const arr = Array.isArray(rows) ? rows.filter(p => !isRetiredTrainingReplay(p)) : [];
   arr.sort((a,b)=>{
     const sa = Number(a.sort ?? 0);
     const sb = Number(b.sort ?? 0);
@@ -51,12 +52,31 @@ function normalize(rows){
   return arr;
 }
 
+function withProgramProducts(rows, products){
+  const byCode = new Map();
+  for(const product of products){
+    const kind = classifyTrainingProduct(product);
+    if(product.is_active === true && (kind === 'registration' || kind === 'bundle')){
+      byCode.set(product.product_code, product);
+    }
+  }
+  return normalize(rows).map(row => ({
+    ...row,
+    offerProduct: byCode.get(String(row.product_code || '').trim()) || null,
+  }));
+}
+
+function programBadge(p, fallback){
+  // Historical programme badges must not revive an expired pricing offer.
+  return p.badge && !/早鸟|early[ -]?bird/i.test(p.badge) ? p.badge : fallback;
+}
+
 function renderHome(rows){
   if(!homeListEl) return;
   const list = normalize(rows);
   homeListEl.innerHTML = list.map(p=>{
     const c = chip(p.status);
-    const badge = p.badge ? `<span class="chip ${c.cls}">${esc(p.badge)}</span>` : `<span class="chip ${c.cls}">${c.label}</span>`;
+    const badge = `<span class="chip ${c.cls}">${esc(programBadge(p, c.label))}</span>`;
     return `<li><b>${esc(p.title)}</b>${badge}</li>`;
   }).join('');
 }
@@ -66,15 +86,19 @@ function renderGrid(rows){
   const list = normalize(rows);
   gridEl.innerHTML = list.map(p=>{
     const c = chip(p.status);
-    const badgeText = p.badge ? esc(p.badge) : c.label;
+    const badgeText = esc(programBadge(p, c.label));
     const desc = p.description ? esc(p.description) : '';
     const link = String(p.link || '').trim();
-    const productCode = String(p.product_code || '').trim();
-    const price = p.price_cny ? `¥${p.price_cny}` : '';
+    const product = p.offerProduct;
+    const productCode = product?.product_code;
+    // training_programs.price_cny is a legacy display field. Checkout charges
+    // products.price_cny, so only that same active product may supply the quote.
+    const price = product?.price_cny != null ? `¥${Number(product.price_cny).toLocaleString('zh-CN')}` : '';
 
     let cta = '';
     if (productCode) {
-      cta = `<a class="btn primary" href="checkout.html?product=${encodeURIComponent(productCode)}">立即报名${price ? ` ${price}` : ''}</a>`;
+      const action = classifyTrainingProduct(product) === 'bundle' ? '购买整套课' : '立即报名';
+      cta = `<a class="btn primary" href="checkout.html?product=${encodeURIComponent(productCode)}">${action}${price ? ` ${price}` : ''}</a>`;
       if (link) cta += ` <a class="btn" href="${esc(link)}" target="_blank" rel="noopener">了解更多</a>`;
     } else if (link) {
       cta = `<a class="btn" href="${esc(link)}" target="_blank" rel="noopener">了解更多</a>`;
@@ -133,13 +157,29 @@ async function loadPrograms(){
 
     if(error) throw error;
 
-    const rows = Array.isArray(data) ? data : [];
+    let rows = normalize(data);
     if(rows.length === 0){
       renderHome([]);
       renderGrid([]);
       showHint('<b>提示：</b>培训项目即将上线，敬请关注。');
       return;
     }
+
+    const codes = [...new Set(rows.map(row => String(row.product_code || '').trim()).filter(Boolean))];
+    let products = [];
+    if(codes.length){
+      try{
+        const result = await supabase.from('products')
+          .select('id,product_code,product_type,price_cny,is_active')
+          .eq('is_active', true)
+          .in('product_code', codes);
+        if(result.error) throw result.error;
+        products = result.data || [];
+      }catch(_e){
+        showHint('报名价格暂未加载，请稍后重试或查看项目详情。');
+      }
+    }
+    rows = withProgramProducts(rows, products);
 
     renderHome(rows);
     renderGrid(rows);

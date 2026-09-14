@@ -7,7 +7,16 @@
   <meta name="description" content="肾域 — 面向肾脏专科的学术社区、临床科研与医生工具平台">
   <link rel="canonical" href="https://kidneysphere.com/learning" />
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+  <link rel="stylesheet" href="styles.css?v=20260914_depth1" />
+  <style>
+    #videoAddForm .form-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+    #videoAddForm .form-row>div{min-width:0!important;max-width:100%}
+    #videoAddForm .input{width:100%;min-width:0;box-sizing:border-box}
+    #videoAddForm button,#videoAddForm select,#videoAddForm input:not([type="checkbox"]):not([type="hidden"]){min-height:44px}
+    #videoAliyunUploadBox{overflow-wrap:anywhere}
+    @media(max-width:640px){#videoAddForm .form-row{grid-template-columns:minmax(0,1fr)}}
+  </style>
+  <link rel="stylesheet" href="./media-batch.css?v=20260914_batch1" />
 </head>
 <body>
   <header class="nav"></header>
@@ -152,6 +161,6 @@
 
   <footer class=”footer” data-blurb=”面向肾脏专科的学术教育与持续培训平台。”></footer>
 <script type="module" src="app.js?v=20260323_001"></script>
-  <script type="module" src="learning-center.js?v=20260328_001"></script>
+  <script type="module" src="learning-center.js?v=20260914_pricing1"></script>
 </body>
 </html>

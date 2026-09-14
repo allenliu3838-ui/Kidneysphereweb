@@ -7,7 +7,8 @@
   <meta name="description" content="肾域 — 面向肾脏专科的学术社区、临床科研与医生工具平台">
   <meta name="robots" content="noindex,nofollow" />
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=20260325_001" />
+  <link rel="stylesheet" href="styles.css?v=20260914_depth1" />
+  <link rel="stylesheet" href="media-player.css?v=20260914_audio1" />
   <!-- Aliplayer SDK removed: requires License since Dec 2024. Using native HTML5 video. -->
 </head>
 <body>
@@ -150,6 +151,7 @@
 <script type="module">
   import { supabase, ensureSupabase, ensureAuthed, isConfigured, getCurrentUser, toast } from './supabaseClient.js?v=20260401_fix';
   import { getVideoById, getCategoryMeta } from './assets/videos.js?v=20260118_001';
+  import { renderMediaPlayer } from './media-player.js?v=20260914_audio1';
 
   const titleEl = document.getElementById('title');
   const metaEl = document.getElementById('meta');
@@ -264,7 +266,7 @@
             // Free non-bilibili video: render with URL (only for free videos)
             titleEl.textContent = dbVideo.title || '（无标题）';
             metaEl.textContent = dbVideo.speaker ? ('主讲：' + dbVideo.speaker) : '';
-            initUrlPlayer(dbVideo.mp4_url || dbVideo.source_url, 'mp4');
+            initUrlPlayer(dbVideo.mp4_url || dbVideo.source_url, '', dbVideo);
           }else if(token){
             // Paid video, API unavailable but user has token — try play-auth directly
             titleEl.textContent = dbVideo.title || '（无标题）';
@@ -422,7 +424,7 @@
         wrap.innerHTML = '<div class="note">阿里云 PlayAuth 模式暂不可用（需要配置播放器 License）。请在后台为该视频设置播放地址。</div>';
       }else if(auth.playerType === 'signed_url' || auth.playerType === 'direct_url'){
         // ── Signed URL / direct URL fallback ──
-        initUrlPlayer(auth.playURL, auth.format || 'mp4');
+        initUrlPlayer(auth.playURL, auth.format || '', videoInfo, auth);
       }else{
         wrap.innerHTML = `<div class="note" style="border-color:rgba(255,120,120,.4)">未知的播放方式：${esc(auth.playerType || 'unknown')}</div>`;
       }
@@ -436,13 +438,9 @@
   // ── PlayAuth player placeholder (requires Aliplayer License) ──
   // TODO: re-enable when Aliplayer License is configured
 
-  // ── Initialize player with temporary URL (native HTML5 video) ──
-  function initUrlPlayer(url, format){
-    if(!url){
-      wrap.innerHTML = '<div class="note" style="border-color:rgba(255,120,120,.4)">没有可用的播放地址。</div>';
-      return;
-    }
-    wrap.innerHTML = `<video controls playsinline style="width:100%;max-width:980px;height:560px;border-radius:16px;background:#000;border:1px solid rgba(255,255,255,.12)"><source src="${esc(url)}" type="video/${format || 'mp4'}" />你的浏览器不支持播放。</video>`;
+  // The existing access and play-auth gates decide whether this renderer runs.
+  function initUrlPlayer(url, format, videoInfo = {}, playback = {}){
+    renderMediaPlayer(wrap, { ...playback, playURL: url, format }, videoInfo);
   }
 
   // ── Render Bilibili player (for static free videos) ──

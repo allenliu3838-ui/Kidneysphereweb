@@ -2,32 +2,29 @@ import {
   supabase,
   ensureSupabase,
   isConfigured,
-  getUserProfile,
-  getCurrentUser,
-  isAdminRole,
-  normalizeRole,
-  levelLabelFromPoints,
-  formatBeijingDateTime,
-  formatBeijingDate,
 } from './supabaseClient.js?v=20260401_fix';
 
-// DOM references — latest content section
-const momentsRoot = document.querySelector('[data-home-moments]');
-const momentsCard = document.getElementById('homeMoments');
-const articlesRoot = document.querySelector('[data-home-articles]');
-const articlesCard = document.getElementById('homeArticles');
-const latestSection = document.getElementById('homeLatestSection');
-
-// Home showcase board
+// Only the existing showcase module is loaded. Removed article/moment modules
+// make no background requests; course discovery has its own reader.
 const showcaseSection = document.querySelector('[data-home-showcase]');
 const showcaseStatsEl = document.querySelector('[data-home-showcase-stats]');
 const showcaseCardsEl = document.querySelector('[data-home-showcase-cards]');
 const showcaseActionsEl = document.querySelector('[data-home-showcase-actions]');
+const showcaseStatusEl = document.querySelector('[data-home-showcase-status]');
 const showcaseTabs = Array.from(document.querySelectorAll('[data-home-showcase-tab]'));
 const showcasePrevBtn = document.querySelector('[data-home-showcase-prev]');
 const showcaseNextBtn = document.querySelector('[data-home-showcase-next]');
-
+const showcasePlaybackEl = document.querySelector('[data-home-showcase-playback]');
+const showcaseAutoplayBtn = document.querySelector('[data-home-showcase-autoplay]');
+let showcaseRotation = null;
 let showcaseActiveKind = 'experts';
+
+const showcaseLabels = {
+  experts: '核心专家',
+  flagship: '旗舰中心',
+  co_building: '共建单位',
+  partners: '合作单位',
+};
 
 function esc(str){
   return String(str ?? '').replace(/[&<>"']/g, s => ({
@@ -36,164 +33,108 @@ function esc(str){
 }
 
 function ensureCoBuildingNeiKeTitle(raw){
-  let t = String(raw || '').trim();
-  if(!t) return '';
-  t = t.replace(/\s*(肾脏内科|肾病科|肾内科|肾内|肾病)\s*$/,'').trim();
-  if(/肾内科\s*$/.test(t)) return t;
-  return t + '肾内科';
+  const title = String(raw || '').trim();
+  if(!title) return '';
+  return title.replace(/\s*(肾脏内科|肾病科|肾内科|肾内|肾病)\s*$/,'').trim() + '肾内科';
 }
 
-function iconForShowcase(kind){
-  const k = String(kind || '').toLowerCase();
-  if(k === 'experts') return '👤';
-  if(k === 'flagship') return '🏥';
-  if(k === 'co_building') return '🤝';
-  if(k === 'partners') return '🤝';
-  return '📌';
+function safeShowcaseUrl(raw, fallback = ''){
+  const value = String(raw || '').trim();
+  if(!value) return fallback;
+  try{
+    const url = new URL(value, document.baseURI);
+    return ['https:', 'http:'].includes(url.protocol) ? value : fallback;
+  }catch(_e){
+    return fallback;
+  }
 }
 
-function shortDesc(desc, max = 120){
-  const t = String(desc || '').replace(/\s+/g, ' ').trim();
-  if(!t) return '';
-  if(t.length <= max) return t;
-  return t.slice(0, max) + '…';
+function shortDesc(desc, max = 180){
+  const value = String(desc || '').replace(/\s+/g, ' ').trim();
+  return value.length > max ? value.slice(0, max) + '…' : value;
 }
 
-function buildExpertList(cn = [], intl = [], limit){
+function buildExpertList(cn = [], intl = []){
+  // Keep both directories represented; rotate the starting point only once
+  // when the page loads, never reorder cards while someone is reading.
   const out = [];
-  const a = [...cn];
-  const b = [...intl];
-  const max = Number.isFinite(limit) ? Math.max(0, limit) : (a.length + b.length);
-  while(out.length < max && (a.length || b.length)){
-    if(a.length) out.push(a.shift());
-    if(out.length >= max) break;
-    if(b.length) out.push(b.shift());
+  for(let i = 0; i < Math.max(cn.length, intl.length); i++){
+    if(cn[i]) out.push(cn[i]);
+    if(intl[i]) out.push(intl[i]);
   }
   return out;
 }
 
-function hash32(str){
-  let h = 2166136261;
-  const s = String(str || '');
-  for(let i=0;i<s.length;i++){
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return (h >>> 0);
+function chooseExpertStart(rows, storage, random = Math.random){
+  if(rows.length < 2) return rows.slice();
+  const key = 'ks-home-expert-start-v1';
+  let start = Math.floor(random() * rows.length) % rows.length;
+  try{
+    const saved = storage?.getItem(key);
+    if(saved !== null && saved !== undefined && /^\d+$/.test(saved)){
+      start = (Number(saved) + 1) % rows.length;
+    }
+    storage?.setItem(key, String(start));
+  }catch(_e){ /* Private browsing still gets a varied starting expert. */ }
+  return rows.slice(start).concat(rows.slice(0, start));
 }
 
-function mulberry32(seed){
-  let a = seed >>> 0;
-  return function(){
-    a += 0x6D2B79F5;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+function expertStartForVisit(rows){
+  let storage;
+  try{ storage = window.localStorage; }catch(_e){ /* Storage is optional. */ }
+  return chooseExpertStart(rows, storage);
 }
 
-function seededShuffle(list, seed){
-  const arr = Array.isArray(list) ? list.slice() : [];
-  if(arr.length <= 1) return arr;
-  const rand = mulberry32((seed >>> 0) || 1);
-  for(let i = arr.length - 1; i > 0; i--){
-    const j = Math.floor(rand() * (i + 1));
-    const tmp = arr[i];
-    arr[i] = arr[j];
-    arr[j] = tmp;
-  }
-  return arr;
-}
-
-function shuffleBySortBuckets(list, seed){
-  const rows = Array.isArray(list) ? list : [];
-  if(rows.length <= 1) return rows.slice();
-  const buckets = new Map();
-  for(const it of rows){
-    const k = Number.isFinite(Number(it?.sort)) ? Number(it.sort) : 9999;
-    if(!buckets.has(k)) buckets.set(k, []);
-    buckets.get(k).push(it);
-  }
-  const keys = Array.from(buckets.keys()).sort((a,b)=>a-b);
-  const out = [];
-  for(let i=0;i<keys.length;i++){
-    const k = keys[i];
-    const bucket = buckets.get(k) || [];
-    const bucketSeed = (seed ^ hash32(String(k)) ^ (i * 2654435761)) >>> 0;
-    out.push(...seededShuffle(bucket, bucketSeed));
-  }
-  return out;
-}
-
-function renderShowcaseCard(item, kind){
-  const title = esc(kind === 'co_building' ? ensureCoBuildingNeiKeTitle(item?.title || '') : (item?.title || ''));
+function renderShowcaseCard(item, kind, index = 0){
+  const rawTitle = kind === 'co_building'
+    ? ensureCoBuildingNeiKeTitle(item?.title)
+    : String(item?.title || '').trim();
+  // Split only an explicit "name | institution" title; do not invent
+  // affiliations or infer credentials from biographies.
+  const parts = kind === 'experts' ? rawTitle.match(/^(.+?)\s*[|｜]\s*(.+)$/s) : null;
+  const title = parts ? parts[1].trim() : rawTitle;
+  const institution = parts ? parts[2].trim() : '';
   const rawDesc = String(item?.description || '').trim();
-  const imgUrl = String(item?.image_url || '').trim();
-
-  let metaLine = '';
-  let bodyDesc = rawDesc;
-  let descHtml = '';
-  if(kind === 'co_building'){
-    descHtml = '';
-  }else if(kind === 'experts'){
-    const safeBody = bodyDesc.length > 8000 ? (bodyDesc.slice(0, 8000) + '…') : bodyDesc;
-    descHtml = esc(safeBody).replace(/\n/g, '<br/>');
-  }else{
-    const safe = shortDesc(rawDesc, 180);
-    descHtml = esc(safe).replace(/\n/g, '<br/>');
-  }
-
-  let href = '';
-  if(item?.link){
-    href = String(item.link);
-  }else{
-    if(kind === 'flagship') href = 'flagship.html';
-    else if(kind === 'co_building' || kind === 'partners') href = 'partners.html';
-    else if(kind === 'experts'){
-      const c = String(item?.category || '').toLowerCase();
-      href = (c === 'experts_intl') ? 'experts-intl.html' : 'experts-cn.html';
-    }else href = 'about.html';
-  }
-
-  const regionPill = (kind === 'experts')
-    ? `<span class="pill">${String(item?.category||'').toLowerCase() === 'experts_intl' ? '国际' : '国内'}</span>`
-    : (kind === 'co_building')
-      ? `<span class="pill">共建</span>`
-      : (kind === 'partners')
-        ? `<span class="pill">合作</span>`
-        : `<span class="pill">旗舰</span>`;
-
-  const thumb = imgUrl
-    ? `<img class="thumb" src="${esc(imgUrl)}" alt="" loading="lazy" />`
-    : `<div class="thumb" style="display:grid;place-items:center">${iconForShowcase(kind)}</div>`;
-
-  const showToggle = (kind === 'experts') && !!bodyDesc && String(bodyDesc).trim().length > 0;
-  const toggle = showToggle
-    ? `<span class="more" role="button" tabindex="0" data-showcase-toggle aria-expanded="false">展开</span>`
-    : '';
+  const imageUrl = safeShowcaseUrl(item?.image_url);
+  const international = String(item?.category || '').toLowerCase() === 'experts_intl';
+  const fallbackHref = kind === 'experts'
+    ? (international ? 'experts-intl.html' : 'experts-cn.html')
+    : kind === 'flagship' ? 'flagship.html' : 'partners.html';
+  const href = safeShowcaseUrl(item?.link, fallbackHref);
+  const externalLink = href !== fallbackHref && new URL(href, document.baseURI).origin !== new URL(document.baseURI).origin;
+  const region = kind === 'experts' ? (international ? '国际' : '国内')
+    : kind === 'co_building' ? '共建' : kind === 'partners' ? '合作' : '旗舰';
+  const cardId = `home-showcase-${kind}-${index}`;
+  const descriptionId = `${cardId}-description`;
+  const thumb = imageUrl
+    ? `<img class="thumb" src="${esc(imageUrl)}" alt="" loading="lazy" decoding="async" width="80" height="80" />`
+    : `<div class="thumb showcase-placeholder" aria-hidden="true">${kind === 'experts' ? '专家' : '机构'}</div>`;
+  const isExpert = kind === 'experts';
+  const hasDescription = !!rawDesc && kind !== 'co_building';
 
   return `
-    <a class="home-showcase-card" data-kind="${esc(kind)}" href="${esc(href)}" ${item?.link ? 'target="_blank" rel="noopener"' : ''}>
+    <article class="home-showcase-card" data-kind="${esc(kind)}" aria-labelledby="${cardId}-title">
       ${thumb}
       <div class="main">
-        <div class="title">${title}</div>
+        <div class="title" id="${cardId}-title"><a class="showcase-title-link" href="${esc(href)}"${externalLink ? ' target="_blank" rel="noopener noreferrer"' : ''}>${esc(title || showcaseLabels[kind])}</a></div>
+        ${institution ? `<div class="institution">${esc(institution)}</div>` : ''}
         <div class="meta">
-          ${regionPill}
-          ${metaLine ? `<span class="muted" style="font-size:12px">${esc(metaLine)}</span>` : ''}
-          ${toggle}
+          <span class="pill">${region}</span>
+          ${isExpert && hasDescription ? `<button class="more" type="button" data-showcase-toggle aria-expanded="false" aria-controls="${descriptionId}" aria-label="展开${esc(title)}的简介">展开简介</button>` : ''}
         </div>
-        ${descHtml ? `<div class="desc">${descHtml}</div>` : ''}
+        ${hasDescription ? `<div class="desc" id="${descriptionId}"${isExpert ? ' hidden' : ''}>${esc(isExpert ? rawDesc : shortDesc(rawDesc)).replace(/\n/g, '<br/>')}</div>` : ''}
       </div>
-    </a>
+    </article>
   `;
 }
 
 function setTabActive(kind){
   showcaseTabs.forEach(btn => {
-    const k = btn.getAttribute('data-home-showcase-tab');
-    const active = k === kind;
+    const active = btn.getAttribute('data-home-showcase-tab') === kind;
     btn.classList.toggle('active', active);
-    btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    btn.removeAttribute('aria-selected');
+    btn.setAttribute('aria-pressed', String(active));
+    btn.disabled = false;
   });
 }
 
@@ -205,495 +146,245 @@ function updateShowcaseActions(kind){
       <a class="btn" href="experts-intl.html">国际专家</a>
       <a class="btn primary" href="about.html">了解更多</a>
     `;
-    return;
-  }
-  if(kind === 'flagship'){
+  }else if(kind === 'flagship'){
     showcaseActionsEl.innerHTML = `
       <a class="btn primary" href="flagship.html">查看全部旗舰中心</a>
       <a class="btn" href="about.html">了解更多</a>
     `;
-    return;
+  }else{
+    showcaseActionsEl.innerHTML = `
+      <a class="btn primary" href="partners.html">查看全部共建/合作单位</a>
+      <a class="btn" href="about.html">了解更多</a>
+    `;
   }
-  showcaseActionsEl.innerHTML = `
-    <a class="btn primary" href="partners.html">查看全部共建/合作单位</a>
-    <a class="btn" href="about.html">了解更多</a>
-  `;
+}
+
+function updateShowcaseNav(){
+  if(!showcaseCardsEl) return;
+  const max = Math.max(0, showcaseCardsEl.scrollWidth - showcaseCardsEl.clientWidth);
+  if(showcasePrevBtn) showcasePrevBtn.disabled = showcaseCardsEl.scrollLeft <= 2;
+  if(showcaseNextBtn) showcaseNextBtn.disabled = max <= 2 || showcaseCardsEl.scrollLeft >= max - 2;
+}
+
+function showcaseScrollStep(){
+  const first = showcaseCardsEl?.querySelector('.home-showcase-card');
+  if(!first) return 0;
+  return first.getBoundingClientRect().width +
+    (parseFloat(window.getComputedStyle(showcaseCardsEl).columnGap) || 0);
+}
+
+function syncShowcaseRotation(){
+  showcaseRotation?.sync();
+}
+
+function initShowcaseRotation(){
+  if(showcaseRotation || !showcaseSection || !showcaseCardsEl || !showcaseAutoplayBtn) return;
+  const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let paused = motion.matches;
+  let hovered = false;
+  let visible = false;
+  let timer = null;
+
+  const hasExperts = () => showcaseActiveKind === 'experts' &&
+    showcaseCardsEl.querySelectorAll('.home-showcase-card').length > 1;
+  const reading = () => !!showcaseCardsEl.querySelector('[data-showcase-toggle][aria-expanded="true"]');
+  const canAdvance = () => hasExperts() && !paused && !hovered && visible &&
+    !document.hidden && !reading() &&
+    showcaseCardsEl.scrollWidth > showcaseCardsEl.clientWidth + 2;
+
+  function sync(){
+    if(timer !== null){ window.clearTimeout(timer); timer = null; }
+    const available = hasExperts();
+    if(showcasePlaybackEl) showcasePlaybackEl.hidden = !available;
+    showcaseAutoplayBtn.disabled = reading();
+    showcaseAutoplayBtn.textContent = paused ? '开始轮播' : '暂停轮播';
+    showcaseAutoplayBtn.setAttribute('aria-label', paused ? '开始专家轮播' : '暂停专家轮播');
+    showcaseCardsEl.setAttribute('aria-live', canAdvance() ? 'off' : 'polite');
+    if(!canAdvance()) return;
+    timer = window.setTimeout(() => {
+      timer = null;
+      if(!canAdvance()) return sync();
+      const max = showcaseCardsEl.scrollWidth - showcaseCardsEl.clientWidth;
+      const left = showcaseCardsEl.scrollLeft >= max - 2 ? 0 :
+        Math.min(max, showcaseCardsEl.scrollLeft + showcaseScrollStep());
+      showcaseCardsEl.scrollTo({ left, behavior: motion.matches ? 'auto' : 'smooth' });
+      sync();
+    }, 6000);
+  }
+
+  function pause(){ paused = true; sync(); }
+  showcaseRotation = { sync, pause };
+  showcaseAutoplayBtn.addEventListener('click', () => { paused = !paused; sync(); });
+  showcaseSection.addEventListener('pointerenter', event => {
+    if(event.pointerType === 'mouse'){ hovered = true; sync(); }
+  });
+  showcaseSection.addEventListener('pointerleave', event => {
+    if(event.pointerType === 'mouse'){ hovered = false; sync(); }
+  });
+  showcaseCardsEl.addEventListener('focusin', pause);
+  showcaseCardsEl.addEventListener('pointerdown', pause, { passive: true });
+  showcasePrevBtn?.addEventListener('focusin', pause);
+  showcaseNextBtn?.addEventListener('focusin', pause);
+  document.addEventListener('visibilitychange', sync);
+  window.addEventListener('pagehide', () => {
+    visible = false;
+    sync();
+  });
+  window.addEventListener('pageshow', checkVisibility);
+  motion.addEventListener?.('change', () => { if(motion.matches) paused = true; sync(); });
+
+  function checkVisibility(){
+    const rect = showcaseSection.getBoundingClientRect();
+    visible = rect.bottom > 0 && rect.top < window.innerHeight;
+    sync();
+  }
+  if(typeof IntersectionObserver !== 'undefined'){
+    const observer = new IntersectionObserver(entries => {
+      visible = entries.some(entry => entry.isIntersecting);
+      sync();
+    }, { threshold: 0 });
+    observer.observe(showcaseSection);
+  }else{
+    window.addEventListener('scroll', checkVisibility, { passive: true });
+    window.addEventListener('resize', checkVisibility, { passive: true });
+  }
+  checkVisibility();
 }
 
 function bindCarouselNav(){
-  if(!showcaseCardsEl) return;
-  const step = () => {
-    const first = showcaseCardsEl.querySelector('.home-showcase-card');
-    if(!first) return 320;
-    const rect = first.getBoundingClientRect();
-    return Math.max(260, Math.min(420, rect.width + 12));
-  };
-
-  function scrollByStep(dir){
-    const s = step();
-    showcaseCardsEl.scrollBy({ left: dir * s, behavior: 'smooth' });
+  if(!showcaseCardsEl || showcaseCardsEl.dataset.navBound === '1') return;
+  showcaseCardsEl.dataset.navBound = '1';
+  function scrollByStep(direction){
+    showcaseRotation?.pause();
+    const step = showcaseScrollStep();
+    if(!step) return;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    showcaseCardsEl.scrollBy({ left: direction * step, behavior: reducedMotion ? 'auto' : 'smooth' });
   }
-
-  showcasePrevBtn && showcasePrevBtn.addEventListener('click', (e)=>{
-    e.preventDefault();
-    scrollByStep(-1);
-  });
-  showcaseNextBtn && showcaseNextBtn.addEventListener('click', (e)=>{
-    e.preventDefault();
-    scrollByStep(1);
-  });
+  showcasePrevBtn?.addEventListener('click', () => scrollByStep(-1));
+  showcaseNextBtn?.addEventListener('click', () => scrollByStep(1));
+  showcaseCardsEl.addEventListener('scroll', updateShowcaseNav, { passive: true });
+  if(typeof ResizeObserver !== 'undefined'){
+    const observer = new ResizeObserver(() => { updateShowcaseNav(); syncShowcaseRotation(); });
+    observer.observe(showcaseCardsEl);
+  }else{
+    window.addEventListener('resize', () => { updateShowcaseNav(); syncShowcaseRotation(); }, { passive: true });
+  }
+  // Native scrolling handles touch. Pointer contact pauses automatic advance;
+  // no gesture emulation or touchmove cancellation interferes with the page.
 }
 
 function bindShowcaseExpand(){
-  if(!showcaseCardsEl) return;
-  if(showcaseCardsEl.dataset.expandBound === '1') return;
+  if(!showcaseCardsEl || showcaseCardsEl.dataset.expandBound === '1') return;
   showcaseCardsEl.dataset.expandBound = '1';
-
-  function collapseOthers(keep){
-    const expanded = showcaseCardsEl.querySelectorAll('.home-showcase-card.expanded');
-    expanded.forEach(card => {
-      if(keep && card === keep) return;
-      card.classList.remove('expanded');
-      const t = card.querySelector('[data-showcase-toggle]');
-      if(t){
-        t.textContent = '展开';
-        t.setAttribute('aria-expanded','false');
-      }
-    });
-  }
-
-  function toggleCard(toggleEl){
-    const card = toggleEl.closest('.home-showcase-card');
-    if(!card) return;
-    const kind = String(card.getAttribute('data-kind') || '').toLowerCase();
-    if(kind !== 'experts') return;
-    const isExpanded = card.classList.contains('expanded');
-    if(isExpanded){
-      card.classList.remove('expanded');
-      toggleEl.textContent = '展开';
-      toggleEl.setAttribute('aria-expanded','false');
-    }else{
-      collapseOthers(card);
-      card.classList.add('expanded');
-      toggleEl.textContent = '收起';
-      toggleEl.setAttribute('aria-expanded','true');
-    }
-  }
-
-  showcaseCardsEl.addEventListener('click', (e)=>{
-    const t = e.target && e.target.closest && e.target.closest('[data-showcase-toggle]');
-    if(!t) return;
-    e.preventDefault();
-    e.stopPropagation();
-    toggleCard(t);
-  });
-
-  showcaseCardsEl.addEventListener('keydown', (e)=>{
-    const t = e.target && e.target.closest && e.target.closest('[data-showcase-toggle]');
-    if(!t) return;
-    if(e.key === 'Enter' || e.key === ' '){
-      e.preventDefault();
-      e.stopPropagation();
-      toggleCard(t);
-    }
+  showcaseCardsEl.addEventListener('click', event => {
+    const button = event.target?.closest?.('[data-showcase-toggle]');
+    if(!button || !showcaseCardsEl.contains(button)) return;
+    const card = button.closest('.home-showcase-card');
+    const description = card?.querySelector('.desc');
+    if(!card || !description || card.dataset.kind !== 'experts') return;
+    const expanded = button.getAttribute('aria-expanded') !== 'true';
+    card.classList.toggle('expanded', expanded);
+    description.hidden = !expanded;
+    button.setAttribute('aria-expanded', String(expanded));
+    button.textContent = expanded ? '收起简介' : '展开简介';
+    const title = card.querySelector('.title')?.textContent || '专家';
+    button.setAttribute('aria-label', `${expanded ? '收起' : '展开'}${title}的简介`);
+    if(expanded) showcaseRotation?.pause();
+    else syncShowcaseRotation();
+    // Keep focus on the native button. Do not collapse another card, scroll
+    // the document, or reset horizontal position while the user is reading.
   });
 }
 
-
-function startAutoCarousel(){
-  if(!showcaseCardsEl) return;
-  let last = Date.now();
-  function touch(){ last = Date.now(); }
-  showcaseCardsEl.addEventListener('pointerdown', touch, { passive: true });
-  showcaseCardsEl.addEventListener('wheel', touch, { passive: true });
-  showcaseCardsEl.addEventListener('scroll', ()=>{
-    last = Date.now();
-  }, { passive: true });
-
-  let stopped = false;
-  function tick(){
-    if(stopped || !document.body.contains(showcaseCardsEl)) return;
-    const kind = showcaseActiveKind || 'experts';
-    const interval = (kind === 'experts') ? 2800 : 6500;
-    const pauseAfterInteractionMs = (kind === 'experts') ? 3500 : 6000;
-
-    if(showcaseCardsEl.querySelector('.home-showcase-card.expanded')){
-      setTimeout(tick, interval);
-      return;
-    }
-
-    if(Date.now() - last >= pauseAfterInteractionMs){
-      const max = showcaseCardsEl.scrollWidth - showcaseCardsEl.clientWidth;
-      if(max > 0){
-        const atEnd = showcaseCardsEl.scrollLeft >= max - 10;
-        if(atEnd){
-          showcaseCardsEl.scrollTo({ left: 0, behavior: 'auto' });
-        }else{
-          const first = showcaseCardsEl.querySelector('.home-showcase-card');
-          const rect = first ? first.getBoundingClientRect() : null;
-          const s = rect ? (rect.width + 12) : 320;
-          showcaseCardsEl.scrollBy({ left: s, behavior: 'smooth' });
-        }
-      }
-    }
-
-    setTimeout(tick, interval);
+function renderShowcaseState(kind, state){
+  const { rows = [], error = false, partial = false } = state || {};
+  showcaseActiveKind = kind;
+  setTabActive(kind);
+  updateShowcaseActions(kind);
+  const label = showcaseLabels[kind] || '展示目录';
+  const message = error
+    ? `${label}暂时未能加载，请使用下方目录入口查看。`
+    : partial
+      ? '部分专家资料暂时未能加载，下方仅展示已读取的资料；完整名单请查看国内／国际专家目录。'
+      : rows.length === 0 ? `${label}暂无展示内容，可通过下方入口了解更多。` : '';
+  if(showcaseStatusEl){
+    showcaseStatusEl.textContent = message;
+    showcaseStatusEl.hidden = !message;
   }
-  setTimeout(tick, 3200);
-  window.addEventListener('beforeunload', ()=>{ stopped = true; }, { once: true });
+  showcaseCardsEl.innerHTML = rows.length
+    ? rows.map((item, index) => renderShowcaseCard(item, kind, index)).join('')
+    : showcaseStatusEl ? '' : `<p class="muted small" role="status">${esc(message)}</p>`;
+  if(partial && !showcaseStatusEl){
+    showcaseCardsEl.insertAdjacentHTML('afterbegin', `<p class="muted small" role="status">${esc(message)}</p>`);
+  }
+  // Reset every tab, including empty and failed categories.
+  showcaseCardsEl.scrollTo({ left: 0, behavior: 'instant' });
+  showcaseCardsEl.setAttribute('aria-busy', 'false');
+  window.requestAnimationFrame(() => { updateShowcaseNav(); syncShowcaseRotation(); });
+}
+
+function connectShowcaseTabs(byTab){
+  showcaseTabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const kind = btn.getAttribute('data-home-showcase-tab');
+      if(Object.prototype.hasOwnProperty.call(byTab, kind)) renderShowcaseState(kind, byTab[kind]);
+    });
+  });
+  bindCarouselNav();
+  bindShowcaseExpand();
+  initShowcaseRotation();
+  renderShowcaseState('experts', byTab.experts);
+}
+
+function showShowcaseUnavailable(){
+  if(showcaseStatsEl) showcaseStatsEl.textContent = '';
+  connectShowcaseTabs(Object.fromEntries(Object.keys(showcaseLabels).map(kind => [kind, { error: true }])));
+}
+
+async function readShowcaseCategory(category){
+  try{
+    const result = await supabase.from('about_showcase')
+      .select('id, category, title, description, image_url, link, sort, created_at')
+      .eq('category', category)
+      .order('sort', { ascending: true })
+      .order('created_at', { ascending: false });
+    if(result.error) return { rows: [], error: true };
+    return { rows: Array.isArray(result.data) ? result.data : [], error: false };
+  }catch(_e){
+    return { rows: [], error: true };
+  }
 }
 
 async function loadHomeShowcase(){
   if(!showcaseSection || !showcaseCardsEl) return;
-
-  if(!isConfigured() || !supabase){
-    if(showcaseStatsEl){
-      showcaseStatsEl.innerHTML = `
-        <span class="chip">核心专家 0</span>
-        <span class="chip">旗舰中心 0</span>
-        <span class="chip">共建单位 0</span>
-        <span class="chip">合作单位 0</span>
-      `;
-    }
-    showcaseCardsEl.innerHTML = `
-      <div class="muted small">配置数据源后将自动展示核心专家、旗舰中心与合作单位。</div>
-    `;
-    updateShowcaseActions('experts');
-    bindCarouselNav();
-    return;
-  }
-
-  try{
-    const [flagship, co, partners, cn, intl] = await Promise.all([
-      supabase.from('about_showcase').select('id, category, title, description, image_url, link, sort, created_at').eq('category','flagship').order('sort',{ascending:true}).order('created_at',{ascending:false}),
-      supabase.from('about_showcase').select('id, category, title, description, image_url, link, sort, created_at').eq('category','co_building').order('sort',{ascending:true}).order('created_at',{ascending:false}),
-      supabase.from('about_showcase').select('id, category, title, description, image_url, link, sort, created_at').eq('category','partners').order('sort',{ascending:true}).order('created_at',{ascending:false}),
-      supabase.from('about_showcase').select('id, category, title, description, image_url, link, sort, created_at').eq('category','experts_cn').order('sort',{ascending:true}).order('created_at',{ascending:false}),
-      supabase.from('about_showcase').select('id, category, title, description, image_url, link, sort, created_at').eq('category','experts_intl').order('sort',{ascending:true}).order('created_at',{ascending:false}),
-    ]);
-
-    const err = flagship.error || co.error || partners.error || cn.error || intl.error;
-    if(err) throw err;
-
-    const data = {
-      flagship: flagship.data || [],
-      co_building: co.data || [],
-      partners: partners.data || [],
-      experts_cn: cn.data || [],
-      experts_intl: intl.data || [],
-    };
-
-    const baseSeed = (() => {
-      try{
-        const a = new Uint32Array(1);
-        crypto.getRandomValues(a);
-        return a[0] >>> 0;
-      }catch(_e){
-        return (Math.floor(Math.random() * 4294967296) >>> 0);
-      }
-    })();
-    const cnShuffled = seededShuffle(data.experts_cn, (baseSeed ^ 0xC0FFEE) >>> 0);
-    const intlShuffled = seededShuffle(data.experts_intl, (baseSeed ^ 0xBADC0DE) >>> 0);
-
-    const experts = buildExpertList(
-      cnShuffled,
-      intlShuffled,
-      (data.experts_cn.length + data.experts_intl.length)
-    );
-
-    if(showcaseStatsEl){
-      showcaseStatsEl.innerHTML = `
-        <span class="chip">核心专家 ${data.experts_cn.length + data.experts_intl.length}</span>
-        <span class="chip">旗舰中心 ${data.flagship.length}</span>
-        <span class="chip">共建单位 ${data.co_building.length}</span>
-        <span class="chip">合作单位 ${data.partners.length}</span>
-      `;
-    }
-
-    const byTab = {
-      experts,
-      flagship: (data.flagship || []).slice(0, 12),
-      co_building: (data.co_building || []).slice(0, 12),
-      partners: (data.partners || []).slice(0, 12),
-    };
-
-    function render(kind){
-      const list = byTab[kind] || [];
-      showcaseActiveKind = kind || 'experts';
-      setTabActive(kind);
-      updateShowcaseActions(kind);
-      if(list.length === 0){
-        showcaseCardsEl.innerHTML = `<div class="muted small">即将公布，敬请关注。</div>`;
-        return;
-      }
-      showcaseCardsEl.innerHTML = list.map(it => renderShowcaseCard(it, kind)).join('');
-      showcaseCardsEl.scrollTo({ left: 0, behavior: 'auto' });
-    }
-
-    if(showcaseTabs.length){
-      showcaseTabs.forEach(btn=>{
-        btn.addEventListener('click', (e)=>{
-          e.preventDefault();
-          const kind = btn.getAttribute('data-home-showcase-tab');
-          if(!kind) return;
-          render(kind);
-        });
-      });
-    }
-
-    bindCarouselNav();
-    bindShowcaseExpand();
-    render('experts');
-    startAutoCarousel();
-  }catch(e){
-    console.error('Home showcase load failed', e);
-    showcaseCardsEl.innerHTML = `<div class="muted small">读取展示内容失败。</div>`;
-  }
-}
-
-function relTime(ts){
-  try{
-    const t = new Date(ts).getTime();
-    const now = Date.now();
-    if(Number.isNaN(t)) return '';
-    const diff = Math.floor((now - t) / 1000);
-    if(diff < 20) return '刚刚';
-    if(diff < 60) return `${diff}秒前`;
-    const m = Math.floor(diff / 60);
-    if(m < 60) return `${m}分钟前`;
-    const h = Math.floor(m / 60);
-    if(h < 24) return `${h}小时前`;
-    const d = Math.floor(h / 24);
-    if(d < 7) return `${d}天前`;
-    return formatBeijingDate(ts);
-  }catch(_e){
-    return '';
-  }
-}
-
-// Show the "latest content" wrapper section if at least one sub-module has content
-function showLatestSectionIfNeeded(){
-  if(!latestSection) return;
-  const hasArticles = articlesCard && !articlesCard.hidden;
-  const hasMoments = momentsCard && !momentsCard.hidden;
-  latestSection.hidden = !(hasArticles || hasMoments);
-}
-
-async function loadHome(){
-  if(!momentsRoot && !articlesRoot && !showcaseSection) return;
-
+  showcaseCardsEl.setAttribute('aria-busy', 'true');
   if(isConfigured() && !supabase){
-    try{ await ensureSupabase(); }catch(_e){ /* ignore */ }
+    try{ await ensureSupabase(); }catch(_e){ /* Keep the module's directory links. */ }
   }
-
-  // Demo mode — hide dynamic content sections
   if(!isConfigured() || !supabase){
-    if(showcaseSection){
-      await loadHomeShowcase();
-    }
-    showLatestSectionIfNeeded();
+    showShowcaseUnavailable();
     return;
   }
 
-  // Showcase board
-  if(showcaseSection){
-    await loadHomeShowcase();
+  // Independent failures keep other directories usable. Counts are derived
+  // only from successfully read records, never hard-coded marketing totals.
+  const [flagship, coBuilding, partners, cn, intl] = await Promise.all([
+    'flagship', 'co_building', 'partners', 'experts_cn', 'experts_intl',
+  ].map(readShowcaseCategory));
+  const experts = {
+    rows: expertStartForVisit(buildExpertList(cn.rows, intl.rows)),
+    error: cn.error && intl.error,
+    partial: cn.error !== intl.error,
+  };
+  const byTab = { experts, flagship, co_building: coBuilding, partners };
+  if(showcaseStatsEl){
+    showcaseStatsEl.innerHTML = Object.entries(byTab).map(([kind, state]) => {
+      const unknown = state.error || state.partial;
+      return `<span class="chip"${unknown ? ' title="目录未完整加载，暂不显示总数"' : ''}>${showcaseLabels[kind]} ${unknown ? '—' : state.rows.length}</span>`;
+    }).join('');
   }
-
-  // Articles
-  if(articlesRoot){
-    articlesRoot.innerHTML = `<div class="muted small">加载中…</div>`;
-    try{
-      let data = null;
-      let error = null;
-
-      const r1 = await supabase
-        .from('articles')
-        .select('id, title, summary, cover_url, published_at, created_at, author_name, pinned, status, deleted_at, view_count, download_count')
-        .eq('status', 'published')
-        .is('deleted_at', null)
-        .order('pinned', { ascending: false })
-        .order('published_at', { ascending: false })
-        .limit(6);
-
-      data = r1.data;
-      error = r1.error;
-
-      if(error){
-        const msg = String(error.message || error);
-        if(msg.includes('download_count')){
-          const r1c = await supabase
-            .from('articles')
-            .select('id, title, summary, cover_url, published_at, created_at, author_name, pinned, status, deleted_at, view_count')
-            .eq('status', 'published')
-            .is('deleted_at', null)
-            .order('pinned', { ascending: false })
-            .order('published_at', { ascending: false })
-            .limit(6);
-          data = r1c.data;
-          error = r1c.error;
-        }
-        if(error){
-          const msgV = String(error.message || error);
-          if(msgV.includes('view_count')){
-            const r1b = await supabase
-              .from('articles')
-              .select('id, title, summary, cover_url, published_at, created_at, author_name, pinned, status, deleted_at')
-              .eq('status', 'published')
-              .is('deleted_at', null)
-              .order('pinned', { ascending: false })
-              .order('published_at', { ascending: false })
-              .limit(6);
-            data = r1b.data;
-            error = r1b.error;
-          }
-        }
-        if(error){
-          const msg2 = String(error.message || error);
-          if(msg2.includes('pinned')){
-            const r2 = await supabase
-              .from('articles')
-              .select('id, title, summary, cover_url, published_at, created_at, author_name, status, deleted_at')
-              .eq('status', 'published')
-              .is('deleted_at', null)
-              .order('published_at', { ascending: false })
-              .limit(6);
-            data = r2.data;
-            error = r2.error;
-          }
-        }
-      }
-
-      if(error) throw error;
-
-      const items = (data || []).slice(0, 4);
-
-      if(items.length === 0){
-        // No articles — hide the entire card
-        if(articlesCard) articlesCard.hidden = true;
-      }else{
-        if(articlesCard) articlesCard.hidden = false;
-        articlesRoot.innerHTML = `
-          <div class="stack">
-            ${items.map(a=>{
-              const title = a.title || '未命名';
-              const summary = String(a.summary || '').trim();
-              const cover = String(a.cover_url || '').trim();
-              const when = a.published_at || a.created_at;
-              const views = (typeof a.view_count === 'number' && Number.isFinite(a.view_count)) ? a.view_count : null;
-              const meta = `${relTime(when)}${a.author_name ? ' · ' + esc(a.author_name) : ''}${views!==null ? ' · 阅读 ' + esc(String(views)) : ''}`;
-
-              return `
-                <a class="list-item" href="article.html?id=${encodeURIComponent(a.id)}">
-                  <div style="display:flex;gap:10px;align-items:flex-start">
-                    ${cover ? `<img class="thumb" alt="cover" src="${esc(cover)}" />` : ''}
-                    <div style="min-width:0">
-                      <b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(title)}</b>
-                      ${summary ? `<div class="small muted" style="margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(summary)}</div>` : ''}
-                      <div class="small muted" style="margin-top:6px">${esc(meta)}</div>
-                    </div>
-                  </div>
-                </a>
-              `;
-            }).join('')}
-          </div>
-        `;
-      }
-    }catch(e){
-      // On error, hide the articles card (don't show error to public visitors)
-      if(articlesCard) articlesCard.hidden = true;
-    }
-  }
-
-  // Moments
-  if(momentsRoot){
-    momentsRoot.innerHTML = `<div class="muted small">加载中…</div>`;
-    try{
-      const { data, error } = await supabase
-        .from('moments')
-        .select('id, created_at, author_id, author_name, content, images, like_count')
-        .order('created_at', { ascending: false })
-        .limit(5);
-      if(error) throw error;
-
-      const items = (data || []).slice(0, 4);
-      if(items.length === 0){
-        if(momentsCard) momentsCard.hidden = true;
-      }else{
-        if(momentsCard) momentsCard.hidden = false;
-        const authorIds = Array.from(new Set(items.map(x=>x.author_id).filter(Boolean)));
-        const profileMap = new Map();
-        if(authorIds.length){
-          try{
-            const { data: ps } = await supabase
-              .from('profiles')
-              .select('id, full_name, avatar_url, points')
-              .in('id', authorIds);
-            (ps || []).forEach(p=> profileMap.set(p.id, p));
-          }catch(_e){ /* ignore */ }
-        }
-
-        momentsRoot.innerHTML = `
-          <div class="home-list">
-            ${items.map(m=>{
-              const p = profileMap.get(m.author_id) || null;
-              const name = p?.full_name || m.author_name || 'Member';
-              const lv = levelLabelFromPoints(Number(p?.points || 0));
-
-              const text = String(m.content || '').trim();
-              const preview = text.length > 120 ? (text.slice(0,120) + '…') : text;
-              const img = Array.isArray(m.images) && m.images.length ? String(m.images[0]) : '';
-
-              const avatar = p?.avatar_url
-                ? `<img class="home-thumb" alt="avatar" src="${esc(p.avatar_url)}" style="width:34px;height:34px;border-radius:999px" />`
-                : `<div class="avatar" style="width:34px;height:34px;border-radius:999px">${esc(String(name).trim().slice(0,1).toUpperCase())}</div>`;
-
-              const thumb = img ? `<img class="home-thumb" alt="img" src="${esc(img)}" />` : '';
-
-              return `
-                <a class="home-item" href="moments.html" title="打开动态">
-                  <div class="meta">
-                    <div class="who">
-                      ${avatar}
-                      <div style="min-width:0">
-                        <b>${esc(name)}</b>
-                        <div class="sub">${lv ? esc(lv) + ' · ' : ''}${esc(relTime(m.created_at))}</div>
-                      </div>
-                    </div>
-                    <div class="sub">❤️ ${Number(m.like_count||0)}</div>
-                  </div>
-                  ${preview ? `<div class="preview">${esc(preview)}</div>` : ''}
-                  ${thumb ? `<div style="margin-top:10px">${thumb}</div>` : ''}
-                </a>
-              `;
-            }).join('')}
-          </div>
-        `;
-      }
-    }catch(e){
-      if(momentsCard) momentsCard.hidden = true;
-    }
-  }
-
-  showLatestSectionIfNeeded();
+  connectShowcaseTabs(byTab);
 }
 
-// Mobile sticky CTA: hide when scrolled to footer
-function initStickyCtaVisibility(){
-  const bar = document.getElementById('mobileStickyCtaBar');
-  const footer = document.querySelector('footer.footer');
-  if(!bar || !footer) return;
-
-  function check(){
-    const footerRect = footer.getBoundingClientRect();
-    const hide = footerRect.top < window.innerHeight;
-    bar.style.transform = hide ? 'translateY(100%)' : 'translateY(0)';
-  }
-
-  bar.style.transition = 'transform .25s ease';
-  window.addEventListener('scroll', check, { passive: true });
-  check();
-}
-
-loadHome();
-initStickyCtaVisibility();
+loadHomeShowcase();

@@ -13,6 +13,7 @@ import {
   getSession,
   canAccessNephroPro,
 } from './supabaseClient.js?v=20260401_fix';
+import { classifyTrainingProduct } from './training-commerce.js?v=20260914_pricing1';
 
 // ── 工具函数 ──────────────────────────────────────────────────
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -40,6 +41,19 @@ function cohortStatusClass(s){
   return MAP[s] || 'planning';
 }
 
+function groupTrainingProducts(products){
+  const bySpec = {};
+  for(const p of products){
+    if(p.is_active !== true) continue;
+    const kind = classifyTrainingProduct(p);
+    if(kind !== 'registration' && kind !== 'bundle') continue;
+    const spec = String(p.product_code).split('-')[0].toLowerCase();
+    if(!bySpec[spec]) bySpec[spec] = {};
+    bySpec[spec][kind === 'registration' ? 'full' : 'bundle'] = p;
+  }
+  return bySpec;
+}
+
 // ── 主流程 ──────────────────────────────────────────────────
 async function init(){
   if(!isConfigured()) return;         // 未配置 Supabase，静态骨架保持原样
@@ -57,22 +71,9 @@ async function init(){
   const projects  = projectsRes.status  === 'fulfilled' ? (projectsRes.value  || []) : [];
   const session   = sessionRes.status   === 'fulfilled' ? sessionRes.value : null;
 
-  // 按 product_code 前缀归类
-  const bySpec = {};
-  for(const p of products){
-    const code = (p.product_code || '').toUpperCase();
-    const spec = code.startsWith('ICU') ? 'icu'
-               : code.startsWith('TX')  ? 'tx'
-               : code.startsWith('PATHO') ? 'patho'
-               : code.startsWith('DA-')  ? 'da'
-               : code.startsWith('GLOM-BUNDLE') || code.startsWith('GLOM-REG') ? 'glom'
-               : null;
-    if(!spec) continue;
-    if(!bySpec[spec]) bySpec[spec] = {};
-    if(/full|完整|reg.*full/i.test(code)) bySpec[spec].full = p;
-    else if(/video|视频|回放/i.test(code)) bySpec[spec].video = p;
-    else if(/bundle|整套/i.test(code)) bySpec[spec].bundle = p;
-  }
+  // 商品类型由明确的 SKU / product_type 决定；推荐标记不决定购买范围。
+  const bySpec = groupTrainingProducts(products);
+  const productsReady = productsRes.status === 'fulfilled';
 
   // 用户权益（已购的 product_id set）
   let purchasedIds = new Set();
@@ -94,10 +95,9 @@ async function init(){
 
   // 按专科渲染
   ['glom','icu','tx','patho','da'].forEach(spec => {
-    const ps = bySpec[spec];
-    if(!ps) return;
-    renderPricingCards(spec, ps, purchasedIds);
-    renderBundle(spec, ps.bundle, purchasedIds);
+    const ps = bySpec[spec] || {};
+    renderPricingCards(spec, ps, purchasedIds, productsReady);
+    renderBundle(spec, ps.bundle, purchasedIds, productsReady);
   });
 
   // 班期信息
@@ -118,7 +118,7 @@ async function init(){
 async function fetchProducts(){
   const { data, error } = await supabase
     .from('products')
-    .select('id,product_code,title,subtitle,price_cny,list_price_cny,product_type,recommended,is_active,project_id,specialty_id,early_bird_deadline,membership_period')
+    .select('id,product_code,title,subtitle,price_cny,list_price_cny,product_type,is_active,project_id,specialty_id,membership_period')
     .eq('is_active', true)
     .in('product_type', ['project_registration','specialty_bundle','membership_plan'])
     .order('sort_order');
@@ -174,72 +174,42 @@ function renderMembership(yearly, monthly, purchasedIds){
   }
 }
 
-function earlyBirdTag(p){
-  if(!p?.early_bird_deadline) return '';
-  const deadline = new Date(p.early_bird_deadline);
-  const now = new Date();
-  if(deadline <= now) return '';   // expired — don't show
-  const days = Math.ceil((deadline - now) / 864e5);
-  const label = days <= 7
-    ? `🐦 早鸟价 · 还剩 ${days} 天`
-    : `🐦 早鸟价 · 截止 ${deadline.toLocaleDateString('zh-CN',{month:'long',day:'numeric'})}`;
-  return `<div style="font-size:11px;font-weight:700;color:#fbbf24;margin-bottom:4px">${label}</div>`;
-}
-
-function renderPricingCards(spec, ps, purchasedIds){
+function renderPricingCards(spec, ps, purchasedIds, productsReady = true){
   const container = document.getElementById(`proj-pricing-${spec}`);
   if(!container) return;
 
-  const fullP  = ps.full;
-  const videoP = ps.video;
-
-  function cardHtml(p, isRec){
-    if(!p) return '';
-    const bought = purchasedIds.has(p.id);
-    const cur  = fmtPrice(p.price_cny);
-    const orig = p.list_price_cny ? fmtPrice(p.list_price_cny) : null;
-    const label = isRec ? '报名版（完整版）' : '视频版（回放版）';
-    const includes = isRec
-      ? '含直播互动 + 学习群 + 全程回放'
-      : '仅含视频回放，不含直播与学习群';
-    const btnLabel = bought ? '已购买' : (isRec ? '立即报名' : '购买视频版');
-    const btnClass = isRec ? 'btn primary' : 'btn';
-    const btnHref  = bought ? 'my-learning.html' : `checkout.html?product=${encodeURIComponent(p.product_code)}`;
-    return `
-      <div class="price-option${isRec ? ' recommended' : ''}">
-        ${isRec ? '<div class="rec-tag">★ 推荐</div>' : ''}
-        ${earlyBirdTag(p)}
-        <div class="p-label">${esc(label)}</div>
-        <div>
-          <span class="p-price">${esc(cur||'—')}</span>
-          ${orig ? `<span class="p-orig">${esc(orig)}</span>` : ''}
-        </div>
-        <div class="p-includes">${esc(includes)}</div>
-        <div class="p-btn">
-          <a class="${btnClass}" href="${esc(btnHref)}">${bought ? '✅ 已购买 → 我的学习' : esc(btnLabel)}</a>
-        </div>
-      </div>`;
+  const p = ps.full;
+  if(!p){
+    const message = productsReady ? '暂未开放报名' : '报名信息暂未加载，请稍后重试';
+    container.innerHTML = `<div class="price-option"><div class="p-label">培训报名</div><div class="p-includes">${message}</div><div class="p-btn"><a class="btn" href="my-learning.html">已购学员进入学习</a></div></div>`;
+    return;
   }
-
-  container.innerHTML = cardHtml(fullP, true) + cardHtml(videoP, false);
+  const bought = purchasedIds.has(p.id);
+  const cur = fmtPrice(p.price_cny);
+  const btnHref = bought ? 'my-learning.html' : `checkout.html?product=${encodeURIComponent(p.product_code)}`;
+  container.innerHTML = `
+    <div class="price-option recommended">
+      <div class="p-label">培训报名（完整版）</div>
+      <div><span class="p-price">${esc(cur||'—')}</span></div>
+      <div class="p-includes">含直播互动 + 学习群 + 全程回放</div>
+      <div class="p-btn"><a class="btn primary" href="${esc(btnHref)}">${bought ? '✅ 已购买 → 我的学习' : '立即报名'}</a></div>
+    </div>`;
 }
 
-function renderBundle(spec, p, purchasedIds){
-  if(!p) return;
+function renderBundle(spec, p, purchasedIds, productsReady = true){
   const banner = document.getElementById(`bundle-${spec}`);
   if(!banner) return;
 
-  const bought = purchasedIds.has(p.id);
-  const cur  = fmtPrice(p.price_cny);
-  const orig = p.list_price_cny ? fmtPrice(p.list_price_cny) : null;
-  const btnHref = bought ? 'my-learning.html' : `checkout.html?product=${encodeURIComponent(p.product_code)}`;
-  const btnLabel = bought ? '✅ 已购买 → 我的学习' : '购买整套课';
+  const bought = p && purchasedIds.has(p.id);
+  const cur = p ? fmtPrice(p.price_cny) : (productsReady ? '暂未开放销售' : '价格暂未加载');
+  const btnHref = !p || bought ? 'my-learning.html' : `checkout.html?product=${encodeURIComponent(p.product_code)}`;
+  const btnLabel = !p ? '已购学员进入学习' : bought ? '✅ 已购买 → 我的学习' : '购买整套课';
 
   // Update price
   const priceEl = banner.querySelector('.bb-price');
   const origEl  = banner.querySelector('.bb-orig');
   if(priceEl && cur) priceEl.textContent = cur;
-  if(origEl && orig) origEl.textContent = orig; else if(origEl) origEl.remove();
+  origEl?.remove();
 
   // Update button
   const btn = banner.querySelector('.btn');
@@ -288,7 +258,7 @@ function renderProjectMeta(spec, proj){
       const d = new Date(nextCohort.enrollment_deadline);
       dateEl.textContent = `报名截止：${d.toLocaleDateString('zh-CN',{month:'long',day:'numeric'})}`;
     } else {
-      dateEl.textContent = '开班时间待定，可先报名锁定早鸟价';
+      dateEl.textContent = '开班时间待定，以项目通知为准';
     }
   }
 }
