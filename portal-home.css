@@ -379,7 +379,7 @@ html.portal-document { height: auto; min-height: 100%; overflow-x: clip; }
 .portal-home .portal-hero-topics { display:flex; flex-wrap:wrap; gap:8px 12px; margin:28px 0 0; font-size:11px; color:#a7c1d7; }
 .portal-home .portal-hero-topics span::before { content:"/"; color:#607e99; margin-right:12px; }
 .portal-home .portal-feature-area { min-width:0; }
-.portal-home .portal-feature { aspect-ratio:1.45; min-height:0; padding:26px; justify-content:flex-end; border:1px solid #446780; border-radius:18px; box-shadow:0 20px 35px #020c242b; transition:transform .2s,border-color .2s; }
+.portal-home .portal-feature { width:100%; aspect-ratio:1.45; min-height:0; padding:26px; justify-content:flex-end; border:1px solid #446780; border-radius:18px; box-shadow:0 20px 35px #020c242b; transition:transform .2s,border-color .2s; }
 .portal-home .portal-feature-label { position:absolute; top:24px; left:24px; padding:5px 10px; border:1px solid #93c7e43d; background:#0e2a477d; font-size:11px; }
 .portal-home .portal-feature-text { max-width:calc(100% - 45px); }
 .portal-home .portal-feature h2 { margin:6px 0; font-size:34px; line-height:1.45; }

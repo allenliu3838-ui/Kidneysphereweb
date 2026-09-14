@@ -9,8 +9,8 @@ html:root:not(.portal-document) {
   --panel: #fff;
   --panel2: #dbe9f7;
   --text: #102c4c;
-  --muted: #536c87;
-  --text-muted: #536c87;
+  --muted: #4b627c;
+  --text-muted: #4b627c;
   --border: #cadcec;
   --brand: #0964eb;
   --brand2: #0755cc;
@@ -26,7 +26,7 @@ body:not(.portal-home) {
   --accent: #0964eb;
   --card-bg: #fff;
   --input-bg: #fff;
-  --text-muted: #536c87;
+  --text-muted: #4b627c;
   --depth-navy: #08213d;
   --depth-teal: #15576a;
   --depth-aqua: #85dbe2;

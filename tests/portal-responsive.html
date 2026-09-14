@@ -44,7 +44,7 @@
         if (!doc?.querySelector('[data-portal-home]')) throw new Error('预览尚未载入或当前环境不允许嵌入');
         const win = frame.contentWindow;
         const width = doc.documentElement.clientWidth;
-        const overflowing = [...doc.querySelectorAll('main > section, main .container, .portal-training-card, .portal-video-card, .nav-inner, .portal-footer-top')]
+        const overflowing = [...doc.querySelectorAll('main > section, main .container, .portal-training-card, .portal-video-card, .portal-feature-area, .portal-feature, .portal-feature-tabs, .portal-quick-search, .nav-inner, .portal-footer-top')]
           .filter(el => { const r = el.getBoundingClientRect(); return r.width > 0 && (r.left < -1 || r.right > width + 1); })
           .map(el => el.className || el.tagName);
         const controls = [...doc.querySelectorAll('button, .portal-mobile-bar a, .portal-actions .btn, .drawer-links a')]
