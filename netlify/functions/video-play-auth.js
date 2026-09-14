@@ -162,6 +162,32 @@ function buildAliyunSignedUrl(params) {
   return `${endpoint}/?${canonicalQS}&Signature=${percentEncode(signature)}`;
 }
 
+function selectPlaybackStream(data) {
+  const streams = (data.PlayInfoList?.PlayInfo || []).filter(info => info?.PlayURL);
+  const explicitType = String(data.VideoBase?.MediaType || '').toLowerCase();
+  const streamIsAudio = info => String(info.StreamType || '').toLowerCase() === 'audio' ||
+    (!info.StreamType && String(info.Format || '').toLowerCase() === 'mp3');
+  // A video can have extracted audio renditions. Never substitute one for its
+  // picture stream, even if Aliyun happens to return the audio rendition first.
+  const mediaType = explicitType === 'audio' ? 'audio' : explicitType === 'video' ? 'video' :
+    (streams.length && streams.every(streamIsAudio) ? 'audio' : 'video');
+  if (mediaType === 'audio') {
+    const audio = streams.find(info => streamIsAudio(info) &&
+      String(info.Format || '').toLowerCase() === 'mp3' &&
+      (!info.Status || info.Status === 'Normal') &&
+      Number(info.Encrypt || 0) === 0 &&
+      info.EncryptType !== 'AliyunVoDEncryption' && info.EncryptMode !== 'License');
+    if (!audio) return {
+      error: 'audio_not_ready',
+      mediaType: 'audio',
+      message: '音频尚未生成可播放的 MP3。请稍后重试；若持续出现，请管理员在阿里云点播检查音频转码任务和模板。',
+    };
+    return { info: audio, mediaType: 'audio', streamType: 'audio' };
+  }
+  const video = streams.find(info => !streamIsAudio(info));
+  return video ? { info: video, mediaType: 'video', streamType: 'video' } : { error: 'no_play_info' };
+}
+
 async function aliyunGetPlayInfo(videoId) {
   if (!ALIYUN_VOD_ACCESS_KEY_ID || !ALIYUN_VOD_ACCESS_KEY_SECRET) {
     return { error: 'aliyun_not_configured' };
@@ -186,13 +212,17 @@ async function aliyunGetPlayInfo(videoId) {
     const res = await httpRequest(url);
     const data = await res.json();
     console.log('[video-play-auth] Aliyun GetPlayInfo response:', JSON.stringify(data).substring(0, 200));
-    if (data.PlayInfoList?.PlayInfo?.length > 0) {
-      const info = data.PlayInfoList.PlayInfo[0];
+    if (data.PlayInfoList?.PlayInfo?.length > 0 || data.VideoBase?.MediaType === 'audio') {
+      const selected = selectPlaybackStream(data);
+      if (!selected.info) return selected;
+      const info = selected.info;
       return {
         playURL: info.PlayURL,
         format: info.Format,
         duration: info.Duration,
         definition: info.Definition,
+        mediaType: selected.mediaType,
+        streamType: selected.streamType,
       };
     }
     return { error: data.Code || 'no_play_info', message: data.Message || '' };
@@ -323,7 +353,14 @@ exports.handler = async (event) => {
           format: playInfo.format || 'mp4',
           duration: playInfo.duration || 0,
           expiresIn: 3600,
+          mediaType: playInfo.mediaType,
+          streamType: playInfo.streamType,
         });
+      }
+      // Uploaded audio must not fall back to a stale source URL or be presented
+      // as MP4 when its VOD audio transcode is not ready.
+      if (playInfo.error === 'audio_not_ready') {
+        return json(409, { error: playInfo.error, message: playInfo.message, mediaType: 'audio' });
       }
       console.log('[video-play-auth] Aliyun GetPlayInfo failed:', playInfo.error, playInfo.message);
     }

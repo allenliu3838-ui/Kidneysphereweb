@@ -15,6 +15,7 @@ import {
 } from './supabaseClient.js?v=20260401_fix';
 
 import { VIDEO_CATEGORIES } from './assets/videos.js?v=20260118_001';
+import { MEDIA_ACCEPT, validateMediaFile } from './media-upload.js?v=20260914_audio1';
 
 const videoAddForm = document.getElementById('videoAddForm');
 const videoAdminPanelEl = document.getElementById('videoAdminPanel')
@@ -452,6 +453,8 @@ async function loadAdminVideos(){
 
 async function saveVideo(currentUser, publish = true){
   if(!els.videoSave) return;
+  if(_mediaSaveInProgress) return;
+  if(_currentUpload){ toast('文件正在上传', '请等待上传完成后保存课程。', 'err'); return; }
   if(!els.videoTitle || !els.videoCategory) return;
   if(!isConfigured()){
     toast('未配置', 'Supabase 未配置。', 'err');
@@ -471,12 +474,12 @@ async function saveVideo(currentUser, publish = true){
   const coverImage = String(els.videoCoverImage?.value || '').trim() || null;
   const sortOrder = parseInt(els.videoSortOrder?.value || '0', 10) || 0;
 
-  if(!title){ toast('请输入名称', '请填写视频名称。', 'err'); return; }
-  if(!category){ toast('请选择分类', '请先选择一个视频分类。', 'err'); return; }
+  if(!title){ toast('请输入名称', '请填写课程名称。', 'err'); return; }
+  if(!category){ toast('请选择分类', '请先选择一个课程分类。', 'err'); return; }
 
   // Validate based on source type
   if(sourceType === 'aliyun_vod' && !aliyunVid){
-    toast('请填写阿里云视频ID', '视频来源为阿里云点播时，必须填写视频ID。', 'err');
+    toast('请填写阿里云媒体 ID', '请先上传视频或音频，也可以填写已有的媒体 ID。', 'err');
     return;
   }
   if((sourceType === 'external_url' || sourceType === 'bilibili') && !url){
@@ -505,14 +508,17 @@ async function saveVideo(currentUser, publish = true){
     return;
   }
 
-  await ensureSupabase();
-  if(!supabase){ toast('初始化失败', 'Supabase 未就绪。', 'err'); return; }
-
+  _mediaSaveInProgress = true;
+  const uploadButton = document.getElementById('videoAliyunFileBtn');
+  const uploadWasDisabled = uploadButton?.disabled || false;
+  if(uploadButton) uploadButton.disabled = true;
   els.videoSave.disabled = true;
   if(els.videoSaveDraft) els.videoSaveDraft.disabled = true;
   if(els.videoAdminHint) els.videoAdminHint.textContent = '保存中…';
 
   try{
+    await ensureSupabase();
+    if(!supabase) throw new Error('Supabase 未就绪，请稍后重试。');
     let kind = 'external';
     let source_url = url || null;
     let bvid = null;
@@ -521,8 +527,10 @@ async function saveVideo(currentUser, publish = true){
 
     if(sourceType === 'aliyun_vod'){
       kind = 'aliyun';
-      source_url = aliyunUrl || null;
-      mp4_url = aliyunUrl || null;
+      // VOD playback uses this media ID and the existing authorization API.
+      // The debug URL must never become a stale fallback for a new audio file.
+      source_url = null;
+      mp4_url = null;
     }else if(sourceType === 'upload_mp4' && file){
       if((file.size || 0) > MAX_MP4_BYTES){
         const mb = Math.round((file.size || 0) / 1024 / 1024);
@@ -579,7 +587,7 @@ async function saveVideo(currentUser, publish = true){
     let { error } = await supabase.from('learning_videos').insert(row);
 
     // Fallback: if new columns not yet migrated, retry without them
-    if(error && /access_type|price|cover_image|description|is_published|sort_order|source|specialty_ids/i.test(String(error.message || ''))){
+    if(error && sourceType !== 'aliyun_vod' && /access_type|price|cover_image|description|is_published|sort_order|source|specialty_ids/i.test(String(error.message || ''))){
       delete row.access_type;
       delete row.price;
       delete row.cover_image;
@@ -591,16 +599,11 @@ async function saveVideo(currentUser, publish = true){
       const r2 = await supabase.from('learning_videos').insert(row);
       error = r2.error;
     }
-    // Fallback: if 'aliyun' kind not supported yet
-    if(error && kind === 'aliyun'){
-      delete row.aliyun_vid;
-      row.kind = 'mp4';
-      const r2 = await supabase.from('learning_videos').insert(row);
-      error = r2.error;
-    }
+    // VOD audio/video must retain their media ID and access fields.
+    // A schema error must not downgrade a protected course to a public MP4.
     if(error) throw error;
 
-    toast('已保存', publish ? '视频已添加并上架。' : '视频已保存为草稿。', 'ok');
+    toast('已保存', publish ? '课程已添加并上架。' : '课程已保存为草稿。', 'ok');
     // Reset form
     if(els.videoTitle) els.videoTitle.value = '';
     if(els.videoUrl) els.videoUrl.value = '';
@@ -624,6 +627,8 @@ async function saveVideo(currentUser, publish = true){
     }
     toast('保存失败', msg, 'err');
   }finally{
+    _mediaSaveInProgress = false;
+    if(uploadButton) uploadButton.disabled = uploadWasDisabled;
     els.videoSave.disabled = false;
     if(els.videoSaveDraft) els.videoSaveDraft.disabled = false;
     if(els.videoAdminHint) els.videoAdminHint.textContent = '';
@@ -768,7 +773,7 @@ function openEditModal(videoId){
             <select class="input" id="editContentSource">${sourceOptions}</select>
           </div>
           <div style="flex:1;min-width:260px">
-            <label>所属专科（可多选，留空 = 免费公开视频）</label>
+            <label>所属专科（可多选；收听或观看范围以访问权限为准）</label>
             <div id="editSpecialtyChecks" style="display:flex;flex-wrap:wrap;gap:8px 14px;padding:8px 10px;border:1px solid rgba(255,255,255,.1);border-radius:6px;min-height:38px;align-items:center">${specChecksHTML}</div>
           </div>
         </div>
@@ -933,12 +938,12 @@ async function init(){
   if(els.videoAdminPanel && !document.getElementById('videoAddForm')){
     els.videoAdminPanel.innerHTML = `
         <div class="card soft" style="margin-top:12px">
-          <h3 style="margin:0">新增视频</h3>
+          <h3 style="margin:0">新增视频 / 音频</h3>
           <div class="hr"></div>
           <form id="videoAddForm" class="form" style="max-width:860px">
             <div class="form-row">
               <div style="flex:1;min-width:240px">
-                <label>视频名称 *</label>
+                <label for="videoTitle">课程名称 *</label>
                 <input class="input" id="videoTitle" required />
               </div>
               <div style="min-width:220px">
@@ -949,29 +954,30 @@ async function init(){
 
             <div class="form-row">
               <div style="min-width:220px">
-                <label>视频来源 *</label>
+                <label for="videoSourceType">媒体来源 *</label>
                 <select class="input" id="videoSourceType">
-                  <option value="aliyun_vod">阿里云点播 (推荐)</option>
+                  <option value="aliyun_vod">阿里云点播（视频 / 音频）</option>
                   <option value="bilibili">B站视频</option>
                   <option value="external_url">外部视频链接</option>
                   <option value="upload_mp4">上传 MP4</option>
                 </select>
               </div>
               <div style="flex:1;min-width:240px" id="videoAliyunVidWrap">
-                <label>阿里云视频ID *</label>
-                <input class="input" id="videoAliyunVid" placeholder="自动获取，或手动粘贴已有视频 ID" />
+                <label for="videoAliyunVid">阿里云媒体 ID *</label>
+                <input class="input" id="videoAliyunVid" placeholder="上传后自动填写，或粘贴已有音视频 ID" />
                 <div id="videoAliyunUploadBox" style="margin-top:8px;padding:10px;border:1px dashed rgba(168,85,247,.4);border-radius:8px;background:rgba(168,85,247,.04);">
                   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                    <input type="file" id="videoAliyunFile" accept="video/*,.mp4,.mov,.m4v,.mkv,.avi,.flv,.wmv,.webm,.ts" style="display:none;" />
-                    <button type="button" class="btn tiny primary" id="videoAliyunFileBtn">📤 上传视频文件</button>
+                    <input type="file" id="videoAliyunFile" accept="${MEDIA_ACCEPT}" style="display:none;" />
+                    <button type="button" class="btn tiny primary" id="videoAliyunFileBtn" style="min-height:44px">📤 上传视频 / 音频</button>
                     <button type="button" class="btn tiny danger" id="videoAliyunCancelBtn" style="display:none;">⏹ 停止上传</button>
-                    <span class="small muted" id="videoAliyunFileStatus">支持 mp4 / mov / mkv 等，单文件 ≤ 2 GB</span>
+                    <span class="small muted" id="videoAliyunFileStatus" role="status" style="overflow-wrap:anywhere">视频 MP4 / MOV / MKV 等；音频 MP3 / M4A / WAV / AAC / FLAC / WMA / APE。单文件 ≤ 2 GB</span>
                   </div>
+                  <p class="small muted" style="margin:8px 0 0">音频建议使用 MP3；其他音频格式需在阿里云完成音频转码后收听。可先保存草稿，在阿里云试听确认后再上架。</p>
                   <div id="videoAliyunUploadProgress" style="margin-top:10px;display:none;">
                     <div style="background:rgba(255,255,255,.08);border-radius:4px;height:8px;overflow:hidden;">
                       <div id="videoAliyunUploadBar" style="background:#4a90e2;height:100%;width:0%;transition:width .2s;"></div>
                     </div>
-                    <div class="small muted" id="videoAliyunUploadText" style="margin-top:4px;">准备中…</div>
+                    <div class="small muted" id="videoAliyunUploadText" role="status" style="margin-top:4px;">准备中…</div>
                   </div>
                 </div>
               </div>
@@ -998,7 +1004,7 @@ async function init(){
                 <input class="input" id="videoSpeaker" />
               </div>
               <div style="flex:1;min-width:260px">
-                <label>所属专科（可多选，留空 = 免费公开视频）</label>
+                <label>所属专科（可多选；收听或观看范围以访问权限为准）</label>
                 <div id="videoSpecialtyChecks" class="spec-checks" style="display:flex;flex-wrap:wrap;gap:8px 14px;padding:8px 10px;border:1px solid rgba(255,255,255,.1);border-radius:6px;min-height:38px;align-items:center"></div>
               </div>
               <div style="min-width:180px">
@@ -1012,10 +1018,10 @@ async function init(){
               <div style="min-width:220px">
                 <label>访问权限 *</label>
                 <select class="input" id="videoAccessType">
-                  <option value="registered_free">注册后可看（免费）</option>
-                  <option value="paid_single">单视频付费</option>
+                  <option value="registered_free">注册后可播放（免费）</option>
+                  <option value="paid_single">单课程付费</option>
                   <option value="paid_specialty">跟随专科课程</option>
-                  <option value="paid_membership">付费会员可看</option>
+                  <option value="paid_membership">付费会员可播放</option>
                 </select>
               </div>
             </div>
@@ -1029,7 +1035,7 @@ async function init(){
 
             <div class="form-row">
               <div style="flex:1;min-width:240px">
-                <label>视频简介</label>
+                <label for="videoDescription">课程简介</label>
                 <textarea class="input" id="videoDescription" rows="2" style="resize:vertical"></textarea>
               </div>
             </div>
@@ -1058,7 +1064,7 @@ async function init(){
           <div class="hr"></div>
           <div>
             <div class="section-title" style="margin:0">
-              <div><h3 style="margin:0">最近添加的视频</h3></div>
+              <div><h3 style="margin:0">最近添加的课程</h3></div>
               <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px">
                 <input type="checkbox" id="showDeletedVideos" /> 显示已删除
               </label>
@@ -1423,6 +1429,7 @@ function loadOssSdk() {
 // 当前上传状态 (供取消按钮访问).
 // 不同时支持多个上传 — admin 一般也只传一个文件.
 let _currentUpload = null;  // { client, videoId, token, cancelled }
+let _mediaSaveInProgress = false;
 
 async function aliyunDeleteOrphan(videoId, token) {
   if (!videoId || !token) return;
@@ -1461,23 +1468,31 @@ function setupAliyunDirectUpload() {
   });
 
   fileInput.addEventListener('change', async () => {
+    if (_currentUpload) return;
+    if (_mediaSaveInProgress) {
+      alert('课程正在保存，请保存完成后再上传文件。');
+      fileInput.value = '';
+      return;
+    }
     const file = fileInput.files?.[0];
     if (!file) return;
 
-    if (!/\.(mp4|mov|m4v|mkv|avi|flv|wmv|webm|ts)$/i.test(file.name)) {
-      alert('请选择视频文件 (mp4 / mov / mkv / avi 等)');
+    const validation = validateMediaFile(file);
+    if (validation.error) {
+      alert(validation.error);
       fileInput.value = '';
       return;
     }
-    if (file.size > 2 * 1024 * 1024 * 1024) {
-      alert('文件 > 2 GB, 请压缩后再传');
-      fileInput.value = '';
-      return;
-    }
+    const mediaLabel = validation.mediaType === 'audio' ? '音频' : '视频';
+    const previousVid = vidInput.value;
+    // Preserve existing disabled state (for example, while another save finishes).
+    const lockedControls = [vidInput, els.videoSave, els.videoSaveDraft, els.videoSourceType]
+      .filter(Boolean).map(control => [control, control.disabled]);
+    lockedControls.forEach(([control]) => { control.disabled = true; });
 
     const title = String(titleInput?.value || '').trim() || file.name.replace(/\.[^.]+$/, '');
 
-    statusEl.textContent = `已选: ${file.name} · ${(file.size / 1024 / 1024).toFixed(1)} MB`;
+    statusEl.textContent = `已选${mediaLabel}：${file.name} · ${(file.size / 1024 / 1024).toFixed(1)} MB`;
     progressEl.style.display = 'block';
     barEl.style.width = '0%';
     barEl.style.background = '#4a90e2';
@@ -1486,6 +1501,9 @@ function setupAliyunDirectUpload() {
     cancelBtn.style.display = '';
     cancelBtn.disabled = false;
     _currentUpload = { client: null, videoId: null, token: null, cancelled: false };
+    const checkCancelled = () => {
+      if (_currentUpload.cancelled) throw new Error('cancelled');
+    };
 
     try {
       // 1. 拿 supabase session token (作为 admin 鉴权)
@@ -1493,6 +1511,7 @@ function setupAliyunDirectUpload() {
       const token = sess?.access_token;
       if (!token) throw new Error('未登录, 请先登录');
       _currentUpload.token = token;
+      checkCancelled();
 
       // 2. 服务器签发 UploadAuth / UploadAddress / VideoId
       const credRes = await fetch('/api/videos/upload-credentials', {
@@ -1505,6 +1524,7 @@ function setupAliyunDirectUpload() {
         throw new Error(cred.message || cred.error || `凭证签发失败 (HTTP ${credRes.status})`);
       }
       _currentUpload.videoId = cred.videoId;
+      checkCancelled();
 
       // 3. base64 解码 UploadAuth / UploadAddress
       const auth = JSON.parse(atob(cred.uploadAuth));
@@ -1513,6 +1533,7 @@ function setupAliyunDirectUpload() {
       // 4. 加载 OSS SDK
       textEl.textContent = '加载上传 SDK…';
       await loadOssSdk();
+      checkCancelled();
 
       // 5. 创建 OSS client (用 STS 临时凭证)
       // timeout 120s: 默认 60s 在慢网络上经常 TCP 握手都超时
@@ -1565,21 +1586,24 @@ function setupAliyunDirectUpload() {
           textEl.textContent = `上传中 ${pct}%${pct < 100 ? '' : ' · 阿里云正在收尾'}`;
         },
       });
+      checkCancelled();
 
       // 7. 成功, 自动填写 VideoId
       vidInput.value = cred.videoId;
+      if (els.videoAliyunUrl) els.videoAliyunUrl.value = '';
+      if (titleInput && !titleInput.value.trim()) titleInput.value = title;
       barEl.style.width = '100%';
       barEl.style.background = '#22c55e';
-      textEl.innerHTML = `✅ 上传成功 · 视频 ID 已自动填写 (<code>${cred.videoId}</code>)`;
-      statusEl.textContent = '点击下方"保存并上架"完成入库';
+      textEl.textContent = `✅ ${mediaLabel}上传成功 · 媒体 ID 已自动填写`;
+      statusEl.textContent = '可先保存草稿；在阿里云确认处理完成并试听或试看后，再上架。';
     } catch (err) {
       const wasCancelled = _currentUpload?.cancelled || err?.name === 'cancel' || /cancel/i.test(String(err?.message || ''));
       console.error('[aliyun-upload]', err);
       barEl.style.background = wasCancelled ? '#888' : '#e74c3c';
       textEl.textContent = wasCancelled
-        ? '⏹ 已停止上传，孤儿记录已清理'
+        ? '⏹ 已停止上传，正在尝试清理本次未完成的媒体'
         : `❌ ${err?.message || err}`;
-      vidInput.value = '';
+      vidInput.value = previousVid;
       // 失败/取消都要清理已在阿里云创建的视频记录 (CreateUploadVideo 已经
       // 写了一条 status=Uploading 的 video, 不删的话永远是孤儿)
       const orphanId = _currentUpload?.videoId;
@@ -1588,6 +1612,7 @@ function setupAliyunDirectUpload() {
         aliyunDeleteOrphan(orphanId, t);
       }
     } finally {
+      lockedControls.forEach(([control, disabled]) => { control.disabled = disabled; });
       fileBtn.disabled = false;
       fileInput.value = '';
       cancelBtn.style.display = 'none';
