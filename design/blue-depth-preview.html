@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>肾域 · 深海蓝视觉方案预览</title>
+  <link rel="stylesheet" href="blue-depth.css?v=1">
+</head>
+<body>
+  <div class="preview-tools">
+    <div><strong>肾域 · 新版视觉预览</strong><span>深海蓝 / 冰蓝 / 青蓝</span></div>
+    <div class="preview-controls"><button type="button" data-device="desktop" aria-pressed="true">电脑</button><button type="button" data-device="mobile" aria-pressed="false">手机</button><button type="button" id="motion-toggle" aria-pressed="true">暂停动效</button></div>
+  </div>
+  <div class="ks-stage" id="ks-stage">
+    <div class="ks-product">
+      <header class="ks-header">
+        <button class="ks-brand" type="button" data-page="home" aria-label="肾域首页"><img src="../assets/logo.png" alt=""><span><b>肾域</b><small>KidneySphere</small></span></button>
+        <nav class="ks-nav" aria-label="主导航"><button type="button" data-page="home" aria-current="page">首页</button><button type="button" data-page="videos">视频课程</button><button type="button" data-page="training">培训报名</button><button type="button" data-page="learning">我的学习</button></nav>
+        <button type="button" class="ks-login" data-page="learning">登录 / 注册 <span aria-hidden="true">↗</span></button>
+      </header>
+      <main>
+        <div data-screen="home">
+          <section class="ks-hero">
+            <div class="ks-hero-glow" aria-hidden="true"></div>
+            <div class="ks-wrap ks-hero-grid">
+              <div class="ks-intro">
+                <p class="ks-eyebrow"><span></span> 肾脏专科 · 持续学习</p>
+                <h1>视频学习与系统培训<br><em>让专业进阶更清晰</em></h1>
+                <p class="ks-hero-lead">从一个临床问题，到一套系统知识。<br>在肾域，找到下一节值得学的课。</p>
+                <div class="ks-actions"><button class="ks-action ks-action-primary" type="button" data-page="videos"><span aria-hidden="true">▶</span> 浏览视频课程</button><button class="ks-action ks-action-outline" type="button" data-page="training">查看培训报名 <span aria-hidden="true">→</span></button></div>
+                <div class="ks-hero-topics"><span>肾小球病</span><span>重症肾内科</span><span>肾移植</span><span>肾脏病理</span></div>
+              </div>
+              <div class="ks-feature-area">
+                <button class="ks-feature" id="ks-feature" type="button" data-detail="path" aria-label="查看肾脏病理课程介绍">
+                  <img id="feature-image" src="../assets/portal/pathology-v1.webp" alt="肾脏病理课程主题装饰">
+                  <span class="ks-feature-shade"></span><span class="ks-feature-label">专科学习 · 课程展台</span>
+                  <span class="ks-feature-text"><small id="feature-en">RENAL PATHOLOGY</small><strong id="feature-title">肾脏病理</strong><span id="feature-sub">从形态到临床，让理解更进一步</span></span><span class="ks-feature-arrow" aria-hidden="true">↗</span>
+                </button>
+                <div class="ks-feature-select" role="group" aria-label="课程展台"><button type="button" data-feature="path" aria-pressed="true"><i></i>肾脏病理</button><button type="button" data-feature="icu" aria-pressed="false"><i></i>重症肾内科</button><button type="button" data-feature="tx" aria-pressed="false"><i></i>肾移植</button></div>
+              </div>
+            </div>
+          </section>
+          <div class="ks-quick-strip"><div class="ks-wrap"><p><b>今天，想学什么？</b><span>按主题发现课程，按需求选择培训</span></p><form class="ks-search" id="home-search"><label class="ks-sr" for="home-query">搜索课程、主题或讲者</label><input id="home-query" name="q" placeholder="搜索课程、主题或讲者…" type="search"><button type="submit" aria-label="搜索课程">搜索 <span aria-hidden="true">→</span></button></form></div></div>
+          <section class="ks-section ks-training-section"><div class="ks-wrap">
+            <div class="ks-section-head"><div><p class="ks-kicker">LEARNING PATHWAYS</p><h2>选一个方向，系统地学下去</h2><p>视频学习与专科培训，各有清晰的入口。</p></div><button class="ks-text-link" type="button" data-page="training">全部培训 <span aria-hidden="true">↗</span></button></div>
+            <div class="ks-training-grid" id="home-training-cards"></div>
+          </div></section>
+          <section class="ks-section ks-video-section"><div class="ks-wrap">
+            <div class="ks-section-head"><div><p class="ks-kicker">CURATED FOR YOUR PRACTICE</p><h2>从这里，开始下一次学习</h2><p>围绕临床主题，发现视频课程。</p></div><button class="ks-text-link" type="button" data-page="videos">进入视频库 <span aria-hidden="true">↗</span></button></div>
+            <div class="ks-filters" id="home-filters" role="group" aria-label="首页视频主题"><button type="button" data-filter="all" aria-pressed="true">全部</button><button type="button" data-filter="glom" aria-pressed="false">肾小球病</button><button type="button" data-filter="icu" aria-pressed="false">重症肾内科</button><button type="button" data-filter="tx" aria-pressed="false">肾移植</button><button type="button" data-filter="path" aria-pressed="false">肾脏病理</button></div>
+            <div class="ks-video-grid" id="home-video-cards"></div>
+          </div></section>
+          <section class="ks-ecosystem" id="ks-ecosystem"><div class="ks-wrap">
+            <div class="ks-section-head"><div><p class="ks-kicker">PEOPLE & COLLABORATION</p><h2>证据与合作生态</h2><p>连接专家、机构与学习者，让知识持续流动。</p></div><div class="ks-eco-arrows"><button type="button" id="expert-prev" aria-label="上一组专家">←</button><button type="button" id="expert-next" aria-label="下一组专家">→</button></div></div>
+            <div class="ks-ecosystem-tabs" role="group" aria-label="生态目录"><button type="button" data-eco="experts" aria-pressed="true">核心专家 <b>44</b></button><button type="button" data-eco="flagship" aria-pressed="false">旗舰中心 <b>8</b></button><button type="button" data-eco="cobuild" aria-pressed="false">共建单位 <b>80</b></button><button type="button" data-eco="partners" aria-pressed="false">合作单位 <b>2</b></button></div>
+            <div id="expert-cards" class="ks-expert-grid" aria-live="off"></div>
+            <div class="ks-eco-bottom"><span>专家依次展示 · 每次访问变换起始位置</span><button type="button" id="expert-toggle">暂停轮播</button></div>
+          </div></section>
+          <section class="ks-help"><div class="ks-wrap"><div><p class="ks-kicker">WE’RE HERE TO HELP</p><h2>学习的下一步，我们陪你一起。</h2><p>课程选择、报名方式、观看权限，找到清晰的答案。</p></div><button type="button" class="ks-action ks-action-primary" data-help>报名与学习帮助 <span aria-hidden="true">↗</span></button></div></section>
+        </div>
+        <div data-screen="videos" hidden>
+          <section class="ks-page-hero"><div class="ks-wrap"><p class="ks-eyebrow">KIDNEYSPHERE / VIDEO LIBRARY</p><h1>用一节好课，<em>打开一个新视角。</em></h1><p>按主题找视频，按自己的节奏持续学习。</p><form class="ks-search" id="library-search"><label class="ks-sr" for="library-query">搜索视频标题或讲者</label><input type="search" id="library-query" placeholder="搜索视频标题或讲者…"><button type="submit">搜索 →</button></form></div></section>
+          <section class="ks-section"><div class="ks-wrap"><div class="ks-section-head"><div><p class="ks-kicker">EXPLORE THE LIBRARY</p><h2>找到你关心的主题</h2></div><span class="ks-preview-note">课程卡片为视觉展示</span></div><div class="ks-filters" id="library-filters" role="group" aria-label="视频库主题"><button type="button" data-filter="all" aria-pressed="true">全部</button><button type="button" data-filter="glom" aria-pressed="false">肾小球病</button><button type="button" data-filter="icu" aria-pressed="false">重症肾内科</button><button type="button" data-filter="tx" aria-pressed="false">肾移植</button><button type="button" data-filter="path" aria-pressed="false">肾脏病理</button></div><p id="library-status" class="ks-status" role="status"></p><div class="ks-video-grid" id="library-video-cards"></div><aside class="ks-learning-callout"><span class="ks-callout-mark" aria-hidden="true">↗</span><div><h3>想沿着一个方向系统学习？</h3><p>查看专科培训的课程安排与报名方式。</p></div><button class="ks-action" type="button" data-page="training">探索培训项目 →</button></aside></div></section>
+        </div>
+        <div data-screen="training" hidden>
+          <section class="ks-page-hero ks-page-hero-teal"><div class="ks-wrap"><p class="ks-eyebrow">KIDNEYSPHERE / TRAINING</p><h1>让零散的知识，<em>成为系统的能力。</em></h1><p>从专科主题出发，连接课程学习与临床思考。</p><div class="ks-path-steps"><span><b>01</b> 选择方向</span><i>→</i><span><b>02</b> 了解课程</span><i>→</i><span><b>03</b> 报名学习</span></div></div></section>
+          <section class="ks-section"><div class="ks-wrap"><div class="ks-section-head"><div><p class="ks-kicker">FIND YOUR NEXT CHAPTER</p><h2>专科培训项目</h2><p>课程安排、班期与费用，以正式报名页面为准。</p></div></div><div class="ks-training-grid" id="training-page-cards"></div><div class="ks-learning-callout"><span class="ks-callout-mark" aria-hidden="true">◎</span><div><h3>已经报名？继续你的学习旅程。</h3><p>从「我的学习」进入已报名项目与视频课程。</p></div><button class="ks-action" type="button" data-page="learning">我的学习 →</button></div></div></section>
+        </div>
+        <div data-screen="learning" hidden>
+          <section class="ks-page-hero"><div class="ks-wrap"><p class="ks-eyebrow">KIDNEYSPHERE / MY LEARNING</p><h1>你的课程，<em>都在这里继续。</em></h1><p>登录后查看已购内容与已报名项目。</p></div></section><section class="ks-section"><div class="ks-wrap"><div class="ks-account-preview"><span class="ks-account-icon" aria-hidden="true">◎</span><h2>欢迎回到肾域</h2><p>这是登录入口的视觉预览。预览中不收集账号或密码。</p><button class="ks-action ks-action-primary" type="button" data-help>了解学习与报名</button><button class="ks-text-link" type="button" data-page="videos">先浏览视频课程 →</button></div></div></section>
+        </div>
+      </main>
+      <footer class="ks-footer"><div class="ks-wrap"><div><b>肾域 <span>KidneySphere</span></b><p>肾脏专科 · 持续学习</p></div><p>上海胤域医学科技有限公司<br><small>设计预览 · 课程与目录沿用现有内容，未连接报名或支付</small></p></div></footer>
+    </div>
+  </div>
+  <dialog id="ks-dialog" class="ks-dialog"><form method="dialog"><button class="ks-dialog-close" aria-label="关闭" value="close">×</button></form><div id="ks-dialog-body"></div></dialog>
+  <script src="blue-depth.js?v=1"></script>
+</body></html>
