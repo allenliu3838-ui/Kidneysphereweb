@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pinned, offline eight-file homepage release. Python 3.8+, standard library only."""
+"""Pinned, offline portal releases with fixed scopes. Python 3.8+, stdlib only."""
 import argparse
 import contextlib
 import datetime
@@ -24,6 +24,25 @@ VHOST = Path('/etc/nginx/sites-enabled/kidneysphere.com')
 FILES = ('assets/portal/critical-v1.webp', 'assets/portal/pathology-v1.webp',
          'assets/portal/transplant-v1.webp', 'portal-home.css', 'portal-home.js',
          'home.js', 'app.js', 'index.html')
+SITE_THEME_HTML = (
+    '404.html', 'about.html', 'academy.html', 'admin-atlas.html', 'admin-commerce.html',
+    'admin.html', 'article-editor.html', 'article.html', 'articles.html',
+    'atlas-category.html', 'atlas-series.html', 'atlas-topic.html', 'atlas.html',
+    'auth-callback.html', 'board.html', 'case.html', 'checkout.html', 'community.html',
+    'core-team.html', 'disclaimer.html', 'events.html', 'expert-ppt.html',
+    'experts-cn.html', 'experts-intl.html', 'experts.html', 'favorites.html',
+    'flagship.html', 'forgot.html', 'frontier.html', 'glomcon-guangzhou.html',
+    'health.html', 'learning.html', 'login.html', 'membership.html', 'moment.html',
+    'moments.html', 'my-learning.html', 'nephro-pro-module.html', 'nephro-pro.html',
+    'notes.html', 'notifications.html', 'partners.html', 'post-case.html',
+    'ppt-viewer.html', 'privacy.html', 'profile.html', 'qbank-admin.html',
+    'qbank-test.html', 'qbank.html', 'register.html', 'research-pilot.html',
+    'research.html', 'reset.html', 'search.html', 'sponsor.html', 'sponsors.html',
+    'terms.html', 'training-da.html', 'training-glom.html', 'training-icu.html',
+    'training-patho.html', 'training-tx.html', 'verify-doctor.html', 'videos.html',
+    'watch.html',
+)
+SITE_THEME_FILES = ('site-light.css', 'site-page-themes.css', 'styles.css') + SITE_THEME_HTML
 GUARD_PATHS = tuple(ROOT / p for p in ('login.html', 'register.html', 'watch.html',
     'my-learning.html', 'videos.html', 'academy.html', 'supabaseClient.js', 'styles.css')) + (
     Path('/var/www/kidneysphere-doctor/dist/index.html'),
@@ -89,9 +108,23 @@ def read_state(path):
             'mode': stat.S_IMODE(info.st_mode), 'uid': info.st_uid, 'gid': info.st_gid}, data
 
 
-def guard_states():
+def release_files(manifest):
+    profile = manifest.get('release_profile', 'homepage-v1')
+    require(profile in ('homepage-v1', 'site-theme-v1'), 'UNKNOWN_RELEASE_PROFILE')
+    return SITE_THEME_FILES if profile == 'site-theme-v1' else FILES
+
+
+def guard_states(manifest=None):
     result = {}
-    for path in GUARD_PATHS:
+    paths = list(GUARD_PATHS)
+    if manifest is not None and manifest.get('release_profile') == 'site-theme-v1':
+        payload_paths = {ROOT / name for name in release_files(manifest)}
+        paths = [path for path in paths if path not in payload_paths]
+        paths.extend(ROOT / name for name in (
+            'index.html', 'home.js', 'portal-home.js', 'portal-home.css', 'app.js',
+            'assets/config.js', 'assets/videos.js', 'assets/lib/supabase.min.js',
+        ))
+    for path in dict.fromkeys(paths):
         # Configs in sites-enabled may legitimately be links; guards are read-only.
         target = path.resolve(strict=False)
         entry = {'target': str(target), 'exists': path.exists()}
@@ -108,7 +141,8 @@ def validate_manifest(manifest):
     require(re.fullmatch(r'[0-9a-f]{40}', manifest.get('commit', '')) is not None,
             'INVALID_COMMIT')
     entries = manifest.get('files', [])
-    require([e.get('path') for e in entries] == list(FILES), 'PACKAGE_FILE_ALLOWLIST_MISMATCH')
+    require([e.get('path') for e in entries] == list(release_files(manifest)),
+            'PACKAGE_FILE_ALLOWLIST_MISMATCH')
     for entry in entries:
         require(re.fullmatch(r'[0-9a-f]{64}', entry.get('sha256', '')) is not None and
                 type(entry.get('size')) is int and 0 <= entry['size'] <= 8 * 1024 * 1024,
@@ -119,6 +153,9 @@ def validate_manifest(manifest):
                     for h in entry['allowed_before']), 'INVALID_BASELINE_MANIFEST')
         require(entry['path'] not in ('index.html', 'app.js', 'home.js') or
                 not entry['allow_missing'], 'SHARED_FILE_MUST_EXIST')
+        if manifest.get('release_profile') == 'site-theme-v1':
+            require(entry['path'] in ('site-light.css', 'site-page-themes.css') or
+                    not entry['allow_missing'], 'EXISTING_THEME_RESOURCE_MUST_EXIST')
     require(isinstance(manifest.get('required_files'), list), 'INVALID_REQUIRED_FILES')
     for name in manifest['required_files']:
         relative_path(name)
@@ -128,17 +165,18 @@ def load_package(package_path=None):
     source = Path(package_path or sys.argv[0])
     with zipfile.ZipFile(str(source)) as archive:
         names = archive.namelist()
-        expected = {'__main__.py', 'manifest.json'} | {'payload/' + p for p in FILES}
-        require(len(names) == len(set(names)) and set(names) == expected,
-                'PACKAGE_ENTRY_MISMATCH')
+        require(len(names) == len(set(names)), 'PACKAGE_ENTRY_MISMATCH')
         require(all(e.file_size <= 8 * 1024 * 1024 for e in archive.infolist()),
                 'PACKAGE_ENTRY_TOO_LARGE')
         manifest = json.loads(archive.read('manifest.json').decode('utf-8'))
         validate_manifest(manifest)
+        files = release_files(manifest)
+        expected = {'__main__.py', 'manifest.json'} | {'payload/' + p for p in files}
+        require(set(names) == expected, 'PACKAGE_ENTRY_MISMATCH')
         if 'runner_sha256' in manifest:
             require(digest(archive.read('__main__.py')) == manifest['runner_sha256'],
                     'RUNNER_HASH_MISMATCH')
-        payload = {p: archive.read('payload/' + p) for p in FILES}
+        payload = {p: archive.read('payload/' + p) for p in files}
     for entry in manifest['files']:
         content = payload[entry['path']]
         require(len(content) == entry['size'] and digest(content) == entry['sha256'],
@@ -217,7 +255,7 @@ def preflight(package):
     require(not unknown, 'BASELINE_CHECK_FAILED; no website files written')
     disk_check(sum(s.get('size', 0) for s in states.values()),
                sum(e['size'] for e in manifest['files']))
-    return {'states': states, 'guards': guard_states(),
+    return {'states': states, 'guards': guard_states(manifest),
             'no_change': all(states[e['path']].get('sha256') == e['sha256']
                              for e in manifest['files'])}
 
@@ -298,7 +336,8 @@ def verify_backup(backup, record, package=None):
             backup.stat().st_uid == os.geteuid(),
             'INVALID_BACKUP_DIRECTORY')
     validate_manifest(record['release'])
-    require(record.get('schema') == 1 and set(record.get('before', {})) == set(FILES),
+    require(record.get('schema') == 1 and
+            set(record.get('before', {})) == set(release_files(record['release'])),
             'INVALID_BACKUP_MANIFEST')
     if package is not None:
         require(record['release'] == package['manifest'], 'BACKUP_RELEASE_MISMATCH')
@@ -315,9 +354,10 @@ def verify_backup(backup, record, package=None):
 
 def _rollback(backup, record, package=None):
     verify_backup(backup, record, package)
+    files = release_files(record['release'])
     entries = {e['path']: e for e in record['release']['files']}
     current = {}
-    for name in FILES:
+    for name in files:
         state, unused = read_state(ROOT / name)
         current[name] = state
         before = record['before'][name]
@@ -333,13 +373,13 @@ def _rollback(backup, record, package=None):
     write_json(backup / 'journal.json', journal)
     staged = {}
     try:
-        for name in FILES:
+        for name in files:
             before = record['before'][name]
             if before['exists'] and current[name] != before:
                 unused, data = read_state(backup / 'old' / name)
                 staged[name] = stage_file(ROOT / name, data, before)
-        # Retire the new entry document first; all originals have already been staged.
-        for name in reversed(FILES):
+        # Restore entry references before withdrawing their new dependencies.
+        for name in reversed(files):
             target, before = ROOT / name, record['before'][name]
             same_state(target, current[name])
             journal['pending'] = name
@@ -360,9 +400,10 @@ def _rollback(backup, record, package=None):
     finally:
         for temporary in staged.values():
             temporary.unlink(missing_ok=True)
-    if guard_states() != record['guards']:
+    if guard_states(record['release']) != record['guards']:
         print('GUARD_CHANGED: files outside this release changed; none were restored', flush=True)
-    print('ROLLBACK_OK: all eight original file states verified; no services restarted', flush=True)
+    print('ROLLBACK_OK: all ' + str(len(files)) +
+          ' original file states verified; no services restarted', flush=True)
 
 
 def rollback_release(backup_dir, package=None):
@@ -377,15 +418,16 @@ def rollback_release(backup_dir, package=None):
 
 
 def apply_release(package):
+    files = release_files(package['manifest'])
     # Reject an invalid target without creating even the private lock directory.
     preliminary = preflight(package)
     if preliminary['no_change']:
-        print('NO_CHANGE: all eight resources already match this release', flush=True)
+        print('NO_CHANGE: all ' + str(len(files)) + ' resources already match this release', flush=True)
         return None
     with release_lock():
         checked = preflight(package)
         if checked['no_change']:
-            print('NO_CHANGE: all eight resources already match this release', flush=True)
+            print('NO_CHANGE: all ' + str(len(files)) + ' resources already match this release', flush=True)
             return None
         stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ-')
         backup = Path(tempfile.mkdtemp(prefix=stamp, dir=str(BACKUP_ROOT)))
@@ -420,9 +462,9 @@ def apply_release(package):
                 staged[name] = stage_file(ROOT / name, package['payload'][name], metadata)
             for name, before in record['before'].items():
                 same_state(ROOT / name, before)
-            require(guard_states() == record['guards'], 'GUARD_CHANGED_BEFORE_PROMOTION')
+            require(guard_states(package['manifest']) == record['guards'], 'GUARD_CHANGED_BEFORE_PROMOTION')
             journal['phase'] = 'applying'
-            for name in FILES:
+            for name in files:
                 same_state(ROOT / name, record['before'][name])
                 journal['pending'] = name
                 write_json(backup / 'journal.json', journal)
@@ -436,7 +478,7 @@ def apply_release(package):
                 actual, unused = read_state(ROOT / entry['path'])
                 require(actual.get('sha256') == entry['sha256'] and actual.get('size') == entry['size'],
                         'POST_RELEASE_HASH_MISMATCH: ' + entry['path'])
-            require(guard_states() == record['guards'], 'GUARD_CHANGED_AFTER_PROMOTION')
+            require(guard_states(package['manifest']) == record['guards'], 'GUARD_CHANGED_AFTER_PROMOTION')
             journal['phase'] = 'applied'
             write_json(backup / 'journal.json', journal)
         except BaseException as error:
@@ -450,7 +492,8 @@ def apply_release(package):
         finally:
             for temporary in staged.values():
                 temporary.unlink(missing_ok=True)
-        print('RELEASE_OK: all eight local file hashes and unchanged guards verified; no services restarted', flush=True)
+        print('RELEASE_OK: all ' + str(len(files)) +
+              ' local file hashes and unchanged guards verified; no services restarted', flush=True)
         print('Public website and authenticated video checks remain to be completed.', flush=True)
         return backup
 
@@ -470,7 +513,8 @@ def main(argv=None):
             rollback_release(arguments.rollback, package)
         else:
             checked = preflight(package)
-            print('NO_CHANGE' if checked['no_change'] else 'CHECK_OK: eight-file release ready; no files written')
+            print('NO_CHANGE' if checked['no_change'] else 'CHECK_OK: ' +
+                  str(len(release_files(package['manifest']))) + '-file release ready; no files written')
         return 0
     except (ReleaseError, OSError, ValueError, KeyError, TypeError, zipfile.BadZipFile,
             subprocess.SubprocessError) as error:

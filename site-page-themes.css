@@ -1,0 +1,90 @@
+/* Page-specific light surfaces. Keep media, authored content and visibility logic intact. */
+body:not(.portal-home) :is(.ac-hero, .tier-card, .proj-card, .price-option, .enroll-opt, .ent-card, .order-row, .enroll-card, .ml-dash-card, .ml-dash-notif, .ml-quick-btn, .vcard) {
+  background: #fff;
+  border-color: var(--border);
+  color: var(--text);
+}
+body:not(.portal-home) .ac-hero {
+  background: linear-gradient(120deg, #eaf4ff, #f9fcff 72%);
+  box-shadow: 0 10px 32px rgba(28,64,110,.06);
+}
+body:not(.portal-home) :is(.tier-card.highlight, .price-option.recommended, .enroll-opt.rec) {
+  border-color: #81b3f4;
+  background: #f1f7ff;
+}
+body:not(.portal-home) :is(.spec-tabs, .ml-tabs, .commerce-tabs) .btn.active,
+body:not(.portal-home) .pay-methods .btn.selected,
+body:not(.portal-home) .step-indicator .step.active {
+  background: var(--brand); border-color: var(--brand); color: #fff;
+}
+body:not(.portal-home) :is(.tier-for, .p-label, .p-includes, .flow-desc, .ci-index, .ci-speaker, .ci-inst, .ci-tbd, .eo-label, .eo-orig, .eo-desc, .stat-card .label) {
+  opacity: 1; color: var(--muted);
+}
+body:not(.portal-home) :is(.curriculum-item, .module-heading, .faq-item, .order-summary .total) { border-color: var(--border); }
+body:not(.portal-home) .module-heading { color: #1758a9; }
+body:not(.portal-home) .flow-num { background: #e4efff; color: #1758a9; }
+body:not(.portal-home) :is(.early-bird-bar, .bundle-banner, .eb-notice) { background: #fff8e8; border-color: #e6cc91; }
+body:not(.portal-home) :is(.eb-label, .eb-notice b, .active-banner b) { color: #875300; }
+body:not(.portal-home) :is(.expired .eb-label, .proj-status.concluded, .ent-badge.expired, .order-status.cancelled, .order-status.refunded) { color: #526174; background: #eef2f6; }
+body:not(.portal-home) :is(.badge-free, .badge-purchased, .proj-status.enrollment, .ent-badge.active, .order-status.approved, .step-indicator .step.done) { color: #166534; background: #edf8f0; border-color: #a2d5b2; }
+body:not(.portal-home) :is(.badge-member) { color: #7138a8; background: #f6effd; border-color: #ccb2e5; }
+body:not(.portal-home) :is(.badge-training, .proj-status.live, .order-status.pending_review) { color: #1758a9; background: #edf5ff; border-color: #a8c7ec; }
+body:not(.portal-home) :is(.badge-source, .proj-status.planning, .ent-badge.expiring, .order-status.pending_payment) { color: #875300; background: #fff8e8; border-color: #e6cc91; }
+body:not(.portal-home) .order-status.rejected { color: #b42318; background: #fff1f0; border-color: #efbbb6; }
+body:not(.portal-home) :is(.qr-box, .qr-wrap, .order-summary) { background: #f2f6fc; border-color: var(--border); }
+body:not(.portal-home) :is(.qr-box, .qr-wrap) img { background: #fff; max-width: 100%; height: auto; }
+body:not(.portal-home) .step-indicator { flex-wrap: wrap; }
+body:not(.portal-home) .step-indicator .step { background: #e8eef8; color: var(--muted); }
+body:not(.portal-home) .step-indicator .step.active { background: var(--brand); color: #fff; }
+body:not(.portal-home) .step-indicator .step.done { background: #edf8f0; color: #166534; }
+body:not(.portal-home) .specialty-header .expand-btn { color: #1758a9; min-height: 44px; }
+body:not(.portal-home) .video-grid-row { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+body:not(.portal-home) .ml-dash { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+body:not(.portal-home) .search-box { min-height: 44px; background: #fff; color: var(--text); border-color: var(--border); }
+body:not(.portal-home) .modal-box .close-btn { min-width: 44px; min-height: 44px; color: var(--muted); }
+body:not(.portal-home) .modal-box { background: #fff; color: var(--text); border-color: var(--border); }
+body:not(.portal-home) .data-table :is(th, td) { border-color: var(--border); }
+body:not(.portal-home) .data-table th { opacity: 1; color: var(--muted); background: #f2f6fc; }
+body:not(.portal-home) .data-table tr:hover td { background: #f4f8ff; }
+
+/* Known system-generated inline colors; never recolor authored rich text or image lightboxes. */
+body:not(.portal-home) label[for="showPw"],
+body:not(.portal-home) #siteSearchResults a[style*="color:"] { color: var(--text) !important; }
+body:not(.portal-home) :is(.badge, .small, #nephroProGate, #moduleGate, #nephroProCard, #mlMain) [style*="color:#4ade80"],
+body:not(.portal-home) :is(.badge, .small)[style*="color:#4ade80"] { color: #166534 !important; }
+body:not(.portal-home) .chip[style*="color:#4ade80"] { color: #166534 !important; }
+body:not(.portal-home) .chip[style*="color:#fbbf24"] { color: #875300 !important; }
+body:not(.portal-home) :is(.badge, .small)[style*="color:#fbbf24"],
+body:not(.portal-home) #contactHint { color: #875300 !important; }
+body:not(.portal-home) .badge[style*="color:#c084fc"],
+body:not(.portal-home) :is(#membership, #mlMain) [style*="color:#c084fc"] { color: #7138a8 !important; }
+body:not(.portal-home) .badge[style*="color:#818cf8"] { color: #4b4eb5 !important; }
+body:not(.portal-home) .badge[style*="color:#aaa"] { color: #526174 !important; }
+body:not(.portal-home) :is(.badge[style*="color:#f66"], .small[style*="color:#f87171"]) { color: #b42318 !important; }
+body:not(.portal-home) :is(#membershipYearlyPrice, #membershipMonthlyPrice) { color: #7138a8 !important; }
+body:not(.portal-home) :is(#nephroProModules, #moduleItems) { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)) !important; }
+
+@media (max-width: 700px) {
+  body:not(.portal-home) .search-box { font-size: 16px; max-width: 100%; }
+  body:not(.portal-home) .curriculum-item { flex-wrap: wrap; align-items: flex-start; gap: 6px 10px; }
+  body:not(.portal-home) .ci-topic { min-width: 0; flex-basis: calc(100% - 36px); }
+  body:not(.portal-home) .ci-speaker { white-space: normal; padding-left: 34px; }
+  body:not(.portal-home) .enroll-grid { grid-template-columns: 1fr; }
+  body:not(.portal-home) .order-summary .line { gap: 16px; overflow-wrap: anywhere; }
+}
+
+/* Academy status labels and comparison cells carry inline legacy colors. */
+body:not(.portal-home) .proj-status.enrollment[style*="color:#4ade80"],
+body:not(.portal-home) .spec-tabs [data-spec-tab]:not(.active) span[style*="color:#4ade80"],
+body:not(.portal-home) .spec-tabs [data-spec-tab]:not(.active) span[style*="color: rgb(74, 222, 128)"] {
+  color: #166534 !important;
+}
+body:not(.portal-home) .spec-tabs [data-spec-tab]:not(.active) span[style*="color: rgb(156, 163, 175)"] {
+  color: #526174 !important;
+}
+body:not(.portal-home) .spec-tabs [data-spec-tab].active span[style*="color"] {
+  color: #fff !important;
+}
+body:not(.portal-home) .tier-grid + div table :is(th, td)[style*="color:#c084fc"] {
+  color: #7138a8 !important;
+}
