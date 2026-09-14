@@ -214,6 +214,46 @@ class PortalReleaseSafetyTests(unittest.TestCase):
         self.vhost.write_text(configuration.replace(str(self.root), str(self.other_site)))
         self.assert_rejected_without_writes(self.runner.apply_release, self.package)
 
+    def test_installed_https_acme_location_allows_release_and_stays_unchanged(self):
+        acme = (
+            ' location ^~ /.well-known/acme-challenge/ {\n'
+            '  root /var/lib/kidneysphere-acme;\n'
+            '  default_type text/plain;\n'
+            '  try_files $uri =404;\n }\n'
+        )
+        self.vhost.write_text(self.vhost.read_text().replace('server {\n', 'server {\n' + acme, 1))
+        original = self.vhost.read_bytes()
+        backup, _ = self.quiet(self.runner.apply_release, self.package)
+        self.assertIsInstance(backup, Path)
+        self.assertEqual(self.vhost.read_bytes(), original)
+        self.quiet(self.runner.rollback_release, backup, self.package)
+        self.assertEqual(self.vhost.read_bytes(), original)
+
+    def test_unexpected_acme_or_nested_root_cannot_authorize_release(self):
+        original = self.vhost.read_text()
+        valid = (
+            ' location ^~ /.well-known/acme-challenge/ {\n'
+            '  root /var/lib/kidneysphere-acme;\n'
+            '  default_type text/plain;\n'
+            '  try_files $uri =404;\n }\n'
+        )
+        variants = (
+            valid.replace('/var/lib/kidneysphere-acme', str(self.other_site)),
+            valid.replace('root ', 'alias '),
+            valid.replace('^~ /.well-known/acme-challenge/', '/'),
+            valid.replace('$uri =404', '$uri /index.html'),
+            valid.replace('try_files', 'proxy_pass http://127.0.0.1:3001; try_files'),
+            valid + valid,
+            valid + ' location /other/ { root ' + str(self.other_site) + '; }\n',
+        )
+        for route in variants:
+            with self.subTest(route=route):
+                self.vhost.write_text(original.replace('server {\n', 'server {\n' + route, 1))
+                self.assert_rejected_without_writes(self.runner.apply_release, self.package)
+        self.vhost.write_text(original.replace('server {\n', 'server {\n' + valid, 1)
+                              .replace(' root ' + str(self.root), ' root ' + str(self.other_site)))
+        self.assert_rejected_without_writes(self.runner.apply_release, self.package)
+
     def test_unexpected_archive_entry_is_rejected(self):
         broken = self.repack({'payload/../../outside.txt': b'escape'})
         self.assert_rejected_without_writes(self.runner.load_package, broken)

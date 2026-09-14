@@ -14,6 +14,10 @@ const showcaseStatusEl = document.querySelector('[data-home-showcase-status]');
 const showcaseTabs = Array.from(document.querySelectorAll('[data-home-showcase-tab]'));
 const showcasePrevBtn = document.querySelector('[data-home-showcase-prev]');
 const showcaseNextBtn = document.querySelector('[data-home-showcase-next]');
+const showcasePlaybackEl = document.querySelector('[data-home-showcase-playback]');
+const showcaseAutoplayBtn = document.querySelector('[data-home-showcase-autoplay]');
+let showcaseRotation = null;
+let showcaseActiveKind = 'experts';
 
 const showcaseLabels = {
   experts: '核心专家',
@@ -51,14 +55,34 @@ function shortDesc(desc, max = 180){
 }
 
 function buildExpertList(cn = [], intl = []){
-  // Preserve backend order within each group while alternating the two
-  // directories. No auto-rotation or random reordering while reading.
+  // Keep both directories represented; rotate the starting point only once
+  // when the page loads, never reorder cards while someone is reading.
   const out = [];
   for(let i = 0; i < Math.max(cn.length, intl.length); i++){
     if(cn[i]) out.push(cn[i]);
     if(intl[i]) out.push(intl[i]);
   }
   return out;
+}
+
+function chooseExpertStart(rows, storage, random = Math.random){
+  if(rows.length < 2) return rows.slice();
+  const key = 'ks-home-expert-start-v1';
+  let start = Math.floor(random() * rows.length) % rows.length;
+  try{
+    const saved = storage?.getItem(key);
+    if(saved !== null && saved !== undefined && /^\d+$/.test(saved)){
+      start = (Number(saved) + 1) % rows.length;
+    }
+    storage?.setItem(key, String(start));
+  }catch(_e){ /* Private browsing still gets a varied starting expert. */ }
+  return rows.slice(start).concat(rows.slice(0, start));
+}
+
+function expertStartForVisit(rows){
+  let storage;
+  try{ storage = window.localStorage; }catch(_e){ /* Storage is optional. */ }
+  return chooseExpertStart(rows, storage);
 }
 
 function renderShowcaseCard(item, kind, index = 0){
@@ -142,14 +166,98 @@ function updateShowcaseNav(){
   if(showcaseNextBtn) showcaseNextBtn.disabled = max <= 2 || showcaseCardsEl.scrollLeft >= max - 2;
 }
 
+function showcaseScrollStep(){
+  const first = showcaseCardsEl?.querySelector('.home-showcase-card');
+  if(!first) return 0;
+  return first.getBoundingClientRect().width +
+    (parseFloat(window.getComputedStyle(showcaseCardsEl).columnGap) || 0);
+}
+
+function syncShowcaseRotation(){
+  showcaseRotation?.sync();
+}
+
+function initShowcaseRotation(){
+  if(showcaseRotation || !showcaseSection || !showcaseCardsEl || !showcaseAutoplayBtn) return;
+  const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let paused = motion.matches;
+  let hovered = false;
+  let visible = false;
+  let timer = null;
+
+  const hasExperts = () => showcaseActiveKind === 'experts' &&
+    showcaseCardsEl.querySelectorAll('.home-showcase-card').length > 1;
+  const reading = () => !!showcaseCardsEl.querySelector('[data-showcase-toggle][aria-expanded="true"]');
+  const canAdvance = () => hasExperts() && !paused && !hovered && visible &&
+    !document.hidden && !reading() &&
+    showcaseCardsEl.scrollWidth > showcaseCardsEl.clientWidth + 2;
+
+  function sync(){
+    if(timer !== null){ window.clearTimeout(timer); timer = null; }
+    const available = hasExperts();
+    if(showcasePlaybackEl) showcasePlaybackEl.hidden = !available;
+    showcaseAutoplayBtn.disabled = reading();
+    showcaseAutoplayBtn.textContent = paused ? '开始轮播' : '暂停轮播';
+    showcaseAutoplayBtn.setAttribute('aria-label', paused ? '开始专家轮播' : '暂停专家轮播');
+    showcaseCardsEl.setAttribute('aria-live', canAdvance() ? 'off' : 'polite');
+    if(!canAdvance()) return;
+    timer = window.setTimeout(() => {
+      timer = null;
+      if(!canAdvance()) return sync();
+      const max = showcaseCardsEl.scrollWidth - showcaseCardsEl.clientWidth;
+      const left = showcaseCardsEl.scrollLeft >= max - 2 ? 0 :
+        Math.min(max, showcaseCardsEl.scrollLeft + showcaseScrollStep());
+      showcaseCardsEl.scrollTo({ left, behavior: motion.matches ? 'auto' : 'smooth' });
+      sync();
+    }, 6000);
+  }
+
+  function pause(){ paused = true; sync(); }
+  showcaseRotation = { sync, pause };
+  showcaseAutoplayBtn.addEventListener('click', () => { paused = !paused; sync(); });
+  showcaseSection.addEventListener('pointerenter', event => {
+    if(event.pointerType === 'mouse'){ hovered = true; sync(); }
+  });
+  showcaseSection.addEventListener('pointerleave', event => {
+    if(event.pointerType === 'mouse'){ hovered = false; sync(); }
+  });
+  showcaseCardsEl.addEventListener('focusin', pause);
+  showcaseCardsEl.addEventListener('pointerdown', pause, { passive: true });
+  showcasePrevBtn?.addEventListener('focusin', pause);
+  showcaseNextBtn?.addEventListener('focusin', pause);
+  document.addEventListener('visibilitychange', sync);
+  window.addEventListener('pagehide', () => {
+    visible = false;
+    sync();
+  });
+  window.addEventListener('pageshow', checkVisibility);
+  motion.addEventListener?.('change', () => { if(motion.matches) paused = true; sync(); });
+
+  function checkVisibility(){
+    const rect = showcaseSection.getBoundingClientRect();
+    visible = rect.bottom > 0 && rect.top < window.innerHeight;
+    sync();
+  }
+  if(typeof IntersectionObserver !== 'undefined'){
+    const observer = new IntersectionObserver(entries => {
+      visible = entries.some(entry => entry.isIntersecting);
+      sync();
+    }, { threshold: 0 });
+    observer.observe(showcaseSection);
+  }else{
+    window.addEventListener('scroll', checkVisibility, { passive: true });
+    window.addEventListener('resize', checkVisibility, { passive: true });
+  }
+  checkVisibility();
+}
+
 function bindCarouselNav(){
   if(!showcaseCardsEl || showcaseCardsEl.dataset.navBound === '1') return;
   showcaseCardsEl.dataset.navBound = '1';
   function scrollByStep(direction){
-    const first = showcaseCardsEl.querySelector('.home-showcase-card');
-    if(!first) return;
-    const gap = parseFloat(window.getComputedStyle(showcaseCardsEl).columnGap) || 0;
-    const step = first.getBoundingClientRect().width + gap;
+    showcaseRotation?.pause();
+    const step = showcaseScrollStep();
+    if(!step) return;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     showcaseCardsEl.scrollBy({ left: direction * step, behavior: reducedMotion ? 'auto' : 'smooth' });
   }
@@ -157,13 +265,13 @@ function bindCarouselNav(){
   showcaseNextBtn?.addEventListener('click', () => scrollByStep(1));
   showcaseCardsEl.addEventListener('scroll', updateShowcaseNav, { passive: true });
   if(typeof ResizeObserver !== 'undefined'){
-    const observer = new ResizeObserver(updateShowcaseNav);
+    const observer = new ResizeObserver(() => { updateShowcaseNav(); syncShowcaseRotation(); });
     observer.observe(showcaseCardsEl);
   }else{
-    window.addEventListener('resize', updateShowcaseNav, { passive: true });
+    window.addEventListener('resize', () => { updateShowcaseNav(); syncShowcaseRotation(); }, { passive: true });
   }
-  // Native overflow scrolling handles touch; no touchmove cancellation,
-  // gesture emulation, timer or autoplay competes with page scrolling.
+  // Native scrolling handles touch. Pointer contact pauses automatic advance;
+  // no gesture emulation or touchmove cancellation interferes with the page.
 }
 
 function bindShowcaseExpand(){
@@ -182,6 +290,8 @@ function bindShowcaseExpand(){
     button.textContent = expanded ? '收起简介' : '展开简介';
     const title = card.querySelector('.title')?.textContent || '专家';
     button.setAttribute('aria-label', `${expanded ? '收起' : '展开'}${title}的简介`);
+    if(expanded) showcaseRotation?.pause();
+    else syncShowcaseRotation();
     // Keep focus on the native button. Do not collapse another card, scroll
     // the document, or reset horizontal position while the user is reading.
   });
@@ -189,6 +299,7 @@ function bindShowcaseExpand(){
 
 function renderShowcaseState(kind, state){
   const { rows = [], error = false, partial = false } = state || {};
+  showcaseActiveKind = kind;
   setTabActive(kind);
   updateShowcaseActions(kind);
   const label = showcaseLabels[kind] || '展示目录';
@@ -210,7 +321,7 @@ function renderShowcaseState(kind, state){
   // Reset every tab, including empty and failed categories.
   showcaseCardsEl.scrollTo({ left: 0, behavior: 'instant' });
   showcaseCardsEl.setAttribute('aria-busy', 'false');
-  window.requestAnimationFrame(updateShowcaseNav);
+  window.requestAnimationFrame(() => { updateShowcaseNav(); syncShowcaseRotation(); });
 }
 
 function connectShowcaseTabs(byTab){
@@ -222,6 +333,7 @@ function connectShowcaseTabs(byTab){
   });
   bindCarouselNav();
   bindShowcaseExpand();
+  initShowcaseRotation();
   renderShowcaseState('experts', byTab.experts);
 }
 
@@ -261,7 +373,7 @@ async function loadHomeShowcase(){
     'flagship', 'co_building', 'partners', 'experts_cn', 'experts_intl',
   ].map(readShowcaseCategory));
   const experts = {
-    rows: buildExpertList(cn.rows, intl.rows),
+    rows: expertStartForVisit(buildExpertList(cn.rows, intl.rows)),
     error: cn.error && intl.error,
     partial: cn.error !== intl.error,
   };

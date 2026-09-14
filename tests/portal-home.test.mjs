@@ -802,7 +802,7 @@ test('empty or failed ecosystem tabs stay usable and reset their own horizontal 
   assert.ok(f.actions.innerHTML.includes('flagship.html'));
 });
 
-test('ecosystem module makes no requests when its DOM is absent and has no legacy feed/autoplay code', async () => {
+test('ecosystem module makes no requests when its DOM is absent and does not restore legacy feeds or touch interception', async () => {
   let calls = 0;
   const context = homeContext({ provider: {
     isConfigured: () => true,

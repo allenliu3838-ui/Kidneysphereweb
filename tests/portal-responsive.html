@@ -28,6 +28,7 @@
       <label for="viewport">视口宽度</label>
       <select id="viewport"><option>320</option><option>360</option><option selected>390</option><option>430</option><option>768</option><option>1024</option><option>1440</option></select>
       <button id="audit" type="button">检查布局</button>
+      <button id="ecosystem" type="button">查看合作生态</button>
       <a href="../index.html">独立打开首页</a>
     </div>
   </header>
@@ -58,6 +59,10 @@
           footerPaddingBottom: win.getComputedStyle(doc.querySelector('footer')).paddingBottom,
           videoCards: doc.querySelectorAll('.portal-video-card').length,
           experts: doc.querySelectorAll('.home-showcase-card').length,
+          expertCardWidth: doc.querySelector('.home-showcase-card')?.getBoundingClientRect().width,
+          expertCardHeight: doc.querySelector('.home-showcase-card')?.getBoundingClientRect().height,
+          expertPortraitWidth: doc.querySelector('.home-showcase-card .thumb')?.getBoundingClientRect().width,
+          expertNameSize: doc.querySelector('.home-showcase-card .title') ? win.getComputedStyle(doc.querySelector('.home-showcase-card .title')).fontSize : null,
           videoStatus: doc.querySelector('[data-portal-video-status]').textContent,
         }, null, 2);
       } catch (error) { report.textContent = error.message; }
@@ -68,9 +73,13 @@
       requestAnimationFrame(() => requestAnimationFrame(audit));
     });
     document.getElementById('audit').addEventListener('click', audit);
+    document.getElementById('ecosystem').addEventListener('click', () => {
+      frame.contentDocument?.querySelector('[data-home-showcase]')?.scrollIntoView({ behavior: 'instant', block: 'start' });
+      audit();
+    });
     (async () => {
       try {
-        const response = await fetch('../index.html?v=20260913_003', { cache: 'no-store' });
+        const response = await fetch('../index.html?v=20260914_001', { cache: 'no-store' });
         if (!response.ok) throw new Error('无法读取首页源码');
         const html = await response.text();
         const root = new URL('../', location.href);

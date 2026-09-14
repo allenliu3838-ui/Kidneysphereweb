@@ -155,6 +155,18 @@ def check_nginx():
                 if Path(pieces[i]).resolve() == VHOST.resolve()]
     require(len(sections) == 1, 'NGINX_VHOST_NOT_UNIQUE: ' + str(VHOST))
     section = re.sub(r'#[^\n]*', '', sections[0])
+    # The separately verified HTTPS installer adds this exact challenge webroot.
+    # Exempt only its complete location; other roots, aliases and ACME variants
+    # must still fail the portal target check. This does not edit Nginx.
+    managed_acme = (
+        r'\blocation\s+\^~\s+/\.well-known/acme-challenge/\s*\{\s*'
+        r'root\s+/var/lib/kidneysphere-acme\s*;\s*'
+        r'default_type\s+text/plain\s*;\s*'
+        r'try_files\s+\$uri\s+=404\s*;\s*\}'
+    )
+    section, acme_count = re.subn(managed_acme, '', section)
+    require(acme_count <= 1 and 'acme-challenge' not in section and
+            '/var/lib/kidneysphere-acme' not in section, 'NGINX_UNEXPECTED_ACME_ROUTE')
     names = [token.strip('"\'') for value in re.findall(r'\bserver_name\s+([^;]+);', section)
              for token in value.split()]
     roots = {value.strip().strip('"\'') for value in re.findall(r'\broot\s+([^;]+);', section)}
