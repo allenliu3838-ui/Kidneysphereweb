@@ -1,12 +1,8 @@
-/* Page-specific light surfaces. Keep media, authored content and visibility logic intact. */
-body:not(.portal-home) :is(.ac-hero, .tier-card, .proj-card, .price-option, .enroll-opt, .ent-card, .order-row, .enroll-card, .ml-dash-card, .ml-dash-notif, .ml-quick-btn, .vcard) {
+/* Page-specific blue-depth surfaces. Keep media, authored content and visibility logic intact. */
+body:not(.portal-home) :is(.tier-card, .proj-card, .price-option, .enroll-opt, .ent-card, .order-row, .enroll-card, .ml-dash-card, .ml-dash-notif, .ml-quick-btn, .vcard) {
   background: #fff;
   border-color: var(--border);
   color: var(--text);
-}
-body:not(.portal-home) .ac-hero {
-  background: linear-gradient(120deg, #eaf4ff, #f9fcff 72%);
-  box-shadow: 0 10px 32px rgba(28,64,110,.06);
 }
 body:not(.portal-home) :is(.tier-card.highlight, .price-option.recommended, .enroll-opt.rec) {
   border-color: #81b3f4;
@@ -89,4 +85,182 @@ body:not(.portal-home) .spec-tabs [data-spec-tab].active span[style*="color"] {
 }
 body:not(.portal-home) .tier-grid + div table :is(th, td)[style*="color:#c084fc"] {
   color: #7138a8 !important;
+}
+
+/* Approved blue-depth direction: navy titles, teal training heroes and
+ * ice-blue section breaks. Structural selectors identify existing page
+ * regions; the markup, account gates, payments and content remain intact. */
+body:not(.portal-home) :is(.hero.ac-hero,.hero.hero-platform) {
+  color: #f5f9ff;
+  background: var(--depth-hero);
+  border-bottom: 1px solid #315b7c;
+  padding-block: 52px 48px;
+  box-shadow: none;
+}
+body:not(.portal-home) .hero.ac-hero { background: var(--depth-hero-teal); }
+body:not(.portal-home) :is(.hero.ac-hero,.hero.hero-platform) h1 {
+  color: #f5f9ff;
+  line-height: 1.45;
+  letter-spacing: -.6px;
+}
+/* Academy uses ac-hero on its subtitle as well as on its section. */
+body:not(.portal-home) .hero.ac-hero p.ac-hero.sub {
+  color: #c1d5e7;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  opacity: 1;
+  line-height: 1.85;
+}
+body:not(.portal-home) .hero.hero-platform .hero-sub { color: #c1d5e7; }
+body:not(.portal-home) :is(.hero.ac-hero,.hero.hero-platform) .badge-recommend {
+  color: #b9e5ed;
+  background: #143e5a;
+  border-color: #4b7b90;
+}
+body:not(.portal-home) :is(.hero.ac-hero,.hero.hero-platform) .btn:not(.primary):not(.danger) {
+  color: #e5f0ff;
+  background: #ffffff08;
+  border-color: #6a88a6;
+}
+body:not(.portal-home) :is(.hero.ac-hero,.hero.hero-platform) .btn:not(.primary):not(.danger):hover {
+  color: #fff;
+  background: #ffffff16;
+  border-color: #96c1d5;
+}
+
+/* Each training page has a curriculum list and a separate, concise hero. */
+body:not(.portal-home):has(.curriculum-list) .hero {
+  color: #f5f9ff;
+  background: var(--depth-hero-teal);
+  border-bottom: 1px solid #3b6d83;
+  padding-block: 48px;
+}
+body:not(.portal-home):has(.curriculum-list) .hero > .container > .card {
+  color: #f5f9ff;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+body:not(.portal-home):has(.curriculum-list) .hero h1 { color: #f5f9ff; }
+body:not(.portal-home):has(.curriculum-list) .hero > .container > .card > div:first-child p {
+  color: #c1d5e7;
+  opacity: 1 !important; /* Existing descriptive paragraph uses inline .75. */
+}
+body:not(.portal-home):has(.curriculum-list) .hero .badge-recommend { color: #b9e5ed; background: #143e5a; border-color: #4b7b90; }
+body:not(.portal-home):has(.curriculum-list) .hero .hr { background: #4f7890; }
+body:not(.portal-home):has(.curriculum-list) .hero .btn:not(.primary):not(.danger) { color: #e5f0ff; background: #ffffff08; border-color: #6a88a6; }
+body:not(.portal-home):has(.curriculum-list) .hero .btn:not(.primary):not(.danger):hover { color: #fff; background: #ffffff16; border-color: #96c1d5; }
+/* Status chips retain their semantic text and a readable solid surface. */
+body:not(.portal-home):has(.curriculum-list) .hero .chip[style*="color:#4ade80"] { background: #edf8f0 !important; border-color: #a2d5b2 !important; }
+body:not(.portal-home):has(.curriculum-list) .hero .chip[style*="color:#fbbf24"] { background: #fff8e8 !important; border-color: #e6cc91 !important; }
+body:not(.portal-home) .active-banner { color: #166534; background: #e4f3ea; border-color: #a2d5b2; }
+body:not(.portal-home) .active-banner b { color: #166534; }
+body:not(.portal-home) .planning-banner { color: #70531a; background: #fff8e8; border-color: #e6cc91; }
+body:not(.portal-home) .module-heading { color: #1d6682; border-color: #bdd7e2; }
+body:not(.portal-home) .enroll-opt.rec { background: #eef7fa; border-color: #92bdcf; }
+body:not(.portal-home) .tier-card.highlight { background: #eef6fd; border-color: #8eb5dc; }
+body:not(.portal-home) .flow-num { color: #175a79; background: #d6ebf2; border-color: #9dbfce; }
+body:not(.portal-home) .spec-tabs .btn.active,
+body:not(.portal-home) .ml-tabs .btn.active { color: #fff; background: #143e66; border-color: #143e66; }
+
+/* Some inner pages place the whole application in one card. Give only its
+ * title a navy band, so lists, filters and form fields remain on white. */
+body:not(.portal-home) .hero > .container > .card:has(> #videoSections),
+body:not(.portal-home) .hero > .container > .card:has(> #hot-articles),
+body:not(.portal-home) .about-hero > .container > .card,
+body:not(.portal-home) .hero > .container > .card:has(> #mlGate) { padding: var(--depth-card-pad); }
+body:not(.portal-home) .card:has(> #videoSections) > h2,
+body:not(.portal-home) .card:has(> #hot-articles) > h2,
+body:not(.portal-home) .about-hero > .container > .card > .about-title {
+  color: #f5f9ff;
+  background: var(--depth-hero);
+  margin-inline: calc(-1 * var(--depth-card-pad));
+  margin-bottom: 20px;
+  padding: 26px var(--depth-card-pad);
+  font-size: clamp(25px,3vw,36px);
+  line-height: 1.5;
+  letter-spacing: -.4px;
+  overflow-wrap: anywhere;
+}
+body:not(.portal-home) .card:has(> #videoSections) > .badge,
+body:not(.portal-home) .card:has(> #hot-articles) > .badge,
+body:not(.portal-home) .about-hero > .container > .card > .badge { color: #1b617e; background: #e2f0f6; border-color: #b4d4e0; }
+body:not(.portal-home) .vcard { background: #f9fcff; border-color: #c9dced; box-shadow: 0 4px 12px #12385d08; }
+body:not(.portal-home) .specialty-header { padding-bottom: 10px; border-bottom: 1px solid #cadcec; }
+body:not(.portal-home) .specialty-header h3 { color: #143e66; }
+body:not(.portal-home) .filter-bar { padding: 12px; border: 1px solid #c8daeb; border-radius: 10px; background: #edf4fc; }
+body:not(.portal-home) #upgradeModule > div > div { background: #f0f6fd !important; border-color: #c5d8ed !important; }
+
+/* Account overview: its existing section-title forms a complete hero row. */
+body:not(.portal-home) .card:has(> #mlGate) > .section-title {
+  color: #f5f9ff;
+  background: var(--depth-hero);
+  border-radius: 16px 16px 0 0;
+  margin: calc(-1 * var(--depth-card-pad)) calc(-1 * var(--depth-card-pad)) 24px;
+  padding: 30px var(--depth-card-pad);
+  align-items: center;
+  flex-wrap: wrap;
+}
+body:not(.portal-home) .card:has(> #mlGate) > .section-title h2 { color: #f5f9ff; font-size: clamp(26px,3vw,34px); }
+body:not(.portal-home) .card:has(> #mlGate) > .section-title p { color: #c1d5e7; }
+body:not(.portal-home) .card:has(> #mlGate) > .section-title .badge { color: #b9e5ed; background: #143e5a; border-color: #4b7b90; }
+body:not(.portal-home) .card:has(> #mlGate) > .section-title .btn:not(.primary):not(.danger) { color: #e5f0ff; background: #ffffff08; border-color: #6a88a6; }
+body:not(.portal-home) .card:has(> #mlGate) > .section-title .btn:not(.primary):not(.danger):hover { color: #fff; background: #ffffff16; border-color: #96c1d5; }
+body:not(.portal-home) .ml-dash-card { background: #f1f7fd; border-color: #c5d8eb; }
+body:not(.portal-home) .ml-quick-btn { background: #fff; color: #254c70; border-color: #c5d8eb; }
+body:not(.portal-home) .ml-quick-btn:hover { background: #e5f2f7; border-color: #9cbdcd; }
+
+/* Authentication remains a focused white form with a navy title bar. */
+body:not(.portal-home) .hero > .container > .card:has(:is(#loginForm,#registerForm,#forgotForm,#resetForm)) {
+  padding: var(--depth-card-pad);
+  background: #fff;
+  border-color: #b9ccdf;
+  box-shadow: 0 16px 44px #102f5114;
+}
+body:not(.portal-home) .hero > .container > .card:has(:is(#loginForm,#registerForm,#forgotForm,#resetForm)) > h2:first-child {
+  color: #f5f9ff;
+  background: var(--depth-hero);
+  border-radius: 16px 16px 0 0;
+  margin: calc(-1 * var(--depth-card-pad)) calc(-1 * var(--depth-card-pad)) 22px;
+  padding: 28px var(--depth-card-pad);
+  font-size: clamp(25px,3vw,32px);
+  line-height: 1.5;
+}
+body:not(.portal-home) :is(#loginForm,#registerForm,#forgotForm,#resetForm) .input { background: #f9fcff; }
+
+/* Checkout and search already separate their title from the working forms. */
+body:not(.portal-home):has(#checkoutGate) main > .hero .card {
+  color: #f5f9ff;
+  background: var(--depth-hero);
+  border-color: #315b7c;
+  padding: 30px var(--depth-card-pad);
+}
+body:not(.portal-home):has(#checkoutGate) main > .hero .card h2 { color: #f5f9ff; font-size: 30px; }
+body:not(.portal-home):has(#checkoutGate) main > .hero .card p { color: #c1d5e7; }
+body:not(.portal-home):has(#siteSearchInput) main > .hero {
+  color: #f5f9ff;
+  background: var(--depth-hero);
+  padding: 32px var(--depth-card-pad);
+  border-radius: 16px;
+  margin-top: 30px;
+}
+body:not(.portal-home):has(#siteSearchInput) main > .hero h1 { color: #f5f9ff; }
+body:not(.portal-home):has(#siteSearchInput) main > .hero p { color: #c1d5e7; }
+body:not(.portal-home):has(#siteSearchInput) main > .hero .badge { color: #b9e5ed; background: #143e5a; border-color: #4b7b90; }
+
+@media (max-width: 640px) {
+  body:not(.portal-home) :is(.hero.ac-hero,.hero.hero-platform),
+  body:not(.portal-home):has(.curriculum-list) .hero { padding-block: 34px; }
+  body:not(.portal-home) .hero.ac-hero h1 { font-size: clamp(25px,6.8vw,34px); }
+  body:not(.portal-home) .card:has(> #videoSections) > h2,
+  body:not(.portal-home) .card:has(> #hot-articles) > h2,
+  body:not(.portal-home) .about-hero > .container > .card > .about-title { padding-block: 22px; }
+  body:not(.portal-home) .tier-grid { grid-template-columns: minmax(0,1fr); }
+  body:not(.portal-home) #upgradeModule > div { grid-template-columns: minmax(0,1fr) !important; }
+  body:not(.portal-home) .filter-bar .sep { display: none; }
+  body:not(.portal-home) .ml-quick-grid { grid-template-columns: minmax(0,1fr); }
+  body:not(.portal-home) .card:has(> #mlGate) > .section-title { padding-block: 25px; gap: 16px; }
+  body:not(.portal-home) .card:has(> #mlGate) > .section-title > div { min-width: 0; }
 }

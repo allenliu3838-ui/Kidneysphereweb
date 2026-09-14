@@ -43,6 +43,12 @@ SITE_THEME_HTML = (
     'watch.html',
 )
 SITE_THEME_FILES = ('site-light.css', 'site-page-themes.css', 'styles.css') + SITE_THEME_HTML
+BLUE_DEPTH_FILES = (
+    'assets/portal/critical-v1.webp', 'assets/portal/pathology-v1.webp',
+    'assets/portal/transplant-v1.webp', 'site-light.css', 'site-page-themes.css',
+    'portal-home.css', 'portal-home.js', 'home.js', 'app.js', 'portal-motion.js',
+    'styles.css',
+) + SITE_THEME_HTML + ('index.html',)
 GUARD_PATHS = tuple(ROOT / p for p in ('login.html', 'register.html', 'watch.html',
     'my-learning.html', 'videos.html', 'academy.html', 'supabaseClient.js', 'styles.css')) + (
     Path('/var/www/kidneysphere-doctor/dist/index.html'),
@@ -110,20 +116,22 @@ def read_state(path):
 
 def release_files(manifest):
     profile = manifest.get('release_profile', 'homepage-v1')
-    require(profile in ('homepage-v1', 'site-theme-v1'), 'UNKNOWN_RELEASE_PROFILE')
-    return SITE_THEME_FILES if profile == 'site-theme-v1' else FILES
+    profiles = {'homepage-v1': FILES, 'site-theme-v1': SITE_THEME_FILES,
+                'blue-depth-v1': BLUE_DEPTH_FILES}
+    require(profile in profiles, 'UNKNOWN_RELEASE_PROFILE')
+    return profiles[profile]
 
 
 def guard_states(manifest=None):
     result = {}
     paths = list(GUARD_PATHS)
-    if manifest is not None and manifest.get('release_profile') == 'site-theme-v1':
+    if manifest is not None and manifest.get('release_profile') in ('site-theme-v1', 'blue-depth-v1'):
         payload_paths = {ROOT / name for name in release_files(manifest)}
-        paths = [path for path in paths if path not in payload_paths]
         paths.extend(ROOT / name for name in (
             'index.html', 'home.js', 'portal-home.js', 'portal-home.css', 'app.js',
             'assets/config.js', 'assets/videos.js', 'assets/lib/supabase.min.js',
         ))
+        paths = [path for path in paths if path not in payload_paths]
     for path in dict.fromkeys(paths):
         # Configs in sites-enabled may legitimately be links; guards are read-only.
         target = path.resolve(strict=False)
@@ -156,6 +164,9 @@ def validate_manifest(manifest):
         if manifest.get('release_profile') == 'site-theme-v1':
             require(entry['path'] in ('site-light.css', 'site-page-themes.css') or
                     not entry['allow_missing'], 'EXISTING_THEME_RESOURCE_MUST_EXIST')
+        if manifest.get('release_profile') == 'blue-depth-v1':
+            require(entry['path'] in ('site-light.css', 'site-page-themes.css', 'portal-motion.js') or
+                    not entry['allow_missing'], 'EXISTING_DEPTH_RESOURCE_MUST_EXIST')
     require(isinstance(manifest.get('required_files'), list), 'INVALID_REQUIRED_FILES')
     for name in manifest['required_files']:
         relative_path(name)

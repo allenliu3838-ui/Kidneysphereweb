@@ -13,10 +13,10 @@
   <meta property="og:image" content="https://kidneysphere.com/assets/logo.png" />
   <meta property="og:url" content="https://kidneysphere.com/" />
   <meta name="twitter:card" content="summary" />
-  <meta name="theme-color" content="#f5f9ff" />
+  <meta name="theme-color" content="#08213d" />
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=20260309_001" />
-  <link rel="stylesheet" href="portal-home.css?v=20260914_001" />
+  <link rel="stylesheet" href="styles.css?v=20260914_depth1" />
+  <link rel="stylesheet" href="portal-home.css?v=20260914_depth1" />
 </head>
 <body class="portal-home" data-portal-home>
   <a class="portal-skip" href="#main-content">跳转到主要内容</a>
@@ -27,11 +27,35 @@
         <div class="portal-intro">
           <p class="portal-eyebrow">肾脏专科 · 持续学习</p>
           <h1 id="portal-title">视频学习与系统培训<br /><span>让专业进阶更清晰</span></h1>
-          <p class="portal-lead">按专科找课程，按需求选培训。</p>
+          <p class="portal-lead">从一个临床问题，到一套系统知识。<br />在肾域，找到下一节值得学的课。</p>
           <div class="portal-actions">
             <a class="btn primary" href="videos.html"><span class="portal-small-play" aria-hidden="true">▶</span> 浏览视频课程</a>
             <a class="btn" href="academy.html">查看培训报名 <span aria-hidden="true">→</span></a>
           </div>
+          <p class="portal-hero-topics">肾小球病<span>重症肾内科</span><span>肾移植</span><span>肾脏病理</span></p>
+        </div>
+        <div class="portal-feature-area">
+          <a class="portal-feature portal-cover--path" data-portal-feature href="training-patho.html" aria-label="了解肾脏病理培训课程">
+            <span class="portal-feature-label">专科学习 · 课程展台</span>
+            <div class="portal-feature-text"><span class="portal-feature-brand" data-feature-english>RENAL PATHOLOGY</span>
+              <h2 data-feature-title>肾脏病理</h2><p data-feature-description>从形态到临床，让理解更进一步</p>
+            </div>
+            <span class="portal-feature-link" aria-hidden="true">↗</span>
+          </a>
+          <div class="portal-feature-tabs" role="group" aria-label="选择专科课程展台" data-feature-tabs hidden>
+            <button type="button" data-feature-topic="path" aria-pressed="true">肾脏病理</button>
+            <button type="button" data-feature-topic="icu" aria-pressed="false">重症肾内科</button>
+            <button type="button" data-feature-topic="tx" aria-pressed="false">肾移植</button>
+          </div>
+          <button type="button" class="portal-motion-toggle" data-portal-motion hidden aria-pressed="false">暂停背景动效</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="portal-quick-strip" aria-label="发现课程">
+      <div class="container portal-quick-grid">
+        <div class="portal-quick-intro"><h2>今天，想学什么？</h2><p>按主题发现课程，按需求选择培训</p></div>
+        <div class="portal-quick-search">
           <form class="portal-search" data-portal-search role="search" action="#videos" method="get">
             <label class="portal-sr-only" for="portal-search-input">搜索视频课程、主题或讲者</label>
             <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
@@ -40,18 +64,12 @@
           </form>
           <p class="portal-search-note" id="portal-search-note">已报名或购买？<a href="my-learning.html">进入我的学习 <span aria-hidden="true">→</span></a></p>
         </div>
-        <a class="portal-feature portal-cover--path" href="training-patho.html" aria-label="了解肾脏病理培训课程">
-          <span class="portal-feature-label">专科课程</span>
-          <h2>肾脏病理</h2><p>从病理发现到临床理解</p>
-          <span class="portal-feature-link">了解课程 <span aria-hidden="true">→</span></span>
-          <span class="portal-feature-brand" aria-hidden="true">KIDNEYSPHERE<br />MEDICAL EDUCATION</span>
-        </a>
       </div>
     </section>
 
     <section class="portal-section" id="training" aria-labelledby="training-title">
       <div class="container">
-        <div class="portal-section-head"><div><h2 id="training-title">专科培训</h2><p>选择适合自己的系统学习方向</p></div><a class="portal-text-link" href="academy.html#training-projects">查看全部培训 <span aria-hidden="true">→</span></a></div>
+        <div class="portal-section-head"><div><p class="portal-kicker">LEARNING PATHWAYS</p><h2 id="training-title">选一个方向，系统地学下去</h2><p>视频学习与专科培训，各有清晰的入口。</p></div><a class="portal-text-link" href="academy.html#training-projects">查看全部培训 <span aria-hidden="true">→</span></a></div>
         <div class="portal-training-grid">
           <article class="portal-training-card">
             <a class="portal-training-cover portal-cover--path" href="training-patho.html" tabindex="-1" aria-hidden="true"><span>肾脏病理</span><small>RENAL PATHOLOGY</small></a>
@@ -72,7 +90,7 @@
 
     <section class="portal-section portal-tinted" id="videos" aria-labelledby="videos-title">
       <div class="container">
-        <div class="portal-section-head"><div><h2 id="videos-title">精选视频</h2><p>从一个问题开始，找到下一节值得学的课</p></div><a class="portal-text-link" href="videos.html">进入视频库 <span aria-hidden="true">→</span></a></div>
+        <div class="portal-section-head"><div><p class="portal-kicker">CURATED FOR YOUR PRACTICE</p><h2 id="videos-title">从这里，开始下一次学习</h2><p>围绕临床主题，发现视频课程。</p></div><a class="portal-text-link" href="videos.html">进入视频库 <span aria-hidden="true">→</span></a></div>
         <div class="portal-video-filters" role="group" aria-label="按专科筛选视频">
           <button type="button" data-portal-video-filter="all" aria-pressed="true" class="active">全部</button>
           <button type="button" data-portal-video-filter="glom" aria-pressed="false">肾小球病</button>
@@ -90,7 +108,7 @@
 
     <section class="portal-section home-showcase" aria-labelledby="network-title" data-home-showcase>
       <div class="container">
-        <div class="home-showcase-head"><div><h2 id="network-title">证据与合作生态</h2><p>核心专家 · 旗舰中心 · 共建单位 · 合作单位</p></div><a class="portal-text-link" href="about.html">了解更多 <span aria-hidden="true">→</span></a></div>
+        <div class="home-showcase-head"><div><p class="portal-kicker">PEOPLE &amp; COLLABORATION</p><h2 id="network-title">证据与合作生态</h2><p>核心专家 · 旗舰中心 · 共建单位 · 合作单位</p></div><a class="portal-text-link" href="about.html">了解更多 <span aria-hidden="true">→</span></a></div>
         <div class="home-showcase-stats" data-home-showcase-stats aria-label="目录条目数量"></div>
         <div class="home-tabs" role="group" aria-label="选择展示类别">
           <button type="button" class="tab active" data-home-showcase-tab="experts" aria-pressed="true">核心专家</button>
@@ -108,7 +126,7 @@
 
     <section class="portal-help" id="help" aria-labelledby="help-title">
       <div class="container">
-        <div class="portal-help-head"><div><h2 id="help-title">报名与学习帮助</h2><p>课程权限、回放有效期与报名问题</p></div><div class="portal-help-actions"><a class="btn" href="#learning-faq">常见问题</a><a class="btn" href="mailto:china@kidneysphere.com">联系我们</a></div></div>
+        <div class="portal-help-head"><div><p class="portal-kicker">WE’RE HERE TO HELP</p><h2 id="help-title">学习的下一步，我们陪你一起。</h2><p>课程选择、报名方式、观看权限，找到清晰的答案。</p></div><div class="portal-help-actions"><a class="btn" href="#learning-faq">常见问题</a><a class="btn" href="mailto:china@kidneysphere.com">联系我们</a></div></div>
         <div class="portal-faq-grid" id="learning-faq">
           <details><summary>报名或购买后，在哪里学习？</summary><p>使用购买时的账号登录，进入<a href="my-learning.html">我的学习</a>查看已购权益与已报名项目，再进入对应课程。请勿因更换入口而重复购买。</p></details>
           <details><summary>会员与培训课程有什么区别？</summary><p>不同购买方式包含的内容不同，会员不代表自动解锁全部培训。购买前请在<a href="academy.html#pricing">培训与定价</a>中确认包含内容、直播安排及观看期限。</p></details>
@@ -132,6 +150,7 @@
     <a href="my-learning.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg><span>我的学习</span></a>
   </nav>
   <noscript><p class="container portal-noscript">视频搜索与专家切换需要 JavaScript。您仍可直接打开<a href="videos.html">视频库</a>、<a href="academy.html">培训报名</a>和<a href="my-learning.html">我的学习</a>。</p></noscript>
+  <script type="module" src="portal-motion.js?v=20260914_depth1"></script>
   <script type="module" src="app.js?v=20260913_003"></script>
   <script type="module" src="home.js?v=20260914_001"></script>
   <script type="module" src="portal-home.js?v=20260913_003"></script>

@@ -1,35 +1,41 @@
-/* KidneySphere shared blue and white theme.
+/* KidneySphere shared blue-depth theme.
  * Imported before the legacy sheet; the explicit body scope wins over its
  * component selectors without changing their layout, visibility or behavior.
  * The homepage has its own theme. Media surfaces and user-authored colors
  * keep their existing presentation; no universal color/background reset.
  */
 html:root:not(.portal-document) {
-  --bg: #f5f8fd;
+  --bg: #eaf2fb;
   --panel: #fff;
-  --panel2: #edf5ff;
-  --text: #0b2149;
-  --muted: #586b89;
-  --text-muted: #586b89;
-  --border: #d9e4f2;
+  --panel2: #dbe9f7;
+  --text: #102c4c;
+  --muted: #536c87;
+  --text-muted: #536c87;
+  --border: #cadcec;
   --brand: #0964eb;
   --brand2: #0755cc;
   --brand-rgb: 9,100,235;
   --brand2-rgb: 7,85,204;
   --danger: #b4233b;
   --ok: #137549;
-  --shadow: 0 12px 32px rgba(28,64,110,.08);
-  --ks-shadow: 0 12px 32px rgba(28,64,110,.08);
+  --shadow: 0 8px 24px rgba(21,59,97,.08);
+  --ks-shadow: 0 8px 24px rgba(21,59,97,.08);
 }
 
 body:not(.portal-home) {
   --accent: #0964eb;
   --card-bg: #fff;
   --input-bg: #fff;
-  --text-muted: #586b89;
+  --text-muted: #536c87;
+  --depth-navy: #08213d;
+  --depth-teal: #15576a;
+  --depth-aqua: #85dbe2;
+  --depth-hero: linear-gradient(115deg,#102c4c,#1b5178);
+  --depth-hero-teal: linear-gradient(110deg,#12334f,#15576a);
+  --depth-card-pad: 28px;
   color-scheme: light;
   color: var(--text);
-  background: radial-gradient(ellipse at 90% 0,#e5f1ff 0,transparent 44%),#f5f8fd;
+  background: radial-gradient(ellipse at 90% 0,#d4e8f7 0,transparent 44%),#eaf2fb;
   background-attachment: scroll;
 }
 body:not(.portal-home) ::selection { color: #0b2149; background: #cce2ff; }
@@ -43,8 +49,8 @@ body:not(.portal-home) a:hover { opacity: 1; }
 
 /* Navigation and account surfaces retain the current responsive breakpoints. */
 body:not(.portal-home) .nav {
-  background: rgba(255,255,255,.98);
-  border-bottom-color: var(--border);
+  background: rgba(244,248,253,.98);
+  border-bottom-color: #d5e1ee;
   box-shadow: 0 2px 12px #183f7006;
 }
 body:not(.portal-home) .brand { color: #0b2149; }
@@ -131,7 +137,7 @@ body:not(.portal-home) .drawer-links a {
 body:not(.portal-home) .drawer-links a.active { color: #075bd5; background: #eaf3ff; border-color: #a5c7f6; }
 
 /* Shared cards and content lists. */
-body:not(.portal-home) .card { background: #fff; border-color: #d9e4f2; box-shadow: var(--shadow); }
+body:not(.portal-home) .card { background: #fff; border-color: #cadcec; box-shadow: var(--shadow); }
 body:not(.portal-home) .card.soft { background: #fff; }
 body:not(.portal-home) .card-link:hover { background: #f7fbff; border-color: #a4c4ed; }
 body:not(.portal-home) :is(.kpi .item,.mini li,.list li,.home-item,.showcase-item,.expert-item,.list-item,.thread-item,.msg,.comment,.reply,.attach-item,.file-chip,.pdf-card) {
@@ -145,11 +151,12 @@ body:not(.portal-home) :is(.admin-details[open],.upload-drop:hover) { background
 body:not(.portal-home) .uploader.dragover,
 body:not(.portal-home) .upload-drop.drop-hover { background: #e7f2ff; border-color: #0964eb; }
 body:not(.portal-home) .section-divider { border-color: #d9e4f2; }
+body:not(.portal-home) .section-alt { background: #dbe9f7; border-color: #cbddec; }
 body:not(.portal-home) :is(.expert-desc,.comment-body,.msg-body,.msg-snippet,.thread-snippet,.pdf-cap,.sponsor-name,.mention-cta) { color: #304d6d; }
 body:not(.portal-home) :is(.attach-hint,.attach-item .meta,.pdf-card-hint,.pill .who span) { color: #586b89; }
 body:not(.portal-home) .hero-link { color: #075bcc; }
 body:not(.portal-home) .hero-link:hover { color: #054fae; }
-body:not(.portal-home) .final-cta-card { color: #0b2149; background: linear-gradient(120deg,#edf6ff,#fff); border-color: #bfd5f3; }
+body:not(.portal-home) .final-cta-card { color: #103250; background: #cfe6ed; border-color: #b8d4df; }
 body:not(.portal-home) :is(.home-showcase-card,.home-showcase-card.expanded,.sponsor-card) { background: #fff; border-color: #d9e4f2; }
 body:not(.portal-home) .home-showcase-card:hover { background: #f7fbff; }
 body:not(.portal-home) .home-showcase-card .title { color: #0b2149; }
@@ -206,7 +213,7 @@ body:not(.portal-home) :is(select.input,.select-light-options,.ks-editor-select)
 body:not(.portal-home) label { color: #304d6d; }
 body:not(.portal-home) :is(input,select,textarea)[aria-invalid="true"] { border-color: #b4233b; }
 body:not(.portal-home) :is(.input,.form input,.form textarea,.qb-subject-search)[aria-invalid="true"]:focus { border-color: #b4233b; }
-body:not(.portal-home) .note { color: #31557e; background: #edf5ff; border-color: #b8d1f2; }
+body:not(.portal-home) .note { color: #31557e; background: #e8f3f8; border-color: #bfd9e4; }
 body:not(.portal-home) .toast { color: #173454; background: #fff; border-color: #c7d9ed; box-shadow: 0 12px 36px #17345b29; }
 body:not(.portal-home) .toast.ok { color: #126640; background: #edf9f2; border-color: #99d0b4; }
 body:not(.portal-home) .toast.err { color: #a6233c; background: #fff2f4; border-color: #e5a8b4; }
@@ -276,7 +283,7 @@ body:not(.portal-home) .qb-bookmarked:hover { color: #85570b !important; border-
 
 /* Footer and optional cross-product navigation. */
 body:not(.portal-home) .footer,
-body:not(.portal-home) .footer[data-custom-footer] { color: #586b89; background: #fff; border-color: #d9e4f2; }
+body:not(.portal-home) .footer[data-custom-footer] { color: #426079; background: #e2edf6; border-color: #c5d8e8; }
 body:not(.portal-home) .footer a { color: #426080; }
 body:not(.portal-home) .footer a:hover { color: #075bcc; }
 body:not(.portal-home) :is(.footer-heading,.footer-col a) { color: #426080; }
@@ -303,6 +310,7 @@ body:not(.portal-home) :is(.prism-player,.video-js,.video-embed,.moment-video,.a
 body:not(.portal-home) :is(.video-embed,.moment-video) { background: #071a33; }
 
 @media (max-width: 640px) {
+  body:not(.portal-home) { --depth-card-pad: 20px; }
   body:not(.portal-home) :is(.input,.form input,.form textarea,.nav-search-input,.select-light-options,.ks-editor-select,.qb-subject-search) { font-size: 16px; }
   body:not(.portal-home) :is(.btn,.pill-btn,.ks-editor-btn,.ks-editor-select,.qb-subject-header,.qb-radio,.nav-member-badge) { min-height: 44px; }
   body:not(.portal-home) :is(.qb-dot,.ks-voice-btn) { min-width: 44px; min-height: 44px; }
