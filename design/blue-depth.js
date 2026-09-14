@@ -47,8 +47,9 @@
     document.querySelectorAll('[data-screen]').forEach(el=>el.hidden=el.dataset.screen!==next);
     document.querySelectorAll('.ks-nav [data-page]').forEach(btn=>{if(btn.dataset.page===next)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current');});
     stage.scrollIntoView({behavior:'instant',block:'start'});
+    const heading=document.querySelector(`[data-screen="${next}"] h1`);if(heading){heading.setAttribute('tabindex','-1');heading.focus({preventScroll:true});}
   }
-  function openDialog(html) {expertPaused=true;syncMotion();dialogBody.innerHTML=html;dialog.showModal();}
+  function openDialog(html) {expertPaused=true;syncMotion();dialogBody.innerHTML=html;const heading=dialogBody.querySelector('h2');if(heading)heading.id='ks-dialog-title';dialog.showModal();}
   document.addEventListener('click', event=>{
     const target=event.target.closest('button');if(!target)return;
     if(target.dataset.page)navigate(target.dataset.page);
