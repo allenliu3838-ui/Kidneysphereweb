@@ -2,7 +2,7 @@
  * admin-commerce-audit.js — 审计日志模块
  */
 import { supabase, toast, formatBeijingDateTime } from './supabaseClient.js?v=20260401_fix';
-import { esc, statusDot, showModal } from './admin-commerce.js?v=20260325_001';
+import { esc, statusDot, showModal } from './admin-commerce.js?v=20260914_payment1';
 
 async function loadAuditLogs() {
   const wrap = document.getElementById('auditTableWrap');

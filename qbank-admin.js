@@ -5,7 +5,7 @@
  */
 
 import { ensureSupabase, supabase, getCurrentUser, getUserProfile, isAdminRole, normalizeRole, toast } from './supabaseClient.js';
-import { parseQuestions } from './qbank-parser.js';
+import { parseQuestions } from './qbank-parser.js?v=20260917_qbank_integrity';
 
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));

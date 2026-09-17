@@ -26,6 +26,9 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
 const ALIYUN_VOD_ACCESS_KEY_ID = process.env.ALIYUN_VOD_ACCESS_KEY_ID || '';
 const ALIYUN_VOD_ACCESS_KEY_SECRET = process.env.ALIYUN_VOD_ACCESS_KEY_SECRET || '';
 const ALIYUN_VOD_REGION = process.env.ALIYUN_VOD_REGION || 'cn-shanghai';
+// Optional audio-only transcoding template. Without one VOD uses the account's
+// default template; a successful upload does not guarantee a playable output.
+const ALIYUN_VOD_AUDIO_TEMPLATE_GROUP_ID = process.env.ALIYUN_VOD_AUDIO_TEMPLATE_GROUP_ID || '';
 
 const json = (statusCode, payload) => ({
   statusCode,
@@ -230,12 +233,19 @@ async function issueUploadCreds(event) {
     if (!title || !fileName) {
       return json(400, { error: 'missing_fields', message: '需要 title 和 fileName' });
     }
-    const okExt = /\.(mp4|mov|m4v|mkv|avi|flv|wmv|webm|ts)$/i.test(fileName);
-    if (!okExt) {
-      return json(400, { error: 'unsupported_file_type', message: '只支持常见视频格式 (mp4/mov/mkv/avi 等)' });
+    // VOD's documented audio input formats, deliberately excluding OGG which
+    // the upload overview lists under video containers rather than audio.
+    const isAudio = /\.(mp3|m4a|wav|aac|flac|wma|ape)$/i.test(fileName);
+    const isVideo = /\.(mp4|mov|m4v|mkv|avi|flv|wmv|webm|ts)$/i.test(fileName);
+    if (!isAudio && !isVideo) {
+      return json(400, { error: 'unsupported_file_type', message: '支持常见视频格式，以及 MP3、M4A、WAV、AAC、FLAC、WMA、APE 音频。' });
     }
 
-    const data = await aliyunCall('CreateUploadVideo', { Title: title, FileName: fileName });
+    const uploadParams = { Title: title, FileName: fileName };
+    if (isAudio && ALIYUN_VOD_AUDIO_TEMPLATE_GROUP_ID) {
+      uploadParams.TemplateGroupId = ALIYUN_VOD_AUDIO_TEMPLATE_GROUP_ID;
+    }
+    const data = await aliyunCall('CreateUploadVideo', uploadParams);
     if (data.Code) {
       console.log('[video-upload-auth] Aliyun error:', data.Code, data.Message);
       return json(502, { error: 'aliyun_create_failed', code: data.Code, message: data.Message || '' });
@@ -250,6 +260,7 @@ async function issueUploadCreds(event) {
       uploadAuth: data.UploadAuth,
       uploadAddress: data.UploadAddress,
       region: ALIYUN_VOD_REGION,
+      mediaType: isAudio ? 'audio' : 'video',
     });
   } catch (e) {
     console.error('[video-upload-auth] error:', e);

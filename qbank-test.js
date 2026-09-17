@@ -9,6 +9,7 @@
  */
 
 import { ensureSupabase, supabase, getCurrentUser, toast } from './supabaseClient.js';
+import { readAllQbankRows, latestQbankAnswers, isMultipleChoice, qbankQuestionProblem, scoreQbankAnswer } from './qbank-data.js?v=20260917_qbank_integrity';
 
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
@@ -26,6 +27,7 @@ let _user = null;
 let _questions = [];    // loaded question objects
 let _answers = {};      // questionId → { chosen, correct, submitted }
 let _bookmarks = new Set();
+let _excludedQuestions = 0;
 let _current = 0;       // current index
 
 async function init() {
@@ -36,17 +38,18 @@ async function init() {
   const params = new URLSearchParams(location.search);
   const bank = params.get('bank') || '';
   const subjects = params.get('subjects') ? params.get('subjects').split(',').map(s => s.trim()).filter(Boolean) : [];
-  const count = Math.min(200, Math.max(1, parseInt(params.get('count') || '20', 10)));
+  const requestedCount = Number.parseInt(params.get('count') || '20', 10);
+  const count = Number.isFinite(requestedCount) ? Math.min(200, Math.max(1, requestedCount)) : 20;
   const filter = params.get('filter') || 'all';
 
-  await loadQuestions(bank, subjects, count, filter);
   await loadBookmarks();
+  await loadQuestions(bank, subjects, count, filter);
 
   if (_questions.length === 0) {
     document.getElementById('questionCard').innerHTML = `
       <div style="text-align:center;padding:60px 20px">
         <h3>没有找到符合条件的题目</h3>
-        <p class="muted">请返回题库重新选择筛选条件。</p>
+        <p class="muted">${_excludedQuestions ? `有 ${_excludedQuestions} 道题的答案标记或题目结构异常，已跳过并等待核对。` : '请返回题库重新选择筛选条件。'}</p>
         <a href="qbank.html" class="btn primary" style="margin-top:16px">返回题库</a>
       </div>`;
     return;
@@ -58,75 +61,34 @@ async function init() {
 }
 
 async function loadQuestions(bank, subjects, count, filter) {
-  let query = supabase
-    .from('qbank_questions')
-    .select('*')
-    .eq('status', 'published');
+  const allQuestions = await readAllQbankRows(() => {
+    let query = supabase.from('qbank_questions').select('*').eq('status', 'published');
+    if (bank) query = query.eq('bank', bank);
+    if (subjects.length > 0) query = query.in('subject', subjects);
+    return query.order('id');
+  });
+  _questions = allQuestions.filter(question => !qbankQuestionProblem(question));
+  _excludedQuestions = allQuestions.length - _questions.length;
 
-  if (bank) {
-    query = query.eq('bank', bank);
+  if (filter === 'bookmarked') {
+    _questions = _questions.filter(question => _bookmarks.has(question.id));
+  } else if (filter === 'unused' || filter === 'incorrect') {
+    const answers = await readAllQbankRows(() => supabase.from('qbank_user_answers')
+      .select('id, question_id, is_correct, created_at').eq('user_id', _user.id)
+      .order('created_at', { ascending: false }).order('id', { ascending: false }));
+    const latest = latestQbankAnswers(answers);
+    _questions = _questions.filter(question => filter === 'unused'
+      ? !latest.has(question.id)
+      : latest.get(question.id)?.is_correct === false);
   }
-
-  if (subjects.length > 0) {
-    query = query.in('subject', subjects);
-  }
-
-  // For filtered modes, we need user's answer history
-  if (filter === 'unused' || filter === 'incorrect' || filter === 'bookmarked') {
-    // Fetch all question IDs first, then filter
-    const { data: allQ } = await query.order('question_number');
-    if (!allQ || allQ.length === 0) { _questions = []; return; }
-
-    if (filter === 'bookmarked') {
-      const { data: bm } = await supabase
-        .from('qbank_bookmarks')
-        .select('question_id')
-        .eq('user_id', _user.id);
-      const bmSet = new Set((bm || []).map(b => b.question_id));
-      _questions = allQ.filter(q => bmSet.has(q.id));
-    } else {
-      const { data: ans } = await supabase
-        .from('qbank_user_answers')
-        .select('question_id, is_correct')
-        .eq('user_id', _user.id);
-
-      if (filter === 'unused') {
-        const answered = new Set((ans || []).map(a => a.question_id));
-        _questions = allQ.filter(q => !answered.has(q.id));
-      } else if (filter === 'incorrect') {
-        // Questions where the most recent answer was incorrect
-        const incorrectIds = new Set();
-        const latest = {};
-        for (const a of (ans || [])) {
-          if (!latest[a.question_id] || a.created_at > latest[a.question_id].created_at) {
-            latest[a.question_id] = a;
-          }
-        }
-        for (const [qid, a] of Object.entries(latest)) {
-          if (!a.is_correct) incorrectIds.add(qid);
-        }
-        _questions = allQ.filter(q => incorrectIds.has(q.id));
-      }
-    }
-
-    // Shuffle and limit
-    shuffle(_questions);
-    _questions = _questions.slice(0, count);
-  } else {
-    // "all" — random selection
-    const { data } = await query.order('question_number');
-    _questions = data || [];
-    shuffle(_questions);
-    _questions = _questions.slice(0, count);
-  }
+  shuffle(_questions);
+  _questions = _questions.slice(0, count);
 }
 
 async function loadBookmarks() {
-  const { data } = await supabase
-    .from('qbank_bookmarks')
-    .select('question_id')
-    .eq('user_id', _user.id);
-  _bookmarks = new Set((data || []).map(b => b.question_id));
+  const data = await readAllQbankRows(() => supabase.from('qbank_bookmarks')
+    .select('question_id').eq('user_id', _user.id).order('id'));
+  _bookmarks = new Set(data.map(bookmark => bookmark.question_id));
 }
 
 function shuffle(arr) {
@@ -156,7 +118,7 @@ function renderQuestion() {
   bmBtn.className = isBookmarked ? 'btn tiny qb-bookmarked' : 'btn tiny';
 
   // Build question HTML
-  let html = '';
+  let html = _excludedQuestions ? `<div class="note small" style="margin-bottom:12px">有 ${_excludedQuestions} 道题的答案标记或题目结构异常，已跳过并等待核对。</div>` : '';
 
   // Question number + subject badge
   html += `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px">
@@ -174,6 +136,10 @@ function renderQuestion() {
     html += `<div class="qb-question-text">${renderText(q.question_text)}</div>`;
   }
 
+  if (isMultipleChoice(q)) {
+    html += '<div class="small muted" style="margin-bottom:10px">多选题：请选择所有正确选项；漏选或多选均计为错误。</div>';
+  }
+
   // Choices
   html += `<div class="qb-choices">`;
   for (const c of (q.choices || [])) {
@@ -181,23 +147,23 @@ function renderQuestion() {
     let icon = '';
 
     if (submitted) {
-      if (c.correct) {
+      if (c.correct === true) {
         cls += ' qb-correct';
         icon = '✓';
-      } else if (ans.chosen === c.label) {
+      } else if (ans.chosen.includes(c.label)) {
         cls += ' qb-incorrect';
         icon = '✗';
       } else {
         cls += ' qb-dimmed';
       }
     } else {
-      if (ans?.chosen === c.label) {
+      if (ans?.chosen?.includes(c.label)) {
         cls += ' qb-selected';
       }
     }
 
-    html += `<div class="${cls}" data-label="${c.label}" ${submitted ? '' : 'role="button" tabindex="0"'}>
-      <span class="qb-choice-icon">${icon || c.label}</span>
+    html += `<div class="${cls}" data-label="${esc(c.label)}" ${submitted ? '' : 'role="button" tabindex="0"'}>
+      <span class="qb-choice-icon">${icon || esc(c.label)}</span>
       <span class="qb-choice-text">${esc(c.text)}</span>
     </div>`;
   }
@@ -206,7 +172,7 @@ function renderQuestion() {
   // Submit button (only if not yet submitted)
   if (!submitted) {
     html += `<div style="text-align:center;margin-top:20px">
-      <button class="btn primary" id="btnSubmit" ${ans?.chosen ? '' : 'disabled'}>提交答案</button>
+      <button class="btn primary" id="btnSubmit" ${ans?.chosen?.length && !ans.pending ? '' : 'disabled'}>${ans?.pending ? '保存中…' : '提交答案'}</button>
     </div>`;
   }
 
@@ -232,7 +198,7 @@ function renderQuestion() {
         const choice = (q.choices || []).find(c => c.label === ce.label);
         const isRight = choice?.correct;
         html += `<div class="qb-ce-item ${isRight ? 'qb-ce-correct' : 'qb-ce-wrong'}">
-          <span class="qb-ce-label">${ce.label}.</span>
+          <span class="qb-ce-label">${esc(ce.label)}.</span>
           <span>${esc(ce.text)}</span>
         </div>`;
       }
@@ -293,10 +259,14 @@ function bindEvents() {
 
     const q = _questions[_current];
     const ans = _answers[q.id];
-    if (ans?.submitted) return; // already submitted
+    if (ans?.submitted || ans?.pending) return;
 
     const label = choiceEl.dataset.label;
-    _answers[q.id] = { ...(ans || {}), chosen: label };
+    const selected = new Set(ans?.chosen || []);
+    if (!isMultipleChoice(q)) { selected.clear(); selected.add(label); }
+    else if (selected.has(label)) selected.delete(label);
+    else selected.add(label);
+    _answers[q.id] = { ...(ans || {}), chosen: [...selected].sort() };
     renderQuestion();
   });
 
@@ -305,22 +275,24 @@ function bindEvents() {
     if (!e.target.closest('#btnSubmit')) return;
     const q = _questions[_current];
     const ans = _answers[q.id];
-    if (!ans?.chosen || ans.submitted) return;
+    if (!ans?.chosen?.length || ans.submitted || ans.pending) return;
 
-    const correct = (q.choices || []).find(c => c.correct);
-    const isCorrect = correct?.label === ans.chosen;
-
-    _answers[q.id] = { ...ans, submitted: true, correct: isCorrect };
-
-    // Save to database
+    const isCorrect = scoreQbankAnswer(q, ans.chosen);
+    _answers[q.id] = { ...ans, pending: true };
+    renderQuestion();
     try {
-      await supabase.from('qbank_user_answers').insert({
+      const { error } = await supabase.from('qbank_user_answers').insert({
         user_id: _user.id,
         question_id: q.id,
-        chosen_label: ans.chosen,
+        chosen_label: [...ans.chosen].sort().join(','),
         is_correct: isCorrect,
       });
-    } catch (_e) { /* ignore */ }
+      if (error) throw error;
+      _answers[q.id] = { ...ans, submitted: true, correct: isCorrect };
+    } catch (_error) {
+      _answers[q.id] = { ...ans, pending: false };
+      toast('答题记录保存失败', '请重试，当前选择已保留', 'err');
+    }
 
     renderQuestion();
   });
@@ -344,14 +316,20 @@ function bindEvents() {
   // Bookmark
   document.getElementById('btnBookmark').addEventListener('click', async () => {
     const q = _questions[_current];
-    if (_bookmarks.has(q.id)) {
-      await supabase.from('qbank_bookmarks').delete().eq('user_id', _user.id).eq('question_id', q.id);
-      _bookmarks.delete(q.id);
-      toast('取消收藏', q.qid || '');
-    } else {
-      await supabase.from('qbank_bookmarks').insert({ user_id: _user.id, question_id: q.id });
-      _bookmarks.add(q.id);
-      toast('已收藏', q.qid || '');
+    try {
+      if (_bookmarks.has(q.id)) {
+        const { error } = await supabase.from('qbank_bookmarks').delete().eq('user_id', _user.id).eq('question_id', q.id);
+        if (error) throw error;
+        _bookmarks.delete(q.id);
+        toast('取消收藏', q.qid || '');
+      } else {
+        const { error } = await supabase.from('qbank_bookmarks').insert({ user_id: _user.id, question_id: q.id });
+        if (error) throw error;
+        _bookmarks.add(q.id);
+        toast('已收藏', q.qid || '');
+      }
+    } catch (_error) {
+      toast('收藏操作失败', '请重试', 'err');
     }
     renderQuestion();
   });
@@ -394,4 +372,6 @@ function bindEvents() {
   });
 }
 
-init();
+init().catch(() => {
+  document.getElementById('questionCard').innerHTML = '<div class="note">题库加载失败，请刷新重试；暂不显示可能不完整的练习结果。</div>';
+});
