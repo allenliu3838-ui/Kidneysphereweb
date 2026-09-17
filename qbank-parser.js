@@ -65,7 +65,9 @@ export function parseQuestions(raw) {
  */
 function parseSingleQuestion(block) {
   // 1. Extract question number and subject from header
-  const headerRe = /^第\s*(\d+)\s*题\s*[（(]\s*(.+?)\s*[）)]/;
+  // Match the closing delimiter at the end of the header line: subjects may
+  // contain inner parentheses such as 1,25(OH)2D, which must remain intact.
+  const headerRe = /^第[ \t]*(\d+)[ \t]*题[ \t]*[（(][ \t]*(.+)[）)][ \t]*(?:\r?\n|$)/;
   const headerMatch = block.match(headerRe);
   if (!headerMatch) {
     throw new Error('未找到题目标题（格式：第X题（科目））');
@@ -79,6 +81,9 @@ function parseSingleQuestion(block) {
 
   // 2. Split at "正确答案：" to separate stem+choices from answer+explanation
   const answerSplitRe = /正确答案[：:]\s*([A-Ea-e])\s*[。.]/;
+  if ([...rest.matchAll(/正确答案[：:]/g)].length !== 1) {
+    throw new Error(`第${questionNumber}题：必须有且仅有一个正确答案声明，请核对原文`);
+  }
   const answerMatch = rest.match(answerSplitRe);
   if (!answerMatch) {
     throw new Error(`第${questionNumber}题：未找到"正确答案：X。"`);
@@ -91,11 +96,9 @@ function parseSingleQuestion(block) {
 
   // 3. Extract choices from stemAndChoices
   // Choices start with A. B. C. D. E. at the beginning of a line
-  const choiceRe = /^([A-E])\.\s+/m;
-  const choiceLineRe = /^([A-E])\.\s+(.+)/gm;
 
   // Find where choices start
-  const firstChoiceMatch = stemAndChoices.match(/^([A-E])\.\s+/m);
+  const firstChoiceMatch = stemAndChoices.match(/^([A-E])\.[ \t]*/m);
   if (!firstChoiceMatch) {
     throw new Error(`第${questionNumber}题：未找到选项（A. B. C. ...）`);
   }
@@ -122,30 +125,36 @@ function parseSingleQuestion(block) {
 
   // 5. Parse individual choices
   const choices = [];
-  const choiceBlocks = choicesRaw.split(/(?=^[A-E]\.\s+)/m).filter(Boolean);
+  const choiceBlocks = choicesRaw.split(/(?=^[A-E]\.[ \t]*)/m).filter(Boolean);
 
   for (const cb of choiceBlocks) {
-    const m = cb.match(/^([A-E])\.\s+(.+)/s);
+    const m = cb.match(/^([A-E])\.[ \t]*(.*)/s);
     if (!m) continue;
     const label = m[1];
     let text = m[2].trim();
-    // Check for asterisk marking correct answer (alternative to 正确答案 line)
+    // Asterisk may confirm the declared answer, but must never override it.
     const hasAsterisk = text.endsWith('*');
     if (hasAsterisk) text = text.slice(0, -1).trim();
+    if (hasAsterisk && label !== correctLabel) {
+      throw new Error(`第${questionNumber}题：选项 ${label} 的星号与正确答案 ${correctLabel} 冲突，请核对原文`);
+    }
 
     choices.push({
       label,
       text,
-      correct: label === correctLabel || hasAsterisk,
+      correct: label === correctLabel,
     });
   }
 
   // Ensure exactly one correct answer
-  const correctCount = choices.filter(c => c.correct).length;
-  if (correctCount === 0 && choices.length > 0) {
-    // Fall back: mark the one from 正确答案
-    const found = choices.find(c => c.label === correctLabel);
-    if (found) found.correct = true;
+  if (!stemRaw) throw new Error(`第${questionNumber}题：缺少题干`);
+  if (choices.length < 2) throw new Error(`第${questionNumber}题：至少需要两个选项`);
+  if (choices.some(c => !c.text)) throw new Error(`第${questionNumber}题：选项内容为空`);
+  if (new Set(choices.map(c => c.label)).size !== choices.length) {
+    throw new Error(`第${questionNumber}题：选项标签重复，请核对原文`);
+  }
+  if (choices.filter(c => c.correct).length !== 1) {
+    throw new Error(`第${questionNumber}题：正确答案 ${correctLabel} 不对应唯一选项`);
   }
 
   // 6. Parse explanation and per-choice explanations
