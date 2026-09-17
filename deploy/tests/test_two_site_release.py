@@ -175,6 +175,23 @@ class ReleaseTests(unittest.TestCase):
         self.assert_old_entries()
         self.assertEqual(signal.getsignal(signal.SIGTERM), previous)
 
+    def test_sigterm_with_disconnected_terminal_still_restores_every_file(self):
+        class ClosedTerminal:
+            def write(self, data):
+                raise BrokenPipeError('terminal disconnected')
+            def flush(self):
+                raise BrokenPipeError('terminal disconnected')
+        previous = signal.getsignal(signal.SIGTERM)
+        with patch.object(r.sys, 'stderr', ClosedTerminal()), \
+                patch.object(r.sys, 'stdout', ClosedTerminal()), \
+                patch.object(r, 'health', side_effect=lambda manifest: os.kill(os.getpid(), signal.SIGTERM)):
+            with self.assertRaisesRegex(r.ReleaseError, 'INTERRUPTED_SIGNAL'):
+                r.apply(self.manifest, self.payload)
+        self.assert_old_entries()
+        self.assertEqual(signal.getsignal(signal.SIGTERM), previous)
+        records = list(r.BACKUPS.glob('*/record.json'))
+        self.assertEqual(json.loads(records[0].read_text())['status'], 'rolled_back')
+
     def test_git_head_and_tracked_dist_are_explicit_guards(self):
         def result(output):
             return subprocess.CompletedProcess([], 0, stdout=output, stderr='')

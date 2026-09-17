@@ -39,6 +39,14 @@ class ReleaseError(RuntimeError):
     pass
 
 
+def log(message, file=None, flush=True):
+    """A disconnected terminal must never prevent publication or restoration."""
+    try:
+        print(message, file=file, flush=flush)
+    except OSError:
+        pass
+
+
 def require(ok, message):
     if not ok:
         raise ReleaseError(message)
@@ -285,7 +293,7 @@ def check(manifest, payload):
         while not path.exists():
             path = path.parent
         require(shutil.disk_usage(path).free >= needed, 'INSUFFICIENT_DISK_SPACE')
-    print('CHECK_OK: approved baselines, clean source, payload hashes and local HTTPS roots', flush=True)
+    log('CHECK_OK: approved baselines, clean source, payload hashes and local HTTPS roots', flush=True)
     return snapshots, guards
 
 
@@ -360,7 +368,7 @@ def restore(backup, record):
         for name in names:
             expected = next(e['before'] for e in record['entries'] if e['site'] == site and e['path'] == name)
             probe(site, name, expected['sha256'])
-    print('ROLLBACK_OK: previous entry files restored; added static assets retained', flush=True)
+    log('ROLLBACK_OK: previous entry files restored; added static assets retained', flush=True)
 
 
 def health(manifest):
@@ -369,7 +377,7 @@ def health(manifest):
                  and e['path'].startswith('_expo/static/js/web/') and e['path'].endswith('.js')]
     require(doctor_js, 'DOCTOR_BUNDLE_MISSING')
     for local in (True, False):
-        print('VERIFYING: ' + ('local HTTPS' if local else 'public HTTPS'), flush=True)
+        log('VERIFYING: ' + ('local HTTPS' if local else 'public HTTPS'), flush=True)
         for site, names in {'doctor': ('index.html', 'build.json', doctor_js[0]),
                             'portal': ('index.html', 'app.js', 'qbank.html', 'qbank-data.js')}.items():
             for name in names:
@@ -420,8 +428,8 @@ def apply(manifest, payload):
             same(destination(entry), entry['before'])
         require(guards_now(manifest) == guards, 'GUARD_CHANGED_DURING_BACKUP')
         git_check()
-        print('VERIFIED_BACKUP: ' + str(backup), flush=True)
-        print('ROLLBACK: python3 deploy.py rollback ' + str(backup), flush=True)
+        log('VERIFIED_BACKUP: ' + str(backup), flush=True)
+        log('ROLLBACK: python3 deploy.py rollback ' + str(backup), flush=True)
         # The durable record is complete before any production write. SIGHUP/TERM
         # trigger restoration; SIGKILL/power loss require the printed rollback command.
         signal_context = release_signals()
@@ -453,17 +461,17 @@ def apply(manifest, payload):
             record['status'] = 'applied'
             write_json(backup / 'record.json', record)
         except BaseException:
-            print('APPLY_FAILED: restoring verified backup', file=sys.stderr, flush=True)
-            try:
-                with release_signals(ignore=True):
+            with release_signals(ignore=True):
+                log('APPLY_FAILED: restoring verified backup', file=sys.stderr, flush=True)
+                try:
                     restore(backup, record)
-            except BaseException as error:
-                print('AUTOMATIC_ROLLBACK_STOPPED: ' + str(error) + '\nBackup: ' + str(backup),
-                      file=sys.stderr, flush=True)
+                except BaseException as error:
+                    log('AUTOMATIC_ROLLBACK_STOPPED: ' + str(error) + '\nBackup: ' + str(backup),
+                        file=sys.stderr, flush=True)
             raise
         finally:
             signal_context.__exit__(None, None, None)
-        print('DEPLOYMENT_OK: static files verified locally and publicly; source/services unchanged', flush=True)
+        log('DEPLOYMENT_OK: static files verified locally and publicly; source/services unchanged', flush=True)
         return backup
 
 
@@ -487,11 +495,11 @@ def main():
             manifest, payload = load_package(path)
             if args.action == 'check':
                 check(manifest, payload)
-                print('READ_ONLY: no website files changed and no backups created')
+                log('READ_ONLY: no website files changed and no backups created')
             else:
                 apply(manifest, payload)
     except (ReleaseError, OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError, zipfile.BadZipFile) as error:
-        print('STOPPED: ' + str(error), file=sys.stderr)
+        log('STOPPED: ' + str(error), file=sys.stderr)
         return 1
     return 0
 
