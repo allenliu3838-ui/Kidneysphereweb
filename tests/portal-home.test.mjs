@@ -20,16 +20,13 @@ test('portal homepage uses a single document scroller, not a fixed-height scroll
   assert.match(css, /\.portal-home\s*\{[^}]*height:\s*auto;[^}]*overflow-x:\s*clip;/);
 });
 
-// The repository is a static site, not a type:module Node package. A data URL
-// tests the actual module exports without changing package metadata or running
-// browser initialization (Node has no document).
+// Import from the real file URL so the homepage's relative ESM dependencies
+// resolve normally. Node has no document, so browser initialization stays off.
 const {
   conferenceState, updateConferenceStatuses, initContactCopy, portalVideoAccess,
   normalizePortalVideo, mergePortalVideos, filterPortalVideos, selectPortalVideos,
   portalWatchUrl, loadPortalVideoMetadata,
-} = await import(
-  `data:text/javascript;base64,${Buffer.from(utilitySource).toString('base64')}`
-);
+} = await import(new URL('../portal-home.js', import.meta.url));
 
 const start = '2026-06-05T08:00:00+08:00';
 const end = '2026-06-08T00:00:00+08:00';
@@ -518,6 +515,8 @@ test('video catalogue retains only whitelisted public metadata, never playback c
   assert.deepEqual(Object.keys(normalized).sort(), [
     'id', 'title', 'speaker', 'category', 'source', 'is_paid',
     'membership_accessible', 'created_at', 'origin',
+    'media_type', 'kind', 'membership_scope', 'access_type',
+    'series_id', 'series_title', 'cover_image', 'chapter_number',
   ].sort());
   assert.doesNotMatch(JSON.stringify(normalized), /private/);
 });
@@ -537,13 +536,19 @@ test('watch links keep the original playback gate and encode hostile IDs instead
 });
 
 test('video access badges describe catalogue categories without claiming a visitor is unlocked', () => {
-  assert.deepEqual(portalVideoAccess({ is_paid: false }), { kind: 'free', label: '免费课程' });
-  assert.deepEqual(portalVideoAccess({ source: 'glomcon', is_paid: false }), { kind: 'member', label: '会员课程' });
-  assert.deepEqual(portalVideoAccess({ category: 'glomcon' }), { kind: 'member', label: '会员课程' });
-  assert.deepEqual(portalVideoAccess({ is_paid: true, membership_accessible: true }), { kind: 'member', label: '会员课程' });
-  assert.deepEqual(portalVideoAccess({ is_paid: true, membership_accessible: false }), { kind: 'paid', label: '付费课程' });
+  assert.deepEqual(portalVideoAccess({ is_paid: false, membership_accessible: false }), { kind: 'free', label: '免费课程' });
+  assert.deepEqual(portalVideoAccess({ is_paid: false }), { kind: 'unknown', label: '以课程页为准' });
+  assert.deepEqual(portalVideoAccess({ source: 'glomcon', is_paid: false }), { kind: 'unknown', label: '以课程页为准' });
+  assert.deepEqual(portalVideoAccess({ category: 'glomcon' }), { kind: 'unknown', label: '以课程页为准' });
+  const weeklyReplay = { membership_scope: 'weekly_replay', media_type: 'video', is_paid: true, membership_accessible: true };
+  assert.deepEqual(portalVideoAccess(weeklyReplay), { kind: 'member', label: '周日/周三会员回放' });
+  assert.deepEqual(portalVideoAccess({ ...weeklyReplay, membership_accessible: false, access_type: 'paid_membership' }), { kind: 'member', label: '周日/周三会员回放' });
+  assert.deepEqual(portalVideoAccess({ ...weeklyReplay, media_type: 'audio' }), { kind: 'paid', label: '付费内容 · 查看权限' });
+  assert.deepEqual(portalVideoAccess({ ...weeklyReplay, membership_scope: 'training' }), { kind: 'training', label: '培训 · 另行付费' });
+  assert.deepEqual(portalVideoAccess({ is_paid: true, membership_accessible: true }), { kind: 'paid', label: '付费内容 · 查看权限' });
+  assert.deepEqual(portalVideoAccess({ is_paid: true, membership_accessible: false }), { kind: 'paid', label: '付费内容 · 查看权限' });
   assert.deepEqual(portalVideoAccess({}), { kind: 'unknown', label: '以课程页为准' });
-  for (const video of [{}, { is_paid: true }, { source: 'glomcon' }, { is_paid: false }]) {
+  for (const video of [{}, weeklyReplay, { ...weeklyReplay, membership_scope: 'training' }, { is_paid: true }, { source: 'glomcon' }, { is_paid: false }]) {
     assert.doesNotMatch(portalVideoAccess(video).label, /已解锁|已购买|继续观看|无需登录/);
   }
 });
@@ -596,7 +601,7 @@ test('homepage selection is compact by default and preserves the complete source
 function metadataProvider(result = { data: [], error: null }) {
   const calls = [];
   const query = {};
-  for (const method of ['select', 'eq', 'is', 'order', 'limit', 'abortSignal']) {
+  for (const method of ['select', 'eq', 'is', 'or', 'order', 'limit', 'abortSignal']) {
     query[method] = (...args) => { calls.push([method, ...args]); return query; };
   }
   query.then = (onResult, onError) => Promise.resolve(result).then(onResult, onError);
@@ -613,6 +618,7 @@ test('metadata loader only reads enabled public catalogue fields and never calls
     { id: 'valid', title: '课程', enabled: true, deleted_at: null },
     { id: 'disabled', title: '隐藏课程', enabled: false },
     { id: 'deleted', title: '删除课程', enabled: true, deleted_at: '2026-09-01' },
+    { id: 'unpublished', title: '未发布课程', enabled: true, deleted_at: null, is_published: false },
   ], error: null });
   const result = await loadPortalVideoMetadata({ loadClient: async () => f.provider });
   assert.deepEqual(result.videos.map(video => video.id), ['valid']);
@@ -622,9 +628,12 @@ test('metadata loader only reads enabled public catalogue fields and never calls
   assert.deepEqual(fields, [
     'id', 'title', 'speaker', 'category', 'source', 'is_paid',
     'membership_accessible', 'created_at', 'enabled', 'deleted_at',
+    'kind', 'is_published', 'media_type', 'series_id', 'series_title',
+    'chapter_number', 'membership_scope', 'access_type', 'cover_image',
   ].sort());
   assert.ok(f.calls.some(call => call[0] === 'eq' && call[1] === 'enabled' && call[2] === true));
   assert.ok(f.calls.some(call => call[0] === 'is' && call[1] === 'deleted_at' && call[2] === null));
+  assert.deepEqual(f.calls.filter(call => call[0] === 'or'), [['or', 'is_published.is.null,is_published.eq.true']]);
   assert.ok(f.calls.some(call => call[0] === 'limit' && call[1] === 200));
   assert.doesNotMatch(fields.join(','), /source_url|mp4_url|aliyun_vid|play_auth|token|\*/);
 });
@@ -878,12 +887,12 @@ test('homepage module imports resolve to existing files with exact case', () => 
   }
 });
 
-test('mobile bottom navigation exposes exactly video, training, and My Learning without authentication hiding', () => {
+test('mobile bottom navigation preserves free courses, membership, and My Learning without authentication hiding', () => {
   const bar = indexHtml.match(/<nav\b[^>]*class="portal-mobile-bar"[^>]*>[\s\S]*?<\/nav>/)?.[0];
   assert.ok(bar, 'A semantic bottom navigation must be present');
   assert.match(bar, /aria-label="手机学习快捷入口"/);
-  assert.deepEqual(htmlAttributes(bar, 'href'), ['videos.html', 'academy.html', 'my-learning.html']);
-  for (const label of ['视频课程', '培训报名', '我的学习']) assert.ok(bar.includes(`>${label}<`));
+  assert.deepEqual(htmlAttributes(bar, 'href'), ['videos.html?access=free', 'academy.html#membership', 'my-learning.html']);
+  for (const label of ['免费课程', '会员说明', '我的学习']) assert.ok(bar.includes(`>${label}<`));
   assert.doesNotMatch(bar, /data-nav-auth-only|\shidden(?:\s|=|>)|data-logout/);
   assert.equal((bar.match(/<svg\b/g) || []).length, 3);
   assert.equal((bar.match(/<svg\b[^>]*aria-hidden="true"/g) || []).length, 3);

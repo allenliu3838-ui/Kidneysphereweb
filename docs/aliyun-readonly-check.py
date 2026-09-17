@@ -8,18 +8,18 @@ import re
 import shutil
 import subprocess
 
-PORTAL_SHA = "7a5b5227457125b3410a0865520ab36d55b56699"
+PORTAL_SHA = "0a76726b4a9a84b0e2fa8762701553f8a9cee257"
 DOCTOR_SHA = "e28760e2f0695785822962632844799d8645031d"
 PORTAL_FILES = {
     "app.js": (
         "879d1288bdf00264093b75e890f0f38085f36f9049d50394b4625567edcc5ee5",
         "cc177e5988934c2e9b9c763ef8ed1895618ff4d12a713aeaf7d1d6e706cc6334"),
     "index.html": (
-        "9686117f60b4cec22f201463781a979f6ed5e8873b2e3ea20fa37defd379727e",
-        "092f901f40a8b0ccc78b45305aaa3f589d6ded88e54cb709548d4ce55e9cfb80"),
+        "0177ec92799582b3cd42b5758ac26a183d81ba8ea95361bdfcfe2fe0611ebae3",
+        "2c0b0b36baf1971aa8bdd118d84211d9d20f984fed80f428aa06d1c15d2cca32"),
     "portal-home.css": (
-        "1fa89a026d2e71ced059a3c5cdef2343e4c448b65f343147824149806279de12",
-        "e865748832e34aafd639cee9e219773a3b804fe63d8b69877e79ae6de4b07729"),
+        "3db6cd9da59e1b6a75dca0bb5f66000ac45858d34e1c4fe49a5516dbcdc2dfb4",
+        "24b7f59a6611e3c43c8a07a72131bb45ef5bb972bc9cd82ff43e1018777f996a"),
     'qbank-data.js': (None, '966b09a9c7c6b4bee1f7b738d80b38ff226eab0f0559d66137ce45ddbfaa2100'),
     'qbank.js': ('c43a5b2409117f051b7ac670743990780967bddfb75df45b5689f680d8abeb69', '75af3fea2cc36d1bd122b79428566f9241a5694208655d9140de736ee96818bb'),
     'qbank-test.js': ('94634af3cc0e36749da558caad119fffe72f5ddda8702bed77635358a64d0953', 'c00bf146d87e5e6e15d9536b923e2ea52b008c555732cc16fe7b4f908059b22a'),
@@ -99,7 +99,10 @@ def main():
     report["portal"]["homepage_dependencies_exist"] = {
         name: (portal / name).is_file() for name in (
             "styles.css", "site-light.css", "site-page-themes.css", "portal-home.js",
-            "portal-motion.js", "home.js", "assets/logo.png", "assets/portal/pathology-v1.webp",
+            "portal-motion.js", "home.js", "daily-learning.css", "daily-learning.js",
+            "daily-learning-core.js", "learning-resume.css", "learning-resume.js",
+            "learning-progress.js", "course-catalog.js", "course-art.js",
+            "assets/portal/learning-v1.webp", "assets/logo.png", "assets/portal/pathology-v1.webp",
             "assets/portal/critical-v1.webp", "assets/portal/transplant-v1.webp")}
     for name in ("node", "npm", "git"):
         code, result = run([name, "--version"])
