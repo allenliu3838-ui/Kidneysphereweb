@@ -219,6 +219,22 @@ test('app.js keeps legacy primary navigation on non-portal pages', () => {
   ]);
 });
 
+test('site switching remains available outside login and uses fixed same-tab destinations', () => {
+  for (const portal of [true, false]) {
+    const { html } = renderNavigation(portal);
+    const switcher = html.match(/<nav aria-label="肾域站点切换">([\s\S]*?)<\/nav>/)?.[1];
+    assert.ok(switcher, 'Every shared header exposes the paired sites');
+    assert.deepEqual([...switcher.matchAll(/href="([^"]+)"/g)].map(match => match[1]), [
+      'index.html', 'https://kidneyspheredoctorapp.cn/', 'https://kidneyspheredoctorapp.cn/#/ai',
+    ]);
+    assert.match(switcher, /href="index.html" aria-current="true"/);
+    assert.doesNotMatch(switcher, /target=|data-nav-auth-only|\shidden(?:\s|=|>)|access_token|returnTo/);
+  }
+  for (const route of ['ai', 'tools']) {
+    assert.match(indexHtml, new RegExp('<a href="https://kidneyspheredoctorapp\\.cn/#/' + route + '">'));
+  }
+});
+
 test('app.js explicitly honors hidden on only the relevant auth navigation elements', () => {
   const source = sourceSection('function injectTopbarExtraStyles(){', '// Populate member status badge');
   const styles = [];

@@ -19,7 +19,7 @@ html.portal-document { height: auto; min-height: 100%; overflow-x: clip; }
    not change frame policy or hide any course/player iframe. */
 .portal-home iframe[title="Netlify Drawer"] { visibility: hidden !important; pointer-events: none !important; }
 .portal-home main:focus { outline: none; }
-.portal-home [id] { scroll-margin-top: 96px; }
+.portal-home [id] { scroll-margin-top: 140px; }
 .portal-home :is(a,button,input,summary):focus-visible { outline: 3px solid #216fe3; outline-offset: 4px; }
 .portal-home a:hover { opacity: 1; }
 .portal-home :is(button,input) { font: inherit; }
@@ -42,6 +42,10 @@ html.portal-document { height: auto; min-height: 100%; overflow-x: clip; }
 .portal-home .portal-section-head p { margin: 5px 0 0; font-size: 15px; }
 .portal-home .portal-section-head > a { flex: 0 0 auto; }
 .portal-home .portal-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 20px; }
+.portal-home .portal-clinical-links { display:flex;flex-wrap:wrap;align-items:center;gap:4px 20px;margin-top:14px; }
+.portal-home .portal-clinical-links a { display:inline-flex;align-items:center;gap:8px;min-height:44px;color:#b9e9ff;font-size:14px;font-weight:650; }
+.portal-home .portal-clinical-links a:hover { text-decoration:underline;text-underline-offset:4px; }
+.portal-home .portal-ai-mark { display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;background:#dcecff;color:#075bd5;font-size:11px;letter-spacing:.3px; }
 
 /* The header keeps the existing 1180px navigation/drawer breakpoint. */
 .portal-home .nav { background: rgba(255,255,255,.98); border-bottom: 1px solid #edf2f8; box-shadow: none; }

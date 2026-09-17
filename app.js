@@ -128,6 +128,16 @@ function injectNav(){
         <a data-nav href="events.html"><span class="zh">活动</span><span class="en">Events</span></a>`;
   injectTopbarExtraStyles();
   header.innerHTML = `
+    <div class="ks-site-switcher">
+      <div class="container ks-site-switcher-inner">
+        <span class="ks-site-switcher-brand">KidneySphere 肾域</span>
+        <nav aria-label="肾域站点切换">
+          <a href="index.html" aria-current="true">学习门户</a>
+          <a href="https://kidneyspheredoctorapp.cn/">医生工作台 <span aria-hidden="true">→</span></a>
+          <a href="https://kidneyspheredoctorapp.cn/#/ai">AI 助手</a>
+        </nav>
+      </div>
+    </div>
     <div class="container nav-inner">
       <a class="brand" href="index.html" aria-label="肾域 Home">
         <img src="assets/logo.png" alt="肾域 Logo" />
@@ -172,6 +182,19 @@ function injectTopbarExtraStyles(){
   const s = document.createElement('style');
   s.id = 'ks-topbar-extra-styles';
   s.textContent = `
+    .ks-site-switcher{background:#eff6ff;color:#173454;border-bottom:1px solid #d9e4f2;font-size:12px}
+    .ks-site-switcher-inner{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
+    .ks-site-switcher-brand{font-weight:650;white-space:nowrap}
+    .ks-site-switcher nav{display:flex;align-items:center;gap:4px;min-width:0}
+    .ks-site-switcher a{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:44px;padding:8px 14px;color:#173454;white-space:nowrap;text-decoration:none;border-bottom:2px solid transparent}
+    .ks-site-switcher a[aria-current]{background:#fff;color:#075bd5;border-bottom-color:#0964eb;font-weight:700}
+    .ks-site-switcher a:hover{background:#fff;color:#075bd5;opacity:1}
+    .ks-site-switcher a:focus-visible{outline:3px solid #216fe3;outline-offset:-3px}
+    @media(max-width:600px){
+      .ks-site-switcher-brand{display:none}
+      .ks-site-switcher nav{width:100%;justify-content:space-between;gap:0}
+      .ks-site-switcher a{padding-inline:10px}
+    }
     [data-nav-auth-only][hidden],
     [data-nav-bell][hidden],
     [data-nav-bell-badge][hidden],
