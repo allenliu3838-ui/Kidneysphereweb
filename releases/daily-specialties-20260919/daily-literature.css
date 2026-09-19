@@ -1,0 +1,18 @@
+.portal-home .literature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.portal-home .literature-card{display:flex;flex-direction:column;min-width:0;padding:26px;border:1px solid #c9dce0;border-radius:22px;background:#fff;box-shadow:0 12px 32px #274f680d}
+.portal-home .literature-meta{display:flex;flex-wrap:wrap;align-items:center;gap:9px;color:#60768b;font-size:13px}
+.portal-home .literature-specialty{padding:5px 10px;border-radius:999px;background:#e0f3ed;color:#137046;font-weight:700}
+.portal-home .literature-card h3{font-size:23px;line-height:1.5;color:#102e4f;margin:17px 0 10px;overflow-wrap:anywhere}
+.portal-home .literature-card h3 a{color:inherit;text-decoration:none}
+.portal-home .literature-card h3 a:hover{text-decoration:underline;text-underline-offset:4px}
+.portal-home .literature-summary{color:#4d687d;line-height:1.85;margin:0 0 24px}
+.portal-home .literature-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:auto}
+.portal-home .literature-actions .btn{min-height:44px}
+.portal-home .literature-source{font-size:12px;line-height:1.6;color:#657c90;margin:16px 0 0}
+.portal-home .literature-card-pending{box-shadow:none;background:#ffffffa6;border-style:dashed}
+.portal-home .literature-card-pending h3{font-size:19px;color:#526a7c}
+.portal-home .daily-literature-section .daily-preference-box{max-width:660px}
+.portal-home .daily-literature-section .daily-topic-list{flex-wrap:wrap;overflow:visible}
+.portal-home .daily-literature-section .daily-topic-button{min-height:44px}
+.portal-home .daily-literature-section a:focus-visible,.portal-home .daily-literature-section button:focus-visible{outline:3px solid #237c99;outline-offset:3px}
+@media(max-width:760px){.portal-home .literature-grid{grid-template-columns:1fr;gap:14px}.portal-home .literature-card{padding:22px 18px}.portal-home .literature-card h3{font-size:21px}}

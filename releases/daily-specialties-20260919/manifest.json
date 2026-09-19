@@ -1,0 +1,17 @@
+{
+  "release": "daily-specialties-20260919",
+  "files": {
+    "index.html": {
+      "before": "ca8d502fe8ccde3f630df909884cb89359cc7fe5f2e33f760a2c79a114d6147d",
+      "after": "383a24ed4e2d790127ff75dd642fa9bd78dab91ffb3c08c75d714afda3973d57"
+    },
+    "daily-literature.js": {
+      "before": null,
+      "after": "e5404d1bd154aa5dbe837e80a35010c93c691547d9db2920ffbab4d60d954a24"
+    },
+    "daily-literature.css": {
+      "before": null,
+      "after": "1b9c3aea874090475c3eb0b9146edd3977f4ffb13de00a1ad87b22476ac32275"
+    }
+  }
+}
