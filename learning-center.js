@@ -456,6 +456,34 @@ async function checkMediaHealth({ quiet = false } = {}){
   }
 }
 
+function isDraftCourse(v){
+  return !v.deleted_at && (v.enabled === false || v.is_published === false);
+}
+
+async function setCoursePublished(id, publish){
+  if (!id || !supabase) return;
+  const v = _allAdminVideos.find(row => row.id === id);
+  if (!v) return;
+  if (publish && v.kind === 'aliyun' && mediaHealthOf(v)?.[0] !== 'ok') {
+    toast('暂不能上架', '播放源还不是「播放源正常」。请等阿里云处理完，点「检查播放源」后再上架。', 'err');
+    return;
+  }
+  const question = publish
+    ? `确定上架《${v.title || '未命名课程'}》吗？上架后学员即可在视频库看到。`
+    : `确定下架《${v.title || '未命名课程'}》吗？学员将暂时看不到它，课程记录和观看记录都会保留。`;
+  if (!confirm(question)) return;
+  try {
+    const { error } = await supabase.from('learning_videos')
+      .update({ enabled: publish, is_published: publish, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) throw error;
+    toast(publish ? '已上架' : '已下架', publish ? '学员现在可以看到这门课了。' : '课程已转为草稿。', 'ok');
+    await loadAdminVideos();
+  } catch (e) {
+    alert(`${publish ? '上架' : '下架'}失败：\n\n${String(e?.message || e?.code || e || '')}`);
+  }
+}
+
 function setMediaIdLocked(locked){
   // After an upload fills the id there is nothing to type; locking the field
   // removes the chance to paste a title over it, which is how ten paid courses broke.
@@ -473,6 +501,7 @@ function renderVideoAdminList(rows){
   const mediaFilter = document.getElementById('videoAdminMediaFilter')?.value || '';
   const projectFilter = document.getElementById('videoAdminProjectFilter')?.value || '';
   const onlyBadHealth = !!document.getElementById('videoHealthOnlyBad')?.checked;
+  const onlyDrafts = !!document.getElementById('videoOnlyDrafts')?.checked;
   const list = (Array.isArray(rows) ? rows : []).filter(v => {
     if(v.deleted_at && !showDeleted) return false;
     if (search && ![v.title, v.speaker, v.series_title].some(value => String(value || '').toLocaleLowerCase().includes(search))) return false;
@@ -481,11 +510,12 @@ function renderVideoAdminList(rows){
     if (mediaFilter && courseMediaType(v) !== mediaFilter) return false;
     if (projectFilter && !permission.specialtyIds.includes(projectFilter)) return false;
     if (onlyBadHealth && mediaHealthOf(v)?.[0] !== 'bad') return false;
+    if (onlyDrafts && !isDraftCourse(v)) return false;
     return true;
   });
   const count = document.getElementById('videoAdminCount');
   if (count) count.textContent = `找到 ${list.length} 条课程 · 已加载 ${Array.isArray(rows) ? rows.length : 0} 条`;
-  if (!list.length && (search || audienceFilter || mediaFilter || projectFilter || onlyBadHealth)) {
+  if (!list.length && (search || audienceFilter || mediaFilter || projectFilter || onlyBadHealth || onlyDrafts)) {
     els.videoAdminList.innerHTML = '<div class="muted small">没有符合筛选条件的课程，请清空搜索或调整筛选。</div>';
     return;
   }
@@ -551,7 +581,7 @@ function renderVideoAdminList(rows){
           <div style="min-width:0;flex:1">
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
               <b style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:420px${isDeleted ? ';text-decoration:line-through' : ''}">${esc(v.title || '（无标题）')}</b>
-              ${mediaHealthBadge(v)}${paidBadge}${memberBadge}${specBadge}${legacyBadge}${deletedBadge}${expiredBadge}
+              ${isDraftCourse(v) ? '<span class="badge" style="border-color:rgba(251,146,60,.6);background:rgba(251,146,60,.12);color:#fb923c">草稿 · 未上架</span>' : ''}${mediaHealthBadge(v)}${paidBadge}${memberBadge}${specBadge}${legacyBadge}${deletedBadge}${expiredBadge}
             </div>
             <div class="small muted" style="margin-top:6px">
               ${speakerText}${esc(tag)} · ${esc(kindLabel)} · ${esc(fmtDate(v.created_at))}
@@ -560,6 +590,11 @@ function renderVideoAdminList(rows){
             <div class="small" style="margin-top:6px;word-break:break-all">${openUrl ? `<a class="auto-link" href="${esc(openUrl)}" target="_blank" rel="noopener">${esc(openUrl.length > 80 ? openUrl.slice(0,80) + '…' : openUrl)}</a>` : ''}</div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex-shrink:0">
+            ${isDeleted ? '' : (isDraftCourse(v)
+              ? (v.kind === 'aliyun' && mediaHealthOf(v)?.[0] !== 'ok'
+                  ? `<button class="btn tiny" type="button" disabled title="播放源正常后才能上架">上架</button>`
+                  : `<button class="btn tiny primary" type="button" data-video-publish="${esc(v.id)}">上架</button>`)
+              : `<button class="btn tiny" type="button" data-video-unpublish="${esc(v.id)}">下架</button>`)}
             ${isDeleted ? '' : `<button class="btn tiny" type="button" data-video-edit="${esc(v.id)}">编辑权限 / 信息</button>`}
             ${isDeleted ? '' : `<a class="btn tiny" href="watch.html?id=${encodeURIComponent(v.id)}">${media === 'audio' ? '试听' : media === 'video' ? '试看' : '预览'}</a>`}
             ${actionBtn}
@@ -1299,6 +1334,7 @@ async function init(){
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px">
               <button class="btn tiny" type="button" id="videoHealthBtn">检查播放源</button>
               <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px"><input type="checkbox" id="videoHealthOnlyBad" /> 只看播放源异常</label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px"><input type="checkbox" id="videoOnlyDrafts" /> 只看草稿</label>
               <span class="small muted" id="videoHealthSummary"></span>
             </div>
             <div id="videoAdminList" style="margin-top:10px"></div>
@@ -1344,6 +1380,7 @@ async function init(){
 
   document.getElementById('videoAdminSearch')?.addEventListener('input', () => renderVideoAdminList(_allAdminVideos));
   document.getElementById('videoHealthOnlyBad')?.addEventListener('change', () => renderVideoAdminList(_allAdminVideos));
+  document.getElementById('videoOnlyDrafts')?.addEventListener('change', () => renderVideoAdminList(_allAdminVideos));
   document.getElementById('videoHealthBtn')?.addEventListener('click', () => { void checkMediaHealth(); });
   ['videoAdminAudienceFilter', 'videoAdminMediaFilter', 'videoAdminProjectFilter'].forEach(id => {
     document.getElementById(id)?.addEventListener('change', () => renderVideoAdminList(_allAdminVideos));
@@ -1402,6 +1439,14 @@ async function init(){
       e.preventDefault();
       const id = String(editBtn.getAttribute('data-video-edit') || '').trim();
       if(id) openEditModal(id);
+      return;
+    }
+    const pubBtn = e.target?.closest?.('[data-video-publish],[data-video-unpublish]');
+    if(pubBtn){
+      e.preventDefault();
+      const publish = pubBtn.hasAttribute('data-video-publish');
+      const id = String(pubBtn.getAttribute(publish ? 'data-video-publish' : 'data-video-unpublish') || '').trim();
+      if(id) await setCoursePublished(id, publish);
       return;
     }
     const delBtn = e.target?.closest?.('[data-video-del]');
@@ -1678,7 +1723,7 @@ function setupAliyunDirectUpload() {
       if (titleInput && !titleInput.value.trim()) titleInput.value = title;
       barEl.style.width = '100%'; barEl.style.background = '#22c55e';
       textEl.textContent = `✅ ${mediaLabel}上传成功 · 媒体 ID 已自动填写`;
-      statusEl.textContent = '可先保存草稿；在阿里云确认处理完成并试听或试看后，再上架。';
+      statusEl.textContent = '下一步：点「保存草稿」。在下方课程列表看到「播放源正常」后，点「上架」。';
     } catch (error) {
       const stopped = _currentUpload.signal.aborted || error?.name === 'AbortError';
       barEl.style.background = stopped ? '#888' : '#e74c3c';
