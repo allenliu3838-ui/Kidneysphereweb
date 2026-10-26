@@ -1,0 +1,68 @@
+/* Guide-only refinements. Keep app.css as global base. */
+
+.guide h2{margin:0 0 8px 0;font-size:18px;}
+.guide .guide-hero{background:linear-gradient(180deg, rgba(37,99,235,.07), rgba(14,165,233,.05)); border:1px solid rgba(37,99,235,.16); border-radius:18px; padding:14px 14px;}
+.guide-hero-title{font-weight:800;font-size:18px;}
+.guide-hero-sub{margin-top:6px;color:#0f172a;line-height:1.5;font-size:13.5px;}
+.guide-hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+.linkbtn{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(15,23,42,.14);background:#fff;color:#0f172a;padding:10px 12px;border-radius:12px;cursor:pointer;font-size:14px;}
+.linkbtn.primary{background:linear-gradient(90deg,#2563eb,#0ea5e9);color:#fff;border-color:transparent;}
+.linkbtn:hover{text-decoration:none;filter:brightness(.99);}
+
+.guide-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;}
+@media (max-width: 900px){ .guide-grid2{grid-template-columns:1fr;} }
+
+.callout{border:1px solid rgba(15,23,42,.10);border-radius:16px;padding:12px 12px;background:rgba(2,6,23,.02);}
+.callout-title{font-weight:700;margin-bottom:6px;}
+.compact{margin:0;padding-left:18px;}
+.compact li{margin:6px 0;}
+.faq{border:1px solid rgba(15,23,42,.10);border-radius:14px;padding:10px 12px;background:#fff;margin-top:10px;}
+.faq summary{cursor:pointer;font-weight:700;}
+.faq summary::-webkit-details-marker{display:none;}
+.faq summary:before{content:"▸";display:inline-block;margin-right:8px;color:#64748b;}
+.faq[open] summary:before{content:"▾";}
+.faq-tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0;}
+.faq-tools input{flex:1 1 320px;min-width:220px;}
+
+.trial-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;}
+@media (max-width: 900px){ .trial-grid{grid-template-columns:1fr;} }
+.trial-card{border:1px solid rgba(15,23,42,.10);border-radius:16px;padding:12px;background:#fff;}
+.trial-title{font-weight:800;margin-bottom:6px;}
+
+.rolebar{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.rolebtn{appearance:none;border:1px solid rgba(15,23,42,.14);background:#fff;color:#0f172a;padding:9px 10px;border-radius:999px;cursor:pointer;font-size:13px;}
+.rolebtn.active{border-color:rgba(37,99,235,.45);background:rgba(37,99,235,.07);color:#1d4ed8;}
+.role-section{display:block;}
+.role-section[hidden]{display:none !important;}
+
+/* Isolate codebox from global code pill style */
+.codebox{border:1px solid rgba(15,23,42,.12);border-radius:14px;overflow:hidden;background:#0b1220;margin-top:10px;}
+.codebox-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:rgba(255,255,255,.06);color:#fff;}
+.copybtn{appearance:none;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;padding:6px 10px;border-radius:10px;cursor:pointer;font-size:12px;}
+.copybtn:hover{background:rgba(255,255,255,.12);}
+.codebox pre{margin:0;padding:12px 12px;overflow:auto;}
+.codebox pre code{
+  all:unset;
+  display:block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size:12.5px;
+  line-height:1.55;
+  color:#e5e7eb;
+  white-space:pre;
+}
+
+/* done checkbox */
+.donecheck{display:flex;align-items:center;gap:10px;margin-top:10px;color:#334155;font-size:13px;}
+.donecheck input{width:auto;}
+
+/* Research scenario cards */
+.scenario-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;}
+@media (max-width:900px){.scenario-grid{grid-template-columns:1fr;}}
+.scenario-card{border:1px solid rgba(15,23,42,.10);border-radius:16px;padding:14px;background:#fff;}
+.scenario-title{font-weight:700;margin:6px 0 8px;font-size:14px;}
+.scenario-tag{display:inline-block;font-size:11px;font-weight:800;padding:3px 8px;border-radius:999px;letter-spacing:.5px;}
+.scenario-tag.igan{background:rgba(37,99,235,.10);color:#1d4ed8;border:1px solid rgba(37,99,235,.25);}
+.scenario-tag.ln{background:rgba(220,38,38,.08);color:#991b1b;border:1px solid rgba(220,38,38,.22);}
+.scenario-tag.mn{background:rgba(22,163,74,.08);color:#14532d;border:1px solid rgba(22,163,74,.22);}
+.scenario-tag.ktx{background:rgba(124,58,237,.08);color:#5b21b6;border:1px solid rgba(124,58,237,.22);}
+.scenario-tag.general{background:rgba(245,158,11,.10);color:#92400e;border:1px solid rgba(245,158,11,.25);}

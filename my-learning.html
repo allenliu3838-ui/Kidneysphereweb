@@ -2,12 +2,12 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>我的学习 · 肾域</title>
   <meta name="description" content="肾域 — 我的学习：权益、订单与报名项目">
   <meta name="robots" content="noindex,nofollow" />
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=20260323_001" />
+  <link rel="stylesheet" href="styles.css?v=20260914_depth1" />
   <style>
     .ml-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 0}
     .ml-tabs .btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -46,8 +46,9 @@
     .ml-quick-btn:hover{background:rgba(255,255,255,.08)}
     .ml-quick-btn .qb-icon{font-size:18px}
   </style>
+  <link rel="stylesheet" href="learning-resume.css?v=20260915_mobile1" />
 </head>
-<body>
+<body class="learning-mobile-page">
   <header class="nav"></header>
 
   <main>
@@ -58,17 +59,20 @@
         <div>
           <span class="badge">学习中心 · My Learning</span>
           <h2 style="margin-top:10px">我的学习</h2>
-          <p class="small muted">查看已购权益、历史订单和已报名培训项目。</p>
+          <p class="small muted">查看所购课程、对应培训项目与班期、权益期限和学习群入口。权益时间按北京时间显示。</p>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <a class="btn" href="learning.html">学习中心</a>
-          <a class="btn" href="videos.html">视频库</a>
+          <a class="btn" href="videos.html">音视频课程</a>
         </div>
       </div>
 
       <div id="mlGate" class="note" style="margin-top:12px">正在验证登录状态…</div>
 
       <div id="mlMain" hidden>
+        <section data-learning-resume hidden aria-label="继续学习">
+          <div data-learning-resume-content></div>
+        </section>
         <!-- Dashboard summary: 会员状态 / 最近通知 / 快捷入口 -->
         <div id="mlDashSummary" class="ml-dash" hidden>
           <div class="ml-dash-card" id="dashMembership"></div>
@@ -80,15 +84,15 @@
             <h4>⚡ 快捷入口</h4>
             <div class="ml-quick-grid">
               <a class="ml-quick-btn" href="learning.html"><span class="qb-icon">📚</span><span>学习中心</span></a>
-              <a class="ml-quick-btn" href="videos.html"><span class="qb-icon">🎬</span><span>视频库</span></a>
+              <a class="ml-quick-btn" href="videos.html"><span class="qb-icon">🎬</span><span>音视频课程</span></a>
               <a class="ml-quick-btn" href="favorites.html"><span class="qb-icon">⭐</span><span>我的收藏</span></a>
-              <a class="ml-quick-btn" href="notes.html"><span class="qb-icon">📝</span><span>我的笔记</span></a>
+              <a class="ml-quick-btn" href="notes.html"><span class="qb-icon">📝</span><span>学习笔记文章</span></a>
             </div>
           </div>
         </div>
 
         <div class="ml-tabs" id="mlTabs">
-          <button class="btn active" data-tab="entitlements" type="button">我的权益</button>
+          <button class="btn active" data-tab="entitlements" type="button">我的课程与权益</button>
           <button class="btn" data-tab="orders" type="button">我的订单</button>
           <button class="btn" data-tab="enrollments" type="button">已报名项目</button>
         </div>
@@ -109,13 +113,14 @@
 
         <!-- ── 订单 ── -->
         <div class="ml-panel" id="ml-panel-orders" style="margin-top:14px">
-          <div id="ordLoading" class="muted small">加载中…</div>
+          <div id="ordLoading" class="muted small">打开订单时加载…</div>
           <div id="ordList"></div>
           <div id="ordEmpty" hidden class="note">暂无订单记录。</div>
         </div>
 
         <!-- ── 报名 ── -->
         <div class="ml-panel" id="ml-panel-enrollments" style="margin-top:14px">
+          <p class="small muted">班期和学习群随对应报名记录显示；未指定班期的项目将在分班后更新。</p>
           <div id="enrLoading" class="muted small">加载中…</div>
           <div id="enrList"></div>
           <div id="enrEmpty" hidden class="note">
@@ -130,6 +135,7 @@
 
   <footer class="footer"></footer>
   <script type="module" src="app.js?v=20260323_001"></script>
-  <script type="module" src="my-learning.js?v=20260323_001"></script>
+  <script type="module" src="my-learning.js?v=20260916_learn2"></script>
+  <script type="module" src="learning-resume.js?v=20260916_learn2"></script>
 </body>
 </html>

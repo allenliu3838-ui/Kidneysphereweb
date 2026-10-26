@@ -2,7 +2,7 @@
  * admin-commerce-groups.js — 学习群中心模块
  */
 import { supabase, toast, formatBeijingDateTime } from './supabaseClient.js?v=20260401_fix';
-import { esc, fmtDate, statusDot, showModal, closeModal } from './admin-commerce.js?v=20260325_001';
+import { esc, fmtDate, statusDot, showModal, closeModal } from './admin-commerce.js?v=20260914_payment1';
 
 const INVITE_STATUS = {
   pending:   { label: '待处理', dot: 'yellow' },
@@ -17,7 +17,7 @@ async function loadGroups() {
   if (!wrap) return;
 
   const { data, error } = await supabase
-    .from('study_groups')
+    .rpc('admin_get_study_groups')
     .select('*, learning_projects(title), cohorts(title)')
     .order('created_at', { ascending: false });
 
@@ -234,7 +234,7 @@ function bindEvents() {
     const editBtn = e.target.closest('button[data-edit-group]');
     if (editBtn) {
       await loadOptions();
-      const { data } = await supabase.from('study_groups').select('*').eq('id', editBtn.dataset.editGroup).single();
+      const { data } = await supabase.rpc('admin_get_study_groups').eq('id', editBtn.dataset.editGroup).single();
       if (data) showGroupForm(data);
       return;
     }

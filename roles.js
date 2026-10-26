@@ -26,7 +26,7 @@ function roleLabel(r){
   return r || 'member';
 }
 
-function renderUserRow(p){
+function renderUserRow(p, editorIds){
   const id = p.id;
   const name = p.full_name || '(未填写姓名)';
   const role = String(p.role || 'member');
@@ -48,6 +48,7 @@ function renderUserRow(p){
             <option value="super_admin" ${role==='super_admin'?'selected':''}>super_admin（超管）</option>
           </select>
           <button class="btn roleSaveBtn" data-user-id="${esc(id)}" type="button">保存</button>
+          <button class="btn contentEditorBtn ${editorIds.has(id) ? 'primary' : ''}" data-user-id="${esc(id)}" data-enabled="${editorIds.has(id) ? 'true' : 'false'}" type="button">内容编辑：${editorIds.has(id) ? '已开启' : '未开启'}</button>
           <button class="btn roleCopyBtn" data-user-id="${esc(id)}" type="button">复制ID</button>
         </div>
       </div>
@@ -76,6 +77,11 @@ async function setUserRole(supabase, targetId, newRole){
     return;
   }
   throw r1.error;
+}
+
+async function setContentEditor(supabase, targetId, enabled){
+  const result = await supabase.rpc('set_content_editor', { target_user: targetId, enabled });
+  if(result.error) throw result.error;
 }
 
 async function loadUsers(){
@@ -127,7 +133,10 @@ async function loadUsers(){
       return;
     }
 
-    list.innerHTML = items.map(renderUserRow).join('');
+    const editorResult = await supabase.from('content_editors').select('user_id').eq('active', true);
+    if(editorResult.error) throw editorResult.error;
+    const editorIds = new Set((editorResult.data || []).map(row => row.user_id));
+    list.innerHTML = items.map(item => renderUserRow(item, editorIds)).join('');
 
     // wire buttons
     list.querySelectorAll('.roleCopyBtn').forEach(btn=>{
@@ -163,8 +172,30 @@ async function loadUsers(){
       });
     });
 
+    list.querySelectorAll('.contentEditorBtn').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const id = btn.getAttribute('data-user-id');
+        const next = btn.getAttribute('data-enabled') !== 'true';
+        if(!id) return;
+        btn.disabled = true;
+        const oldText = btn.textContent;
+        btn.textContent = '保存中…';
+        try{
+          await setContentEditor(supabase, id, next);
+          btn.setAttribute('data-enabled', next ? 'true' : 'false');
+          btn.classList.toggle('primary', next);
+          btn.textContent = `内容编辑：${next ? '已开启' : '未开启'}`;
+        }catch(e){
+          alert(`保存失败：${e?.message || String(e)}`);
+          btn.textContent = oldText;
+        }finally{
+          btn.disabled = false;
+        }
+      });
+    });
+
   }catch(e){
-    setListEmpty(`加载失败：${e?.message || String(e)}\n\n提示：请确认 Supabase 已运行 MIGRATION_20260107_NEXT.sql，并已刷新 schema。`);
+    setListEmpty(`加载失败：${e?.message || String(e)}\n\n提示：请确认内容编辑权限迁移已生效，并刷新页面。`);
   }
 }
 

@@ -7,7 +7,7 @@
   <meta name="description" content="肾域 auth callback" />
   <meta name="robots" content="noindex,nofollow" />
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+  <link rel="stylesheet" href="styles.css?v=20260914_depth1" />
 </head>
 <body>
   <header class="nav"></header>
@@ -18,17 +18,17 @@
         <div class="card" style="max-width:860px;margin:0 auto">
           <h2 style="margin:0 0 6px">正在完成登录…</h2>
           <p class="small muted" style="margin:0 0 16px">
-            如果你开启了 Confirm Email，这个页面用于接收邮箱确认后的跳转并建立 session。
+            正在验证你的邮箱并完成登录，稍后将返回刚才的页面。
           </p>
 
           <div class="note" style="margin:12px 0 18px">
-            <b>提示：</b>如页面一直停留在这里，通常是登录回跳配置未生效或网络拦截导致。请刷新重试；如仍无法登录，请联系 <a href="mailto:china@kidneysphere.com">china@kidneysphere.com</a>。
+            <b>提示：</b>如页面一直停留在这里，可能是网络不稳定或链接已失效。请刷新重试；如仍无法登录，请联系 <a href="mailto:china@kidneysphere.com">china@kidneysphere.com</a>。
           </div>
 
           <div id="status" class="small"></div>
 
           <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:16px">
-            <a class="btn" href="login.html">返回登录</a>
+            <a class="btn" href="login.html" data-auth-return>返回登录</a>
             <a class="btn" href="health.html">打开自检页</a>
             <a class="btn" href="index.html">返回首页</a>
           </div>
@@ -37,15 +37,13 @@
     </section>
 
     <script type="module">
-      import { supabase, isConfigured, toast } from './supabaseClient.js?v=20260401_fix';
+      import { supabase, ensureSupabase, isConfigured, toast } from './supabaseClient.js?v=20260401_fix';
+      import { getAuthReturnTarget, preserveAuthReturnLinks } from './auth-return.js?v=20260915_mobile1';
 
       const el = document.getElementById('status');
 
-      const qs = new URLSearchParams(location.search);
-      const nextRaw = qs.get('next') || '';
-      const next = (nextRaw && !nextRaw.startsWith('http') && !nextRaw.startsWith('//') && !nextRaw.includes('..'))
-        ? nextRaw
-        : 'post-case.html';
+      const next = getAuthReturnTarget();
+      preserveAuthReturnLinks(next);
 
       function setStatus(html){ el.innerHTML = html; }
 
@@ -73,8 +71,9 @@
       }
 
       async function run(){
+        await ensureSupabase();
         if(!isConfigured() || !supabase){
-          setStatus('<div class="muted">Supabase 未配置：请先在 assets/config.js 填入 SUPABASE_URL 与 SUPABASE_ANON_KEY。</div>');
+          setStatus('<div class="muted">暂时无法连接登录服务，请稍后重试。</div>');
           return;
         }
 

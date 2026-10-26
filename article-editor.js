@@ -3,7 +3,7 @@ import {
   getCurrentUser,
   getUserProfile,
   isAdminRole,
-} from './supabaseClient.js?v=20260401_fix';
+} from './supabaseClient.js?v=20260917_content1';
 
 import { mountKSEditor } from './ks_editor.js?v=20260213_001';
 import { renderSafeHtml } from './ks_richtext.js?v=20260213_001';
@@ -12,7 +12,8 @@ const gateEl = document.getElementById('editorGate');
 const rootEl = document.getElementById('editorRoot');
 
 let loadedArticle = null;
-
+let currentCanEdit = false;
+let currentCanPublish = false;
 let rtEditor = null;
 
 let _actionsDocked = false;
@@ -80,6 +81,42 @@ function injectEditorHTML() {
       </div>
     </div>
 
+    <details class="card soft daily-editor" id="aDailyDetails" style="margin-top:14px">
+      <summary style="cursor:pointer"><b>每日一学</b> <span class="small muted">把本文设为 3–5 分钟临床学习卡</span></summary>
+      <div style="margin-top:14px">
+        <label style="display:flex;gap:9px;align-items:center">
+          <input type="checkbox" id="aDailyEnabled"/> 为本文配置“每日一学”
+        </label>
+        <div id="aDailyPanel" hidden>
+          <div class="note small" style="margin-top:12px">每日学习卡本身免费；可另设一个明确标注的会员回放或培训课程入口。内容编辑可提交，管理员发布文章后才会面向用户显示。</div>
+          <div class="form-row" style="gap:10px;flex-wrap:wrap;margin-top:12px">
+            <div style="flex:1;min-width:180px"><label class="small muted">专业方向</label><select class="input" id="aDailySpecialty"><option value="glom">肾小球病</option><option value="icu">重症肾内</option><option value="tx">肾移植</option><option value="path">肾脏病理</option><option value="da">血管通路</option><option value="peds">儿童肾脏</option><option value="other">综合肾脏病</option></select></div>
+            <div style="flex:1;min-width:180px"><label class="small muted">计划日期（北京时间）</label><input class="input" id="aDailyDate" type="date"/></div>
+            <div style="flex:1;min-width:150px"><label class="small muted">预计分钟</label><input class="input" id="aDailyMinutes" type="number" min="1" max="15" value="3"/></div>
+          </div>
+          <div style="margin-top:10px"><label class="small muted">今日学习目标</label><textarea class="input prose-input" id="aDailyObjective" rows="2" placeholder="例如：判断浓缩尿伴低尿钠时，为什么不能只凭总尿渗透压诊断 SIADH"></textarea></div>
+          <div style="margin-top:10px"><label class="small muted">核心要点（每行一个，1–5条）</label><textarea class="input prose-input" id="aDailyPoints" rows="4" placeholder="要点一\n要点二\n要点三"></textarea></div>
+          <div style="margin-top:10px"><label class="small muted">检验问题</label><textarea class="input prose-input" id="aDailyQuestion" rows="2" placeholder="一道单选题"></textarea></div>
+          <div class="form-row" style="gap:10px;flex-wrap:wrap;margin-top:10px">
+            <div style="flex:2;min-width:280px"><label class="small muted">选项（每行一个，2–6项）</label><textarea class="input prose-input" id="aDailyOptions" rows="4" placeholder="选项 A\n选项 B\n选项 C\n选项 D"></textarea></div>
+            <div style="flex:1;min-width:170px"><label class="small muted">正确选项序号</label><input class="input" id="aDailyCorrect" type="number" min="1" max="6" value="1"/><div class="small muted" style="margin-top:5px">填写 1、2、3…</div></div>
+          </div>
+          <div style="margin-top:10px"><label class="small muted">答案解析</label><textarea class="input prose-input" id="aDailyExplanation" rows="3" placeholder="说明为什么正确，以及常见误区"></textarea></div>
+          <div class="form-row" style="gap:10px;flex-wrap:wrap;margin-top:10px">
+            <div style="flex:1;min-width:220px"><label class="small muted">来源名称</label><input class="input" id="aDailySourceLabel" placeholder="例如：KDIGO 2024 CKD Guideline"/></div>
+            <div style="flex:1;min-width:260px"><label class="small muted">来源链接（HTTPS，可选）</label><input class="input" id="aDailySourceUrl" type="url" placeholder="https://..."/></div>
+          </div>
+          <div class="form-row" style="gap:10px;flex-wrap:wrap;margin-top:10px">
+            <div style="flex:1;min-width:210px"><label class="small muted">延伸学习按钮文字（可选）</label><input class="input" id="aDailyRelatedLabel" placeholder="例如：观看本周回放"/></div>
+            <div style="flex:1;min-width:250px"><label class="small muted">站内链接（可选）</label><input class="input" id="aDailyRelatedHref" placeholder="videos.html?access=member"/></div>
+            <div style="flex:1;min-width:180px"><label class="small muted">延伸内容权限</label><select class="input" id="aDailyRelatedAccess"><option value="">不设置</option><option value="free">免费</option><option value="member">会员回放 · ¥299/年</option><option value="training">培训项目 · 另行付费</option></select></div>
+          </div>
+          <label id="aDailyActiveWrap" style="display:flex;gap:9px;align-items:center;margin-top:12px"><input type="checkbox" id="aDailyActive"/> 发布文章后在首页启用（管理员）</label>
+          <div class="small muted" id="aDailyMsg" style="margin-top:8px"></div>
+        </div>
+      </div>
+    </details>
+
     <div class="hr"></div>
 
     <div class="form-row" style="gap:10px;flex-wrap:wrap;margin-top:10px">
@@ -146,6 +183,26 @@ function populateEls() {
     uploadInsertBtn: document.getElementById('aUploadInsert'),
     uploadCoverBtn: document.getElementById('aUploadCover'),
     uploadMsg: document.getElementById('aUploadMsg'),
+    dailyDetails: document.getElementById('aDailyDetails'),
+    dailyEnabled: document.getElementById('aDailyEnabled'),
+    dailyPanel: document.getElementById('aDailyPanel'),
+    dailySpecialty: document.getElementById('aDailySpecialty'),
+    dailyDate: document.getElementById('aDailyDate'),
+    dailyMinutes: document.getElementById('aDailyMinutes'),
+    dailyObjective: document.getElementById('aDailyObjective'),
+    dailyPoints: document.getElementById('aDailyPoints'),
+    dailyQuestion: document.getElementById('aDailyQuestion'),
+    dailyOptions: document.getElementById('aDailyOptions'),
+    dailyCorrect: document.getElementById('aDailyCorrect'),
+    dailyExplanation: document.getElementById('aDailyExplanation'),
+    dailySourceLabel: document.getElementById('aDailySourceLabel'),
+    dailySourceUrl: document.getElementById('aDailySourceUrl'),
+    dailyRelatedLabel: document.getElementById('aDailyRelatedLabel'),
+    dailyRelatedHref: document.getElementById('aDailyRelatedHref'),
+    dailyRelatedAccess: document.getElementById('aDailyRelatedAccess'),
+    dailyActive: document.getElementById('aDailyActive'),
+    dailyActiveWrap: document.getElementById('aDailyActiveWrap'),
+    dailyMsg: document.getElementById('aDailyMsg'),
   };
 }
 
@@ -402,8 +459,7 @@ async function uploadArticleMedia(file){
   if(!sb) throw new Error('Supabase 未配置。');
   const user = await getCurrentUser();
   if(!user) throw new Error('请先登录。');
-  const profile = await getUserProfile(user.id);
-  if(!isAdminRole(profile?.role)) throw new Error('需要管理员权限才能上传文章媒体。');
+  if(!currentCanEdit) throw new Error('需要内容编辑权限才能上传文章媒体。');
 
   const bucket = 'article_media';
   const path = `${user.id}/${Date.now()}_${safeFileName(file.name)}`;
@@ -613,74 +669,6 @@ function getId(){
 
 
 
-function buildPreviewBody(fullBody){
-  const plain = String(fullBody || '')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if(!plain) return '会员阅读全文';
-  if(plain.length <= 280) return plain;
-  return plain.slice(0, 280) + '…\n\n—— 会员阅读全文 ——';
-}
-
-async function upsertContentHubVersion(supabase, payload){
-  const { legacyId, title, summary, tags, status, author_name, content_html, user_id } = payload;
-  let ci = null;
-  if(legacyId){
-    const byLegacy = await supabase.from('content_items').select('*').eq('legacy_article_id', legacyId).maybeSingle();
-    if(byLegacy.data) ci = byLegacy.data;
-  }
-  if(!ci){
-    const created = await supabase.from('content_items').insert({
-      legacy_article_id: legacyId || null,
-      type: 'article',
-      title_zh: title,
-      summary_zh: summary || null,
-      tags,
-      status,
-      paywall: 'free_preview',
-      author_name,
-    }).select('*').single();
-    if(created.error) throw created.error;
-    ci = created.data;
-  }else{
-    const up = await supabase.from('content_items').update({
-      title_zh: title,
-      summary_zh: summary || null,
-      tags,
-      status,
-      author_name,
-    }).eq('id', ci.id);
-    if(up.error) throw up.error;
-  }
-
-  const ts = new Date();
-  const version = `v${ts.getUTCFullYear()}${String(ts.getUTCMonth()+1).padStart(2,'0')}${String(ts.getUTCDate()).padStart(2,'0')}-${String(ts.getUTCHours()).padStart(2,'0')}${String(ts.getUTCMinutes()).padStart(2,'0')}${String(ts.getUTCSeconds()).padStart(2,'0')}`;
-  const preview_body = buildPreviewBody(content_html || '');
-  const vres = await supabase.from('content_versions').insert({
-    content_id: ci.id,
-    version,
-    status,
-    source_format: 'html',
-    preview_body,
-    full_body: content_html || '',
-    created_by: user_id,
-    approved_by: status === 'published' ? user_id : null,
-  }).select('id').single();
-  if(vres.error) throw vres.error;
-
-  if(status === 'published'){
-    const pub = await supabase.from('content_items').update({
-      status: 'published',
-      last_published_version_id: vres.data.id,
-      published_at: new Date().toISOString(),
-    }).eq('id', ci.id);
-    if(pub.error) throw pub.error;
-  }
-
-  return { contentItemId: ci.id };
-}
-
 function getPresetTagsFromUrl(){
   // Optional: allow pre-filling tags when opening the editor from a themed list page.
   // Supported params: ?tag=xxx or ?presetTag=xxx or ?tags=a,b,c
@@ -759,7 +747,122 @@ function parseTags(s){
     .slice(0, 20);
 }
 
+function splitDailyLines(value, limit){
+  return String(value || '').split(/\r?\n/).map(item => item.trim()).filter(Boolean).slice(0, limit);
+}
+
+function beijingToday(){
+  try{
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone:'Asia/Shanghai', year:'numeric', month:'2-digit', day:'2-digit',
+    }).formatToParts(new Date());
+    const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+    return `${values.year}-${values.month}-${values.day}`;
+  }catch(_e){
+    return new Date().toISOString().slice(0,10);
+  }
+}
+
+function setDailyMsg(message, kind='muted'){
+  if(!els.dailyMsg) return;
+  els.dailyMsg.className = `small ${kind}`;
+  els.dailyMsg.textContent = String(message || '');
+}
+
+function updateDailyPanel(){
+  const enabled = Boolean(els.dailyEnabled?.checked);
+  if(els.dailyPanel) els.dailyPanel.hidden = !enabled;
+  if(enabled && els.dailyDetails) els.dailyDetails.open = true;
+}
+
+async function loadDailyMetadata(supabase, articleId){
+  if(!articleId || !els.dailyEnabled) return;
+  const { data, error } = await supabase.from('daily_learning_cards').select('*').eq('article_id',articleId).maybeSingle();
+  if(error) throw error;
+  if(!data){
+    els.dailyEnabled.checked = false;
+    updateDailyPanel();
+    return;
+  }
+  els.dailyEnabled.checked = true;
+  updateDailyPanel();
+  els.dailySpecialty.value = data.specialty || 'other';
+  els.dailyDate.value = data.scheduled_date || beijingToday();
+  els.dailyMinutes.value = String(data.estimated_minutes || 3);
+  els.dailyObjective.value = data.learning_objective || '';
+  els.dailyPoints.value = Array.isArray(data.key_points) ? data.key_points.join('\n') : '';
+  els.dailyQuestion.value = data.quiz_question || '';
+  els.dailyOptions.value = Array.isArray(data.quiz_options) ? data.quiz_options.join('\n') : '';
+  els.dailyCorrect.value = String((Number(data.correct_option) || 0) + 1);
+  els.dailyExplanation.value = data.quiz_explanation || '';
+  els.dailySourceLabel.value = data.source_label || '';
+  els.dailySourceUrl.value = data.source_url || '';
+  els.dailyRelatedLabel.value = data.related_label || '';
+  els.dailyRelatedHref.value = data.related_href || '';
+  els.dailyRelatedAccess.value = data.related_access || '';
+  els.dailyActive.checked = Boolean(data.active);
+  setDailyMsg(data.active ? '该学习卡已在首页启用。' : '学习卡已保存，发布文章后才会向用户显示。');
+}
+
+async function saveDailyMetadata(supabase, articleId){
+  if(!articleId || !els.dailyEnabled) return;
+  const enabled = Boolean(els.dailyEnabled.checked);
+  if(!enabled){
+    const result = await supabase.rpc('save_daily_learning_card', {
+      p_article_id:articleId, p_enabled:false,
+    });
+    if(result.error) throw result.error;
+    setDailyMsg('本文未设置为“每日一学”。');
+    return;
+  }
+
+  const keyPoints = splitDailyLines(els.dailyPoints?.value,5);
+  const quizOptions = splitDailyLines(els.dailyOptions?.value,6);
+  const correctOption = Number(els.dailyCorrect?.value || 0) - 1;
+  if(keyPoints.length < 1) throw new Error('“每日一学”至少需要 1 条核心要点。');
+  if(quizOptions.length < 2) throw new Error('“每日一学”至少需要 2 个答题选项。');
+  if(!Number.isInteger(correctOption) || correctOption < 0 || correctOption >= quizOptions.length){
+    throw new Error('正确选项序号必须对应现有选项。');
+  }
+  const relatedFields = [els.dailyRelatedLabel?.value,els.dailyRelatedHref?.value,els.dailyRelatedAccess?.value]
+    .map(value => String(value || '').trim());
+  if(relatedFields.some(Boolean) && !relatedFields.every(Boolean)){
+    throw new Error('延伸学习的按钮文字、站内链接和权限标记需要同时填写。');
+  }
+
+  const result = await supabase.rpc('save_daily_learning_card', {
+    p_article_id:articleId,
+    p_enabled:true,
+    p_specialty:String(els.dailySpecialty?.value || 'other'),
+    p_learning_objective:String(els.dailyObjective?.value || '').trim() || null,
+    p_key_points:keyPoints,
+    p_estimated_minutes:Number(els.dailyMinutes?.value || 3),
+    p_quiz_question:String(els.dailyQuestion?.value || '').trim() || null,
+    p_quiz_options:quizOptions,
+    p_correct_option:correctOption,
+    p_quiz_explanation:String(els.dailyExplanation?.value || '').trim() || null,
+    p_source_label:String(els.dailySourceLabel?.value || '').trim() || null,
+    p_source_url:String(els.dailySourceUrl?.value || '').trim() || null,
+    p_scheduled_date:String(els.dailyDate?.value || beijingToday()),
+    p_active:currentCanPublish && Boolean(els.dailyActive?.checked),
+    p_related_label:relatedFields[0] || null,
+    p_related_href:relatedFields[1] || null,
+    p_related_access:relatedFields[2] || null,
+  });
+  if(result.error) throw result.error;
+  setDailyMsg(currentCanPublish && els.dailyActive?.checked ? '学习卡已保存并启用。' : '学习卡已保存，等待管理员发布。');
+}
+
 async function loadExisting(supabase, id){
+  // The canonical article row contains the current draft/review body.  Prefer it
+  // over content_items so an unpublished version never opens as an empty page.
+  const article = await supabase.from('articles').select('*').eq('id', id).maybeSingle();
+  if(article.error) throw article.error;
+  if(article.data){
+    loadedArticle = article.data;
+    return article.data;
+  }
+
   const c = await supabase.from('content_items').select('*').or(`id.eq.${id},legacy_article_id.eq.${id}`).maybeSingle();
   if(c?.data?.id){
     const vid = c.data.last_published_version_id;
@@ -781,10 +884,7 @@ async function loadExisting(supabase, id){
     };
     return loadedArticle;
   }
-  const { data, error } = await supabase.from('articles').select('*').eq('id', id).maybeSingle();
-  if(error) throw error;
-  loadedArticle = data;
-  return data;
+  return null;
 }
 
 async function saveArticle(){
@@ -793,8 +893,7 @@ async function saveArticle(){
   if(!user) throw new Error('请先登录管理员账号。');
 
   const profile = await getUserProfile(user.id);
-  const role = String(profile?.role || '');
-  if(!isAdminRole(role)) throw new Error('你没有管理员权限。');
+  if(!currentCanEdit) throw new Error('你没有内容编辑权限。');
 
   const id = getId();
 
@@ -809,81 +908,36 @@ async function saveArticle(){
   const content_html = rtEditor ? String(rtEditor.getHtml() || '').trim() : '';
   // Keep legacy field populated (used for excerpt/share/search). We store plain text.
   const content_md = rtEditor ? String(rtEditor.getPlainText() || '').trim() : String(els.content?.value || '').trim();
-  const tags = parseTags(els.tags?.value || '');
+  let tags = parseTags(els.tags?.value || '');
+  if(els.dailyEnabled?.checked && !tags.includes('每日一学')) tags = [...tags,'每日一学'].slice(0,20);
   const author_name = String(els.authorName?.value || '').trim() || (profile?.full_name || user.email || '');
 
-  const nowIso = new Date().toISOString();
-  const published_at = (status === 'published') ? (loadedArticle?.published_at || nowIso) : null;
+  const { data, error } = await supabase.rpc('save_article_content', {
+    p_article_id: id || null,
+    p_title: title,
+    p_status: status,
+    p_pinned: pinned,
+    p_summary: summary || null,
+    p_cover_url: cover_url || null,
+    p_tags: tags,
+    p_content_md: content_md || '',
+    p_content_html: content_html || null,
+    p_author_name: author_name,
+  });
+  if(error) throw error;
 
-  const payload = {
-    title,
-    status,
-    pinned,
-    summary: summary || null,
-    cover_url: cover_url || null,
-    tags,
-    content_md: content_md || '',
-    content_html: content_html || null,
-    author_id: user.id,
-    author_name,
-    published_at,
-    deleted_at: null,
-  };
-
-  // Backward-compatible save:
-  // - If the DB has not been migrated to add `content_html`, retry without it.
-  const isMissingColumn = (err, col)=>{
-    const msg = String(err?.message || err || '').toLowerCase();
-    const c = String(col || '').toLowerCase();
-    return msg.includes(c) && (msg.includes('does not exist') || msg.includes('column') || msg.includes('schema cache'));
-  };
-
-  if(id){
-    // Update
-    let { error } = await supabase.from('articles').update(payload).eq('id', id);
-    if(error && isMissingColumn(error, 'content_html')){
-      const retry = { ...payload };
-      delete retry.content_html;
-      ({ error } = await supabase.from('articles').update(retry).eq('id', id));
-    }
-    if(error) throw error;
-    setMsg('已保存', 'muted');
-  }else{
-    // Insert
-    let res = await supabase.from('articles').insert(payload).select('id').single();
-    if(res?.error && isMissingColumn(res.error, 'content_html')){
-      const retry = { ...payload };
-      delete retry.content_html;
-      res = await supabase.from('articles').insert(retry).select('id').single();
-    }
-    if(res?.error) throw res.error;
-    const data = res?.data;
-    setMsg('已创建', 'muted');
-    if(data?.id){
-      history.replaceState({}, '', `article-editor.html?id=${encodeURIComponent(data.id)}`);
-    }
+  const saved = Array.isArray(data) ? data[0] : data;
+  const savedId = saved?.article_id || id;
+  if(savedId && !id){
+    history.replaceState({}, '', `article-editor.html?id=${encodeURIComponent(savedId)}`);
   }
-
-  // Content Hub versioning (new unified sync model)
   try{
-    const effectiveLegacyId = id || (loadedArticle?.id) || null;
-    const result = await upsertContentHubVersion(supabase, {
-      legacyId: effectiveLegacyId,
-      title,
-      summary,
-      tags,
-      status,
-      author_name,
-      content_html: content_html || mdToHtml(content_md),
-      user_id: user.id,
-    });
-    if(result?.contentItemId){
-      setMsg(status === 'published' ? '已发布（已生成版本）' : '已保存草稿版本', 'muted');
-    }
-  }catch(e){
-    console.warn('content hub save failed:', e);
-    setMsg('文章已保存（内容中台写入失败，请检查迁移）', 'err');
+    await saveDailyMetadata(supabase,savedId);
+  }catch(error){
+    throw new Error(`文章已保存，但“每日一学”设置未保存：${error?.message || String(error)}`);
   }
+  loadedArticle = { ...(loadedArticle || {}), id: savedId, status, title, summary, cover_url, tags, content_md, content_html };
+  setMsg(status === 'published' ? '已发布并生成版本。' : (status === 'in_review' ? '已提交审核。' : '草稿与版本已保存。'), 'muted');
 }
 
 async function deleteArticle(){
@@ -939,7 +993,10 @@ async function main(){
     const profile = await getUserProfile(user.id);
     const role = String(profile?.role || '');
 
-    if(!isAdminRole(role)){
+    const editorCheck = await supabase.rpc('is_content_editor');
+    if(editorCheck.error) throw editorCheck.error;
+    currentCanEdit = editorCheck.data === true;
+    if(!currentCanEdit){
       location.replace('index.html');
       return;
     }
@@ -948,11 +1005,32 @@ async function main(){
     injectEditorHTML();
     populateEls();
 
+    const canPublish = isAdminRole(role);
+    currentCanPublish = canPublish;
+    if(!canPublish){
+      els.status?.querySelectorAll('option').forEach(option => {
+        if(!['draft','in_review'].includes(option.value)) option.remove();
+      });
+      if(els.pinned){
+        els.pinned.checked = false;
+        els.pinned.disabled = true;
+        if(els.pinned.parentElement) els.pinned.parentElement.hidden = true;
+      }
+      if(els.deleteBtn) els.deleteBtn.hidden = true;
+    }
+    if(els.dailyActiveWrap) els.dailyActiveWrap.hidden = !canPublish;
+    if(els.dailyDate && !els.dailyDate.value) els.dailyDate.value = beijingToday();
+    els.dailyEnabled?.addEventListener('change',updateDailyPanel);
+    updateDailyPanel();
+
     const id = getId();
     if(id){
       setMsg('加载文章中…', 'muted');
       const a = await loadExisting(supabase, id);
       if(!a) throw new Error('文章不存在或已删除。');
+      if(!canPublish && !['draft','in_review'].includes(String(a.status || ''))){
+        throw new Error('内容编辑只能修改自己的草稿或待审内容。');
+      }
 
       els.title.value = a.title || '';
       els.status.value = a.status || 'draft';
@@ -962,6 +1040,13 @@ async function main(){
       els.tags.value = Array.isArray(a.tags) ? a.tags.join(', ') : '';
       els.authorName.value = a.author_name || '';
       els.content.value = a.content_md || '';
+
+      try{
+        await loadDailyMetadata(supabase,a.id);
+      }catch(error){
+        setDailyMsg('每日学习设置暂时无法读取，请先确认数据库迁移已完成。','err');
+        console.warn('daily learning metadata load failed',error);
+      }
 
       // Try to infer template selection from tags (no auto-apply on existing articles)
       try{
@@ -995,6 +1080,19 @@ async function main(){
 
       setMsg('新文章（未保存）。', 'muted');
     }
+
+    const updateDailyActivationState = ()=>{
+      if(!els.dailyActive) return;
+      const published = String(els.status?.value || '') === 'published';
+      els.dailyActive.disabled = !currentCanPublish || !published;
+      if(!published) els.dailyActive.checked = false;
+      if(currentCanPublish && els.dailyEnabled?.checked && !published){
+        setDailyMsg('先保存草稿或提交审核；文章由管理员发布后，学习卡才能上线。');
+      }
+    };
+    els.status?.addEventListener('change',updateDailyActivationState);
+    els.dailyEnabled?.addEventListener('change',updateDailyActivationState);
+    updateDailyActivationState();
 
     // Mount the Word-like rich editor over the content textarea.
     // - Existing articles: prefer `content_html`, otherwise migrate from legacy markdown.

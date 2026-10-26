@@ -7,7 +7,7 @@
   <meta name="description" content="肾域 — 面向肾脏专科的学术社区、临床科研与医生工具平台">
   <meta name="robots" content="noindex,nofollow" />
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+  <link rel="stylesheet" href="styles.css?v=20260914_depth1" />
 </head>
 <body>
   <header class="nav"></header>
@@ -21,7 +21,7 @@
       <p>使用 <b>邮箱 + 密码</b> 注册并登录。建议填写昵称与身份，便于病例讨论署名与后续运营。</p>
 
       <div class="note" style="margin:12px 0 6px">
-        <b>提示：</b>如本网站启用了邮箱验证，注册后请前往邮箱完成确认再登录；若未收到邮件，可检查垃圾箱或稍后重试。
+        <b>提示：</b>注册后系统会根据账号状态自动登录，或提示你完成邮箱确认。
       </div>
 
       <form id="registerForm">
@@ -47,14 +47,14 @@
           </div>
 	          <div>
 	            <label>密码</label>
-	            <input class="input" name="password" id="passwordInput" type="password" placeholder="至少 8 位，建议字母+数字" autocomplete="new-password" required />
+	            <input class="input" name="password" id="passwordInput" type="password" placeholder="至少 8 位，含大写字母、小写字母和数字" minlength="8" autocomplete="new-password" required />
 	          </div>
         </div>
 
 	        <div class="muted" style="margin-top:8px; line-height:1.55">
 	          <b>密码设置建议：</b><br>
 	          • 长度至少 <b>8</b> 位（建议 10–16 位）<br>
-	          • <b>最低要求</b>：同时包含 <b>字母</b> 和 <b>数字</b>（至少各 1 个）；<b>更安全</b>：再加入大写字母与特殊符号<br>
+	          • <b>最低要求</b>：同时包含 <b>大写字母</b>、<b>小写字母</b>和<b>数字</b>（至少各 1 个）；可再加入特殊符号增强安全性<br>
 	          • 请避免使用姓名/生日/手机号等容易被猜到的信息<br>
 	          • 忘记密码可通过邮箱"找回密码"重置
 	        </div>
@@ -69,7 +69,7 @@
 
         <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px">
           <button class="btn primary" type="submit">注册</button>
-          <a class="btn" href="login.html">我已有账号，去登录</a>
+          <a class="btn" href="login.html" data-auth-return>我已有账号，去登录</a>
           <a class="btn" href="index.html">返回首页</a>
         </div>
 
@@ -79,7 +79,7 @@
       <div id="confirmWrap" class="note" style="margin-top:14px" hidden>
         <b>注册成功，请验证邮箱：</b>
         <div class="small" style="margin-top:6px">
-          确认邮件已发送至 <code id="confirmEmail">您的邮箱</code>。请打开邮箱点击确认链接，然后再回到本站 <a href="login.html">登录</a>。
+          确认邮件已发送至 <code id="confirmEmail">您的邮箱</code>。请打开邮箱点击确认链接，然后再回到本站 <a href="login.html" data-auth-return>登录</a>。
           <br/>如未收到邮件，请检查垃圾箱或稍后重试。
         </div>
       </div>
@@ -90,12 +90,10 @@
 
 <script type="module">
   import { supabase, ensureSupabase, getSupabaseDebugInfo, toast, isConfigured } from './supabaseClient.js?v=20260401_fix';
+  import { getAuthReturnTarget, authFlowUrl, preserveAuthReturnLinks } from './auth-return.js?v=20260915_mobile1';
 
-  const qs = new URLSearchParams(location.search);
-  const nextRaw = qs.get('next') || '';
-  const next = (nextRaw && !nextRaw.startsWith('http') && !nextRaw.startsWith('//') && !nextRaw.includes('..'))
-    ? nextRaw
-    : 'post-case.html';
+  const next = getAuthReturnTarget();
+  preserveAuthReturnLinks(next);
 
   const form = document.getElementById('registerForm');
   const nameInput = document.getElementById('nameInput');
@@ -116,10 +114,34 @@
   const confirmEmail = document.getElementById('confirmEmail');
 
   function getEmailRedirectTo(){
-    const url = new URL('auth-callback.html', location.origin);
-    url.searchParams.set('next', next);
+    const url = new URL(authFlowUrl('auth-callback.html', next), location.origin);
     return url.toString();
   }
+
+function friendlySignupError(error){
+  const code = String(error?.code || '').toLowerCase();
+  const status = Number(error?.status || 0);
+  const name = String(error?.name || '').toLowerCase();
+  const message = String(error?.message || error || '').toLowerCase();
+
+  if(code === 'user_already_exists' || message.includes('already registered')){
+    return '该邮箱已注册，请直接登录。';
+  }
+  if(code === 'weak_password' || message.includes('password should') || message.includes('weak password')){
+    return '密码至少 8 位，并包含大写字母、小写字母和数字。';
+  }
+  if(status === 429 || code.includes('rate_limit') || message.includes('rate limit')){
+    return '请求过于频繁，请稍后再试。';
+  }
+  if(
+    status === 0 || name.includes('authretryablefetcherror') || name.includes('aborterror') ||
+    message.includes('load failed') || message.includes('failed to fetch') ||
+    message.includes('network') || message.includes('timeout') || message.includes('timed out')
+  ){
+    return '网络中断，暂时无法确认注册是否完成。请先尝试登录；如系统提示邮箱未确认，再检查邮件。';
+  }
+  return '注册暂未完成，请稍后重试。';
+}
 
   async function syncProfile(user, full_name){
     if(!user) return;
@@ -141,6 +163,7 @@
     const oldText = submitBtn.textContent;
     submitBtn.textContent = '注册中…';
 
+    try{
     if(!isConfigured()){
       toast('服务暂不可用','系统正在维护中，请稍后再试。如持续出现请联系 china@kidneysphere.com。','err');
       submitBtn.disabled = false;
@@ -185,16 +208,17 @@ SDK 来源：${dbg.libSource}` : '';
       return;
     }
     if(password.length < 8){
-      toast('密码太短','请设置至少 8 位的密码（建议 10–16 位，且包含字母+数字）。','err');
+      toast('密码太短','请设置至少 8 位，并包含大写字母、小写字母和数字。','err');
       submitBtn.disabled = false;
       submitBtn.textContent = oldText;
       return;
     }
-    // 最低要求：同时包含字母 + 数字
-    const hasLetter = /[A-Za-z]/.test(password);
+    // 最低要求：同时包含大写字母、小写字母和数字
+    const hasLower = /[a-z]/.test(password);
+    const hasUpper = /[A-Z]/.test(password);
     const hasNumber = /\d/.test(password);
-    if(!hasLetter || !hasNumber){
-      toast('密码不符合要求','请确保密码同时包含字母和数字（可再加入大写字母与特殊符号以增强安全性）。','err');
+    if(!hasLower || !hasUpper || !hasNumber){
+      toast('密码不符合要求','请确保密码同时包含大写字母、小写字母和数字。','err');
       submitBtn.disabled = false;
       submitBtn.textContent = oldText;
       return;
@@ -213,14 +237,12 @@ SDK 来源：${dbg.libSource}` : '';
       password,
       options: {
         emailRedirectTo,
-        data: { full_name },
+        data: { full_name, display_name: full_name },
       }
     });
 
     if(error){
-      toast('注册失败', error.message || '未知错误', 'err');
-      submitBtn.disabled = false;
-      submitBtn.textContent = oldText;
+      toast('注册失败', friendlySignupError(error), 'err');
       return;
     }
 
@@ -232,12 +254,20 @@ SDK 来源：${dbg.libSource}` : '';
       return;
     }
 
-    confirmEmail.textContent = email;
-    confirmWrap.hidden = false;
-    toast('注册成功','请前往邮箱完成确认，然后再登录。', 'ok');
-    // Allow the user to retry (e.g., if typo) without refreshing
-    submitBtn.disabled = false;
-    submitBtn.textContent = oldText;
+    if(data?.user){
+      confirmEmail.textContent = email;
+      confirmWrap.hidden = false;
+      toast('注册成功','请前往邮箱完成确认，然后再登录。', 'ok');
+      return;
+    }
+
+    toast('注册状态异常','未收到有效的注册结果，请稍后重试。','err');
+    }catch(error){
+      toast('注册提示', friendlySignupError(error), 'err');
+    }finally{
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldText;
+    }
   });
 </script>
 

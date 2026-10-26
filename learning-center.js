@@ -14,7 +14,16 @@ import {
   formatBeijingDate,
 } from './supabaseClient.js?v=20260401_fix';
 
-import { VIDEO_CATEGORIES } from './assets/videos.js?v=20260118_001';
+import { VIDEO_CATEGORIES } from './assets/videos.js?v=20260917_permissions1';
+import { MEDIA_ACCEPT, validateMediaFile } from './media-upload.js?v=20260914_audio1';
+import { createVodUploader } from './vod-upload.js?v=20260914_batch1';
+import { BatchQueue } from './media-batch.js?v=20260914_batch1';
+import { mountBatchUpload } from './media-batch-ui.js?v=20260917_permissions1';
+import { saveBatchCourse } from './media-batch-save.js?v=20260917_permissions1';
+import { createCourseSeriesId, courseUploadMetadata, courseMetadataSchemaError, readLocalMediaDuration } from './course-upload-metadata.js?v=20260915_learning2';
+import { classifyTrainingProduct, isRetiredTrainingReplay } from './training-commerce.js?v=20260914_pricing1';
+import { courseMediaType, courseMediaIcon, courseAccessLevel, formatCourseDuration } from './course-catalog.js?v=20260916_learn2';
+import { coursePermissionForVideo, buildCoursePermissions, trainingProjectOptions } from './course-permissions.js?v=20260917_permissions1';
 
 const videoAddForm = document.getElementById('videoAddForm');
 const videoAdminPanelEl = document.getElementById('videoAdminPanel')
@@ -38,7 +47,7 @@ const els = {
   videoMembershipAccessible: document.getElementById('videoMembershipAccessible'),
   // New fields for paid video MVP
   videoSourceType: document.getElementById('videoSourceType'),
-  videoAccessType: document.getElementById('videoAccessType'),
+  videoAudience: document.getElementById('videoAudience'),
   videoPrice: document.getElementById('videoPrice'),
   videoDescription: document.getElementById('videoDescription'),
   videoCoverImage: document.getElementById('videoCoverImage'),
@@ -64,6 +73,24 @@ let _specialtiesMap = new Map(); // id → { id, title, code }
 let _allAdminVideos = [];
 
 const MAX_MP4_BYTES = 50 * 1024 * 1024; // 50MB
+const MEMBERSHIP_SCOPES = {
+  unclassified: '未分类', weekly_replay: '周日 / 周三学术视频回放',
+  training: '培训项目', other_paid: '其他付费内容',
+};
+
+function membershipScopeOptions(selected = 'unclassified') {
+  return Object.entries(MEMBERSHIP_SCOPES).map(([value, label]) =>
+    `<option value="${value}" ${value === selected ? 'selected' : ''}>${label}</option>`).join('');
+}
+
+function validateMembershipScope(scope, mediaType, membershipAccessible, isPaid = true, { checkMedia = true } = {}) {
+  if (!Object.hasOwn(MEMBERSHIP_SCOPES, scope)) throw new Error('请选择有效的课程权益分类。');
+  if (!isPaid && (scope !== 'unclassified' || membershipAccessible)) throw new Error('免费课程应选择“未分类”且关闭年度会员权限；付费分类不能同时标为免费。');
+  if (scope === 'weekly_replay' && checkMedia && mediaType !== 'video') throw new Error('年度会员回放仅限周日、周三学术活动视频，请确认媒体类型；音频需选择其他分类。');
+  if (scope === 'weekly_replay' && !membershipAccessible) throw new Error('学术视频回放请同时选择年度会员访问权限。');
+  if (membershipAccessible && scope !== 'weekly_replay') throw new Error('仅“周日 / 周三学术视频回放”可设置年度会员权限；培训与其他内容需单独设置权限。');
+  return scope;
+}
 
 function esc(str){
   return String(str ?? '').replace(/[&<>"']/g, s => ({
@@ -287,23 +314,48 @@ async function loadSpecialties(){
 }
 
 function buildSpecialtyChecksHTML(selectedIds, idPrefix){
-  // selectedIds: array of uuid strings, idPrefix: e.g. 'video' or 'edit'
-  const sel = new Set((selectedIds || []).filter(Boolean).map(String));
-  const parts = [];
-  if(_specialtiesMap.size === 0){
-    parts.push('<span style="opacity:.6;font-size:13px">（专科加载中…）</span>');
-  } else {
-    for(const [id, s] of _specialtiesMap){
-      const checked = sel.has(String(id)) ? 'checked' : '';
-      parts.push(
-        `<label style="display:inline-flex;align-items:center;gap:5px;font-weight:normal;cursor:pointer;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,.04)">
-          <input type="checkbox" class="${idPrefix}-spec-check" value="${esc(id)}" ${checked} />
-          <span style="font-size:13px">${esc(s.title)}</span>
-        </label>`
-      );
-    }
-  }
-  return parts.join('');
+  const selected = new Set((selectedIds || []).map(String));
+  const options = trainingProjectOptions(_specialtiesMap);
+  if (!options.length) return '<span class="small muted">培训项目未加载，请刷新后重试。</span>';
+  return options.map(project => `<label style="display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 12px;border:1px solid #bdd4ee;border-radius:10px;cursor:pointer;background:#f5faff;color:#173957">
+    <input type="checkbox" class="${idPrefix}-spec-check" style="width:18px;height:18px;min-height:18px;flex:0 0 18px;padding:0" value="${esc(project.id)}" ${selected.has(String(project.id)) ? 'checked' : ''} />
+    <span>${esc(project.label)}</span></label>`).join('');
+}
+
+function permissionOptionsHTML(selected = '', allowLegacy = false) {
+  const options = [
+    ['', '请选择课程权限'],
+    ['free', '免费课程 · 注册后可收听 / 观看'],
+    ['member', '299 元 / 年会员 · 周日 / 周三视频回放'],
+    ['training', '独立付费培训 · 仅已购对应项目的学员'],
+  ];
+  if (allowLegacy) options.push(['legacy', '保留当前历史权限（本次不变更）']);
+  return options.map(([value, label]) => `<option value="${value}" ${value === selected ? 'selected' : ''} ${!value ? 'disabled' : ''}>${label}</option>`).join('');
+}
+
+function updatePermissionUI(prefix) {
+  const audience = document.getElementById(`${prefix}Audience`)?.value || '';
+  const projectWrap = document.getElementById(`${prefix}ProjectWrap`);
+  const summary = document.getElementById(`${prefix}PermissionSummary`);
+  if (projectWrap) projectWrap.hidden = audience !== 'training';
+  if (!summary) return;
+  const names = trainingProjectOptions(_specialtiesMap)
+    .filter(project => getCheckedSpecialtyIds(prefix).includes(String(project.id)))
+    .map(project => project.label);
+  const mediaType = document.getElementById(`${prefix}MediaType`)?.value;
+  summary.textContent = audience === 'free' ? '免费课程：注册用户可收听或观看，无需购买会员或培训项目。'
+    : audience === 'member' ? (mediaType === 'audio' ? '当前是音频，不能归入年度会员视频回放。请选择培训项目或免费课程。' : '年度会员专享：299 元 / 年，仅包含周日、周三学术活动的视频回放，不包含培训项目。')
+    : audience === 'training' ? (names.length ? `本课程属于：${names.join('、')}。购买其中任一对应项目后可学习；仅有 299 元年度会员不能学习。` : '请至少选择一个所属培训项目。299 元年度会员不包含这些项目。')
+    : audience === 'legacy' ? '保留此课程原有权限。要调整观看范围，请明确选择免费课程、年度会员回放或培训项目。'
+    : '先选择课程权限，再上传和保存。单条及批量上传共用此设置。';
+}
+
+function readCoursePermissions(prefix, mediaType) {
+  return buildCoursePermissions({
+    audience: document.getElementById(`${prefix}Audience`)?.value || '',
+    specialtyIds: getCheckedSpecialtyIds(prefix), mediaType,
+    specialties: Array.from(_specialtiesMap.values()),
+  });
 }
 
 function getCheckedSpecialtyIds(idPrefix){
@@ -316,6 +368,8 @@ function fillSpecialtyDropdown(){
   const wrap = document.getElementById('videoSpecialtyChecks');
   if(!wrap) return;
   wrap.innerHTML = buildSpecialtyChecksHTML([], 'video');
+  const filter = document.getElementById('videoAdminProjectFilter');
+  if (filter) filter.innerHTML = '<option value="">全部项目</option>' + trainingProjectOptions(_specialtiesMap).map(project => `<option value="${esc(project.id)}">${esc(project.label)}</option>`).join('');
 }
 
 function checkAliyunUrlExpiry(url){
@@ -333,15 +387,30 @@ function checkAliyunUrlExpiry(url){
 function renderVideoAdminList(rows){
   if(!els.videoAdminList) return;
   const showDeleted = els.showDeletedVideos?.checked || false;
+  const search = String(document.getElementById('videoAdminSearch')?.value || '').trim().toLocaleLowerCase();
+  const audienceFilter = document.getElementById('videoAdminAudienceFilter')?.value || '';
+  const mediaFilter = document.getElementById('videoAdminMediaFilter')?.value || '';
+  const projectFilter = document.getElementById('videoAdminProjectFilter')?.value || '';
   const list = (Array.isArray(rows) ? rows : []).filter(v => {
     if(v.deleted_at && !showDeleted) return false;
+    if (search && ![v.title, v.speaker, v.series_title].some(value => String(value || '').toLocaleLowerCase().includes(search))) return false;
+    const permission = coursePermissionForVideo(v);
+    if (audienceFilter && permission.audience !== audienceFilter) return false;
+    if (mediaFilter && courseMediaType(v) !== mediaFilter) return false;
+    if (projectFilter && !permission.specialtyIds.includes(projectFilter)) return false;
     return true;
   });
+  const count = document.getElementById('videoAdminCount');
+  if (count) count.textContent = `找到 ${list.length} 条课程 · 已加载 ${Array.isArray(rows) ? rows.length : 0} 条`;
+  if (!list.length && (search || audienceFilter || mediaFilter || projectFilter)) {
+    els.videoAdminList.innerHTML = '<div class="muted small">没有符合筛选条件的课程，请清空搜索或调整筛选。</div>';
+    return;
+  }
   if(!list.length){
     const hasDeleted = (Array.isArray(rows) ? rows : []).some(v => !!v.deleted_at);
     els.videoAdminList.innerHTML = hasDeleted
-      ? '<div class="muted small">暂无活跃视频。勾选"显示已删除"可查看已删除项。</div>'
-      : '<div class="muted small">暂无新增视频。</div>';
+      ? '<div class="muted small">暂无活跃课程。勾选"显示已删除"可查看已删除项。</div>'
+      : '<div class="muted small">暂无新增课程。</div>';
     return;
   }
 
@@ -362,11 +431,15 @@ function renderVideoAdminList(rows){
     const deletedBadge = isDeleted
       ? `<span class="badge" style="border-color:rgba(160,160,160,.5);background:rgba(160,160,160,.12);color:#aaa">已删除</span>`
       : '';
-    const paidBadge = v.is_paid
+    const accessLevel = courseAccessLevel(v);
+    const paidBadge = ['paid', 'member', 'training'].includes(accessLevel)
       ? `<span class="badge" style="border-color:rgba(234,179,8,.5);background:rgba(234,179,8,.1);color:#fbbf24">付费</span>`
-      : `<span class="badge" style="border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.08);color:#4ade80">免费</span>`;
-    const memberBadge = v.membership_accessible
-      ? `<span class="badge" style="border-color:rgba(168,85,247,.5);background:rgba(168,85,247,.1);color:#c084fc">会员</span>`
+      : accessLevel === 'free' ? `<span class="badge" style="border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.08);color:#4ade80">免费</span>`
+      : '<span class="badge badge-unknown">权限待确认</span>';
+    const legacyBadge = coursePermissionForVideo(v).audience === 'legacy'
+      ? '<span class="badge badge-unknown">历史权限待确认</span>' : '';
+    const memberBadge = courseAccessLevel(v) === 'member'
+      ? `<span class="badge" style="border-color:rgba(168,85,247,.5);background:rgba(168,85,247,.1);color:#c084fc">会员学术回放</span>`
       : '';
     const specIds = (Array.isArray(v.specialty_ids) && v.specialty_ids.length > 0)
       ? v.specialty_ids
@@ -377,6 +450,8 @@ function renderVideoAdminList(rows){
       .map(name => `<span class="badge" style="border-color:rgba(99,102,241,.4);background:rgba(99,102,241,.08);color:#818cf8">${esc(name)}</span>`)
       .join(' ');
     const speakerText = v.speaker ? `主讲：${esc(v.speaker)} · ` : '';
+    const media = courseMediaType(v), duration = formatCourseDuration(v);
+    const mediaBadge = `<span class="badge badge-media ${media === 'audio' ? 'badge-audio' : ''}">${courseMediaIcon(v)}${media === 'audio' ? '音频' : media === 'video' ? '视频' : '形式待确认'}</span>`;
 
     const cardStyle = isDeleted
       ? 'padding:12px;opacity:0.5;border-left:3px solid rgba(160,160,160,.4)'
@@ -393,16 +468,17 @@ function renderVideoAdminList(rows){
           <div style="min-width:0;flex:1">
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
               <b style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:420px${isDeleted ? ';text-decoration:line-through' : ''}">${esc(v.title || '（无标题）')}</b>
-              ${paidBadge}${memberBadge}${specBadge}${deletedBadge}${expiredBadge}
+              ${paidBadge}${memberBadge}${specBadge}${legacyBadge}${deletedBadge}${expiredBadge}
             </div>
             <div class="small muted" style="margin-top:6px">
               ${speakerText}${esc(tag)} · ${esc(kindLabel)} · ${esc(fmtDate(v.created_at))}
             </div>
+            <div class="small muted" style="margin-top:6px">${mediaBadge}${duration ? ` <span class="badge badge-duration">${esc(duration)}</span>` : ''}${v.series_title ? ` · ${esc(v.series_title)}` : ' · 独立课程'}${v.chapter_number ? ` · 第 ${esc(v.chapter_number)} 章` : ''}</div>
             <div class="small" style="margin-top:6px;word-break:break-all">${openUrl ? `<a class="auto-link" href="${esc(openUrl)}" target="_blank" rel="noopener">${esc(openUrl.length > 80 ? openUrl.slice(0,80) + '…' : openUrl)}</a>` : ''}</div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex-shrink:0">
-            ${isDeleted ? '' : `<button class="btn tiny" type="button" data-video-edit="${esc(v.id)}">编辑</button>`}
-            ${isDeleted ? '' : `<a class="btn tiny" href="watch.html?id=${encodeURIComponent(v.id)}">预览</a>`}
+            ${isDeleted ? '' : `<button class="btn tiny" type="button" data-video-edit="${esc(v.id)}">编辑权限 / 信息</button>`}
+            ${isDeleted ? '' : `<a class="btn tiny" href="watch.html?id=${encodeURIComponent(v.id)}">${media === 'audio' ? '试听' : media === 'video' ? '试看' : '预览'}</a>`}
             ${actionBtn}
           </div>
         </div>
@@ -413,45 +489,59 @@ function renderVideoAdminList(rows){
 
 async function loadAdminVideos(){
   if(!els.videoAdminList) return;
+  // Only a complete administrative read may populate editable records.
+  _allAdminVideos = [];
+  els.videoAdminList.innerHTML = '<div class="muted small">正在加载课程管理信息…</div>';
   if(!isConfigured()){
     els.videoAdminList.innerHTML = '<div class="muted small">（演示模式）配置 Supabase 后可管理视频。</div>';
     return;
   }
 
-  await ensureSupabase();
-  if(!supabase) return;
-
   try{
-    let { data, error } = await supabase
-      .from('learning_videos')
-      .select('id,title,category,kind,source_url,mp4_url,bvid,aliyun_vid,speaker,is_paid,membership_accessible,specialty_id,specialty_ids,source,product_id,created_at,enabled,deleted_at')
-      .order('created_at', { ascending: false })
-      .limit(50);
-    // Backward compat: retry without newer columns if they don't exist yet
-    if(error && /is_paid|specialty_id|specialty_ids|product_id|aliyun_vid|speaker|source/i.test(String(error.message || ''))){
-      const r2 = await supabase
-        .from('learning_videos')
-        .select('id,title,category,kind,source_url,mp4_url,bvid,created_at,enabled,deleted_at')
-        .order('created_at', { ascending: false })
-        .limit(50);
-      data = r2.data;
-      error = r2.error;
+    await ensureSupabase();
+    if(!supabase) throw new Error('课程服务暂不可用，请稍后重试。');
+    const completeRows = new Map();
+    const pageSize = 200;
+    let offset = 0;
+    for (let page = 0; page < 100; page++) {
+      const { data, error, count } = await supabase.rpc('list_learning_videos_admin', {}, { count: 'exact' })
+        .order('created_at', { ascending: false }).order('id', { ascending: false })
+        .range(offset, offset + pageSize - 1);
+      if (error) throw courseMetadataSchemaError(error) || error;
+      if (!Array.isArray(data)) throw new Error('课程列表返回格式异常，请重试。');
+      for (const row of data) {
+        if (completeRows.has(row.id)) throw new Error('课程列表在加载期间发生变动，请重试以获取完整列表。');
+        completeRows.set(row.id, row);
+      }
+      offset += data.length;
+      if (Number.isInteger(count) && offset >= count) break;
+      if (!data.length) {
+        if (Number.isInteger(count) && offset < count) throw new Error('课程列表尚未完整返回，请重试。');
+        break;
+      }
+      if (page === 99) throw new Error('课程数量超过当前管理列表上限，请联系技术支持扩展分页。');
     }
-    if(error) throw error;
-    _allAdminVideos = data || [];
+    _allAdminVideos = [...completeRows.values()];
     renderVideoAdminList(_allAdminVideos);
   }catch(e){
-    const msg = String(e?.message || e || '');
+    _allAdminVideos = [];
+    const schemaMissing = ['42703', '42883', 'PGRST202', 'PGRST204', 'course_metadata_schema_required'].includes(String(e?.code));
+    const msg = schemaMissing ? '课程管理所需的权限或系列字段尚未完成数据库更新，暂不能编辑。请管理员完成更新后点击重试。已上传媒体和当前队列会保留。' : String(e?.message || e || '');
     if(/relation .*learning_videos.* does not exist/i.test(msg)){
       els.videoAdminList.innerHTML = '<div class="muted small">视频表未初始化：请先运行本次迁移（learning_videos）。</div>';
       return;
     }
     els.videoAdminList.innerHTML = `<div class="muted small">加载失败：${esc(msg)}</div>`;
+    const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'btn tiny'; retry.textContent = '重试课程管理列表';
+    retry.addEventListener('click', () => { void loadAdminVideos(); }); els.videoAdminList.append(retry);
   }
 }
 
 async function saveVideo(currentUser, publish = true){
   if(!els.videoSave) return;
+  if(_mediaSaveInProgress) return;
+  if(_batchBusy){ toast('批量上传正在处理', '请等待完成或停止后再保存单条课程。', 'err'); return; }
+  if(_currentUpload){ toast('文件正在上传', '请等待上传完成后保存课程。', 'err'); return; }
   if(!els.videoTitle || !els.videoCategory) return;
   if(!isConfigured()){
     toast('未配置', 'Supabase 未配置。', 'err');
@@ -465,18 +555,19 @@ async function saveVideo(currentUser, publish = true){
   const file = els.videoMp4?.files?.[0] || null;
   let aliyunUrl = String(els.videoAliyunUrl?.value || '').trim();
   let aliyunVid = String(els.videoAliyunVid?.value || '').trim();
-  const accessType = String(els.videoAccessType?.value || 'registered_free').trim();
-  const price = parseFloat(els.videoPrice?.value || '0') || 0;
   const description = String(els.videoDescription?.value || '').trim() || null;
   const coverImage = String(els.videoCoverImage?.value || '').trim() || null;
   const sortOrder = parseInt(els.videoSortOrder?.value || '0', 10) || 0;
+  const localMetadata = els.videoAliyunVid?.ksMediaMetadata;
+  const uploadedMetadata = sourceType === 'aliyun_vod' && localMetadata?.videoId === aliyunVid ? localMetadata : null;
+  const intendedMediaType = uploadedMetadata?.mediaType || (['upload_mp4', 'bilibili'].includes(sourceType) ? 'video' : els.videoMediaType?.value || null);
 
-  if(!title){ toast('请输入名称', '请填写视频名称。', 'err'); return; }
-  if(!category){ toast('请选择分类', '请先选择一个视频分类。', 'err'); return; }
+  if(!title){ toast('请输入名称', '请填写课程名称。', 'err'); return; }
+  if(!category){ toast('请选择分类', '请先选择一个课程分类。', 'err'); return; }
 
   // Validate based on source type
   if(sourceType === 'aliyun_vod' && !aliyunVid){
-    toast('请填写阿里云视频ID', '视频来源为阿里云点播时，必须填写视频ID。', 'err');
+    toast('请填写阿里云媒体 ID', '请先上传视频或音频，也可以填写已有的媒体 ID。', 'err');
     return;
   }
   if((sourceType === 'external_url' || sourceType === 'bilibili') && !url){
@@ -505,25 +596,43 @@ async function saveVideo(currentUser, publish = true){
     return;
   }
 
-  await ensureSupabase();
-  if(!supabase){ toast('初始化失败', 'Supabase 未就绪。', 'err'); return; }
+  try {
+    if (!intendedMediaType) throw new Error('请选择媒体类型（音频或视频）；本地上传会自动识别。');
+    readCoursePermissions('video', intendedMediaType);
+  } catch (error) { toast('请确认课程权限', String(error?.message || error), 'err'); return; }
 
+  _mediaSaveInProgress = true;
+  const batchPanel = document.getElementById('mediaBatchPanel');
+  if(batchPanel) batchPanel.disabled = true;
+  const uploadButton = document.getElementById('videoAliyunFileBtn');
+  const uploadWasDisabled = uploadButton?.disabled || false;
+  if(uploadButton) uploadButton.disabled = true;
   els.videoSave.disabled = true;
   if(els.videoSaveDraft) els.videoSaveDraft.disabled = true;
   if(els.videoAdminHint) els.videoAdminHint.textContent = '保存中…';
 
   try{
+    await ensureSupabase();
+    if(!supabase) throw new Error('Supabase 未就绪，请稍后重试。');
     let kind = 'external';
     let source_url = url || null;
     let bvid = null;
     let mp4_url = null;
     let aliyun_vid = aliyunVid || null;
+    let metadata = courseUploadMetadata({ mediaType: intendedMediaType,
+      duration: uploadedMetadata?.durationSeconds });
 
     if(sourceType === 'aliyun_vod'){
       kind = 'aliyun';
-      source_url = aliyunUrl || null;
-      mp4_url = aliyunUrl || null;
+      // VOD playback uses this media ID and the existing authorization API.
+      // The debug URL must never become a stale fallback for a new audio file.
+      source_url = null;
+      mp4_url = null;
     }else if(sourceType === 'upload_mp4' && file){
+      const validation = validateMediaFile(file);
+      if (validation.error || validation.mediaType !== 'video') throw new Error(validation.error || '请选择有效的视频文件。');
+      metadata = courseUploadMetadata({ mediaType: validation.mediaType,
+        duration: await readLocalMediaDuration(file, validation.mediaType) });
       if((file.size || 0) > MAX_MP4_BYTES){
         const mb = Math.round((file.size || 0) / 1024 / 1024);
         toast('文件过大', `当前 ${mb}MB，超过上限 50MB。`, 'err');
@@ -552,68 +661,43 @@ async function saveVideo(currentUser, publish = true){
       kind = 'external';
     }
 
+    const permissions = readCoursePermissions('video', metadata.media_type);
     const speaker = String(els.videoSpeaker?.value || '').trim() || null;
-    const specialtyIds = getCheckedSpecialtyIds('video');
     const contentSource = String(els.videoContentSource?.value || 'external').trim();
-    const isPaid = accessType !== 'registered_free';
-    const membershipAccessible = accessType === 'paid_membership';
 
     const row = {
       title, category, kind, source_url, mp4_url, bvid,
       source: contentSource,
       enabled: publish, deleted_at: null, created_by: currentUser.id,
-      access_type: accessType,
-      is_paid: isPaid,
-      membership_accessible: membershipAccessible,
+      ...permissions,
       is_published: publish,
       sort_order: sortOrder,
-      specialty_ids: specialtyIds,
+      ...metadata,
     };
     if(speaker) row.speaker = speaker;
-    if(specialtyIds.length > 0) row.specialty_id = specialtyIds[0];
     if(aliyun_vid) row.aliyun_vid = aliyun_vid;
-    if(price > 0) row.price = price;
     if(description) row.description = description;
     if(coverImage) row.cover_image = coverImage;
 
-    let { error } = await supabase.from('learning_videos').insert(row);
+    const { error } = await supabase.from('learning_videos').insert(row);
+    // Every source keeps its original access and media metadata on schema failure.
+    if(error) throw courseMetadataSchemaError(error) || error;
 
-    // Fallback: if new columns not yet migrated, retry without them
-    if(error && /access_type|price|cover_image|description|is_published|sort_order|source|specialty_ids/i.test(String(error.message || ''))){
-      delete row.access_type;
-      delete row.price;
-      delete row.cover_image;
-      delete row.description;
-      delete row.is_published;
-      delete row.sort_order;
-      delete row.source;
-      delete row.specialty_ids;
-      const r2 = await supabase.from('learning_videos').insert(row);
-      error = r2.error;
-    }
-    // Fallback: if 'aliyun' kind not supported yet
-    if(error && kind === 'aliyun'){
-      delete row.aliyun_vid;
-      row.kind = 'mp4';
-      const r2 = await supabase.from('learning_videos').insert(row);
-      error = r2.error;
-    }
-    if(error) throw error;
-
-    toast('已保存', publish ? '视频已添加并上架。' : '视频已保存为草稿。', 'ok');
+    toast('已保存', publish ? '课程已添加并上架。' : '课程已保存为草稿。', 'ok');
     // Reset form
     if(els.videoTitle) els.videoTitle.value = '';
     if(els.videoUrl) els.videoUrl.value = '';
     if(els.videoMp4) els.videoMp4.value = '';
     if(els.videoAliyunUrl) els.videoAliyunUrl.value = '';
-    if(els.videoAliyunVid) els.videoAliyunVid.value = '';
+    if(els.videoAliyunVid) { els.videoAliyunVid.value = ''; delete els.videoAliyunVid.ksMediaMetadata; }
+    if(els.videoMediaType) els.videoMediaType.value = '';
     if(els.videoSpeaker) els.videoSpeaker.value = '';
     document.querySelectorAll('.video-spec-check:checked').forEach(el => { el.checked = false; });
     if(els.videoDescription) els.videoDescription.value = '';
     if(els.videoCoverImage) els.videoCoverImage.value = '';
     if(els.videoSortOrder) els.videoSortOrder.value = '0';
-    if(els.videoPrice) els.videoPrice.value = '';
-    if(els.videoAccessType) els.videoAccessType.value = 'registered_free';
+    if(els.videoAudience) els.videoAudience.value = '';
+    updatePermissionUI('video');
 
     await loadAdminVideos();
   }catch(e){
@@ -624,6 +708,9 @@ async function saveVideo(currentUser, publish = true){
     }
     toast('保存失败', msg, 'err');
   }finally{
+    _mediaSaveInProgress = false;
+    if(batchPanel) batchPanel.disabled = false;
+    if(uploadButton) uploadButton.disabled = uploadWasDisabled;
     els.videoSave.disabled = false;
     if(els.videoSaveDraft) els.videoSaveDraft.disabled = false;
     if(els.videoAdminHint) els.videoAdminHint.textContent = '';
@@ -709,11 +796,13 @@ async function restoreVideo(id){
 
 // ── Edit video (inline modal) ──
 let _editingVideoId = null;
+let _editNewSeriesId = null;
 
 function openEditModal(videoId){
   const v = _allAdminVideos.find(r => r.id === videoId);
   if(!v) return;
   _editingVideoId = videoId;
+  _editNewSeriesId = null;
 
   // Remove existing modal if any
   document.getElementById('videoEditModal')?.remove();
@@ -725,10 +814,9 @@ function openEditModal(videoId){
     return `<option value="${esc(key)}" ${key === (v.category || '') ? 'selected' : ''}>${esc(label)}</option>`;
   }).join('');
 
-  const curSpecIds = Array.isArray(v.specialty_ids) && v.specialty_ids.length > 0
-    ? v.specialty_ids
-    : (v.specialty_id ? [v.specialty_id] : []);
-  const specChecksHTML = buildSpecialtyChecksHTML(curSpecIds, 'edit');
+  const currentPermission = coursePermissionForVideo(v);
+  const specChecksHTML = buildSpecialtyChecksHTML(currentPermission.specialtyIds, 'edit');
+  const detectedMediaType = v.media_type || ''; // Never rewrite historical metadata from display-only inference.
 
   const curSource = v.source || 'external';
   const sourceOptions = [
@@ -736,16 +824,21 @@ function openEditModal(videoId){
     { value: 'kidneysphere',label: '肾域原创' },
     { value: 'external',    label: '外部资源' },
   ].map(o => `<option value="${o.value}" ${o.value === curSource ? 'selected' : ''}>${o.label}</option>`).join('');
+  const seriesChoices = new Map();
+  for (const row of _allAdminVideos) if (row.series_id && row.series_title && !row.deleted_at) seriesChoices.set(row.series_id, row.series_title);
+  if (v.series_id) seriesChoices.set(v.series_id, v.series_title || '未命名系列');
+  const seriesOptions = [...seriesChoices].map(([id, name]) =>
+    `<option value="${esc(id)}" ${id === v.series_id ? 'selected' : ''}>${esc(name)} · ${esc(id.slice(-8))}</option>`).join('');
 
   const modal = document.createElement('div');
   modal.id = 'videoEditModal';
   modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);padding:16px';
   modal.innerHTML = `
     <div class="card" style="max-width:640px;width:100%;max-height:90vh;overflow-y:auto;padding:20px">
-      <h3 style="margin:0 0 12px">编辑视频</h3>
+      <h3 style="margin:0 0 12px">编辑课程</h3>
       <div class="form" style="display:flex;flex-direction:column;gap:12px">
         <div>
-          <label>视频名称</label>
+          <label>课程名称</label>
           <input class="input" id="editTitle" value="${esc(v.title || '')}" />
         </div>
         <div class="form-row">
@@ -759,28 +852,45 @@ function openEditModal(videoId){
           </div>
         </div>
         <div>
-          <label>视频链接 / 阿里云 MP4 地址</label>
+          <label>媒体链接 / 阿里云地址</label>
           <input class="input" id="editUrl" value="${esc(v.mp4_url || v.source_url || '')}" />
+        </div>
+        <div>
+          <label for="editSeriesId">所属课程系列</label>
+          <select class="input" id="editSeriesId"><option value="">独立课程</option>${seriesOptions}<option value="__new__">创建新系列</option></select>
+          <p class="small muted">将旧章节归入同一系列时，请选择同一个已有系列。仅修改当前课程，不合并或删除重复章节。</p>
+        </div>
+        <div id="editSeriesTitleWrap" ${v.series_id ? '' : 'hidden'}>
+          <label for="editSeriesTitle">课程系列名称</label>
+          <input class="input" id="editSeriesTitle" maxlength="200" value="${esc(v.series_title || '')}" />
+          <p class="small muted">名称随当前章节保存，系列归属以所选系列为准。</p>
+        </div>
+        <div class="form-row">
+          <div style="min-width:140px;flex:1"><label for="editChapterNumber">章节序号（可选）</label><input class="input" id="editChapterNumber" type="number" min="1" step="1" value="${esc(v.chapter_number ?? '')}" /></div>
+          <div style="min-width:180px;flex:1"><label for="editMediaType">媒体类型</label><select class="input" id="editMediaType"><option value="">未知 / 暂不指定</option><option value="audio" ${detectedMediaType === 'audio' ? 'selected' : ''}>音频</option><option value="video" ${detectedMediaType === 'video' ? 'selected' : ''}>视频</option></select></div>
         </div>
         <div class="form-row">
           <div style="min-width:180px">
             <label>内容来源</label>
             <select class="input" id="editContentSource">${sourceOptions}</select>
           </div>
-          <div style="flex:1;min-width:260px">
-            <label>所属专科（可多选，留空 = 免费公开视频）</label>
-            <div id="editSpecialtyChecks" style="display:flex;flex-wrap:wrap;gap:8px 14px;padding:8px 10px;border:1px solid rgba(255,255,255,.1);border-radius:6px;min-height:38px;align-items:center">${specChecksHTML}</div>
-          </div>
         </div>
-        <div class="form-row">
-          <div style="min-width:120px;display:flex;align-items:center;gap:8px">
-            <input type="checkbox" id="editIsPaid" ${v.is_paid ? 'checked' : ''} />
-            <label for="editIsPaid" style="margin:0;cursor:pointer">付费视频</label>
-          </div>
-          <div style="min-width:120px;display:flex;align-items:center;gap:8px">
-            <input type="checkbox" id="editMembershipAccessible" ${v.membership_accessible ? 'checked' : ''} />
-            <label for="editMembershipAccessible" style="margin:0;cursor:pointer">会员可看</label>
-          </div>
+        <div>
+          <label for="editAudience">课程权限 *</label>
+          <select class="input" id="editAudience">${permissionOptionsHTML(currentPermission.audience, currentPermission.audience === 'legacy')}</select>
+        </div>
+        <div id="editProjectWrap" ${currentPermission.audience === 'training' ? '' : 'hidden'}>
+          <label>所属付费培训项目（可多选）</label>
+          <div id="editSpecialtyChecks" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:8px">${specChecksHTML}</div>
+        </div>
+        <p class="small" id="editPermissionSummary" role="status" aria-live="polite" style="margin:0;padding:12px;background:#edf5ff;border:1px solid #bdd4ee;border-radius:10px;color:#244f75"></p>
+        <div>
+          <label for="editPreviewVid">独立试看 / 试听媒资 ID（可选）</label>
+          <input class="input" id="editPreviewVid" maxlength="128" autocomplete="off" placeholder="填入已单独上传的阿里云短片 ID" />
+          <p class="small muted">请先单独上传本课程开头的短片，最长 180 秒，且必须短于正片、使用不同媒资 ID。留空保留当前设置，保存后由服务端核验可否试听或试看。</p>
+          <button class="btn tiny" type="button" id="editSavePreviewBtn">设置独立试看 / 试听</button>
+          <button class="btn tiny" type="button" id="editClearPreviewBtn">清除当前试看 / 试听</button>
+          <p class="small muted" id="editPreviewStatus" role="status" aria-live="polite"></p>
         </div>
         <div style="display:flex;gap:10px;margin-top:4px">
           <button class="btn primary" type="button" id="editSaveBtn">保存修改</button>
@@ -789,39 +899,49 @@ function openEditModal(videoId){
       </div>
     </div>`;
   document.body.appendChild(modal);
+  ['editAudience', 'editSpecialtyChecks', 'editMediaType'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', () => updatePermissionUI('edit'));
+  });
+  updatePermissionUI('edit');
 
   // Close on backdrop click
   modal.addEventListener('click', (e) => { if(e.target === modal) closeEditModal(); });
   document.getElementById('editCancelBtn').addEventListener('click', closeEditModal);
   document.getElementById('editSaveBtn').addEventListener('click', saveEdit);
+  document.getElementById('editSavePreviewBtn').addEventListener('click', () => saveCoursePreview(v, false));
+  document.getElementById('editClearPreviewBtn').addEventListener('click', () => saveCoursePreview(v, true));
+  document.getElementById('editSeriesId').addEventListener('change', event => {
+    const choice = event.target.value;
+    document.getElementById('editSeriesTitleWrap').hidden = !choice;
+    document.getElementById('editSeriesTitle').value = seriesChoices.get(choice) || '';
+  });
 
-  // GlomCon source ⊥ specialty: lock specialty + flags when source = glomcon
-  const srcEl = document.getElementById('editContentSource');
-  const spChecksEl = document.getElementById('editSpecialtyChecks');
-  const paidEl = document.getElementById('editIsPaid');
-  const memEl  = document.getElementById('editMembershipAccessible');
-  function applyEditConsistency(){
-    if(!srcEl) return;
-    const isGlomcon = srcEl.value === 'glomcon';
-    const checks = document.querySelectorAll('.edit-spec-check');
-    if(isGlomcon){
-      checks.forEach(c => { c.checked = false; c.disabled = true; });
-      if(spChecksEl){ spChecksEl.title = 'GlomCon 内容不绑定专科'; spChecksEl.style.opacity = '.5'; }
-      if(paidEl){ paidEl.checked = true;  paidEl.disabled = true; }
-      if(memEl){  memEl.checked = true;   memEl.disabled = true; }
-    } else {
-      checks.forEach(c => { c.disabled = false; });
-      if(spChecksEl){ spChecksEl.title = ''; spChecksEl.style.opacity = ''; }
-      if(paidEl){ paidEl.disabled = false; }
-      if(memEl){  memEl.disabled = false; }
-    }
-  }
-  srcEl?.addEventListener('change', applyEditConsistency);
-  applyEditConsistency();
+}
+
+async function saveCoursePreview(course, clear) {
+  const input = document.getElementById('editPreviewVid');
+  const status = document.getElementById('editPreviewStatus');
+  const buttons = [document.getElementById('editSavePreviewBtn'), document.getElementById('editClearPreviewBtn')];
+  const previewId = clear ? null : String(input?.value || '').trim();
+  if (!clear && !/^[A-Za-z0-9_-]{16,128}$/.test(previewId)) { status.textContent = '请填写有效的独立试看 / 试听媒资 ID。'; return; }
+  if (!clear && previewId === course.aliyun_vid) { status.textContent = '试看 / 试听必须使用独立短媒资，不能填写正片 ID。'; return; }
+  buttons.forEach(button => { if (button) button.disabled = true; });
+  status.textContent = '正在保存试看 / 试听设置…';
+  try {
+    const { error } = await supabase.rpc('set_learning_video_preview', { p_video_id: course.id, p_preview_aliyun_vid: previewId });
+    if (error) throw error;
+    input.value = '';
+    status.textContent = clear ? '已清除本课程试看 / 试听设置。' : '独立媒资已保存，服务端核验时长与格式后提供试看 / 试听。';
+  } catch (error) {
+    status.textContent = ['42883', 'PGRST202'].includes(String(error?.code))
+      ? '请先安装数据库更新，再保存试看 / 试听设置。'
+      : '试看 / 试听设置未保存，请检查管理员权限和媒资 ID 后重试。';
+  } finally { buttons.forEach(button => { if (button) button.disabled = false; }); }
 }
 
 function closeEditModal(){
   _editingVideoId = null;
+  _editNewSeriesId = null;
   document.getElementById('videoEditModal')?.remove();
 }
 
@@ -834,28 +954,42 @@ async function saveEdit(){
   const speaker = String(document.getElementById('editSpeaker')?.value || '').trim() || null;
   const category = String(document.getElementById('editCategory')?.value || '').trim();
   const urlVal = String(document.getElementById('editUrl')?.value || '').trim();
-  const specialtyIds = getCheckedSpecialtyIds('edit');
   const contentSource = String(document.getElementById('editContentSource')?.value || 'external').trim();
-  const isPaid = !!document.getElementById('editIsPaid')?.checked;
-  const membershipAccessible = !!document.getElementById('editMembershipAccessible')?.checked;
+  const audience = document.getElementById('editAudience')?.value || '';
+  const existing = _allAdminVideos.find(row => String(row.id) === String(_editingVideoId));
 
   if(!title){ toast('请输入名称', '', 'err'); if(btn) btn.disabled = false; return; }
 
   try{
+    const seriesChoice = document.getElementById('editSeriesId')?.value || '';
+    const seriesTitle = seriesChoice ? String(document.getElementById('editSeriesTitle')?.value || '').trim() : '';
+    if (seriesChoice && !seriesTitle) throw new Error('请填写课程系列名称。');
+    if (seriesChoice === '__new__' && !_editNewSeriesId) _editNewSeriesId = createCourseSeriesId();
+    const metadata = courseUploadMetadata({ seriesId: seriesChoice === '__new__' ? _editNewSeriesId : seriesChoice,
+      seriesTitle, chapterNumber: document.getElementById('editChapterNumber')?.value,
+      mediaType: document.getElementById('editMediaType')?.value || null });
+    if (!existing) throw new Error('课程资料已失效，请重新打开编辑窗口。');
+    const originalPermission = coursePermissionForVideo(existing);
+    if (audience === 'legacy' && originalPermission.audience !== 'legacy') throw new Error('请选择有效的课程权限。');
+    const mediaTypeChanged = (metadata.media_type || null) !== (existing.media_type || null);
+    if (audience === 'legacy' && mediaTypeChanged) throw new Error('修改媒体类型时，请同时明确选择课程权限。');
+    const chosenPermission = audience === 'legacy' ? null : readCoursePermissions('edit', metadata.media_type);
+    const permissionChanged = audience !== originalPermission.audience || mediaTypeChanged || (audience === 'training'
+      && JSON.stringify([...chosenPermission.specialty_ids].sort()) !== JSON.stringify([...originalPermission.specialtyIds].sort()));
+    if (permissionChanged && !metadata.media_type) throw new Error('调整权限前，请明确选择本课程是音频还是视频。');
+    const permissions = chosenPermission && permissionChanged ? chosenPermission : {};
     const updates = {
       title,
       speaker,
       category,
       source: contentSource,
-      is_paid: isPaid,
-      membership_accessible: membershipAccessible,
-      specialty_id: specialtyIds[0] || null,
-      specialty_ids: specialtyIds,
+      ...permissions,
       updated_at: new Date().toISOString(),
+      ...metadata,
     };
 
     // Detect URL type and update accordingly
-    if(urlVal){
+    if(urlVal && urlVal !== String(existing.mp4_url || existing.source_url || '').trim()){
       if(/aliyuncs\.com|alicdn\.com|aliyun\.com/i.test(urlVal)){
         updates.kind = 'aliyun';
         updates.mp4_url = urlVal;
@@ -870,20 +1004,16 @@ async function saveEdit(){
       }
     }
 
-    let { error } = await supabase
+    const { data: saved, error } = await supabase
       .from('learning_videos')
       .update(updates)
-      .eq('id', _editingVideoId);
-    // Fallback: if specialty_ids column not yet migrated, retry without it
-    if(error && /specialty_ids|source/i.test(String(error.message || ''))){
-      delete updates.specialty_ids;
-      delete updates.source;
-      const r2 = await supabase.from('learning_videos').update(updates).eq('id', _editingVideoId);
-      error = r2.error;
-    }
-    if(error) throw error;
+      .eq('id', _editingVideoId)
+      .select('id')
+      .maybeSingle();
+    if(error) throw courseMetadataSchemaError(error) || error;
+    if (!saved?.id) throw new Error('未确认课程更新，请检查当前账号的编辑权限后重试。');
 
-    toast('已更新', '视频信息已保存。', 'ok');
+    toast('已更新', '课程信息已保存。', 'ok');
     closeEditModal();
     await loadAdminVideos();
   }catch(e){
@@ -933,12 +1063,12 @@ async function init(){
   if(els.videoAdminPanel && !document.getElementById('videoAddForm')){
     els.videoAdminPanel.innerHTML = `
         <div class="card soft" style="margin-top:12px">
-          <h3 style="margin:0">新增视频</h3>
+          <h3 style="margin:0">新增视频 / 音频</h3>
           <div class="hr"></div>
           <form id="videoAddForm" class="form" style="max-width:860px">
             <div class="form-row">
               <div style="flex:1;min-width:240px">
-                <label>视频名称 *</label>
+                <label for="videoTitle">课程名称 *</label>
                 <input class="input" id="videoTitle" required />
               </div>
               <div style="min-width:220px">
@@ -947,31 +1077,44 @@ async function init(){
               </div>
             </div>
 
+            <fieldset style="margin:0;padding:16px;border:1px solid #bdd4ee;border-radius:14px;background:#f5faff;min-width:0">
+              <legend style="font-weight:700;color:#173957">本次上传的课程权限</legend>
+              <label for="videoAudience">谁可以收听 / 观看？ *</label>
+              <select class="input" id="videoAudience" required>${permissionOptionsHTML()}</select>
+              <div id="videoProjectWrap" hidden style="margin-top:14px">
+                <label>所属付费培训项目（可多选） *</label>
+                <div id="videoSpecialtyChecks" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:8px"></div>
+              </div>
+              <p class="small" id="videoPermissionSummary" role="status" aria-live="polite" style="margin:12px 0 0;color:#244f75"></p>
+              <p class="small muted" style="margin:8px 0 0">这些设置同时用于下方批量上传。保存后可在课程列表中随时点击“编辑权限 / 信息”。</p>
+            </fieldset>
+
             <div class="form-row">
               <div style="min-width:220px">
-                <label>视频来源 *</label>
+                <label for="videoSourceType">媒体来源 *</label>
                 <select class="input" id="videoSourceType">
-                  <option value="aliyun_vod">阿里云点播 (推荐)</option>
+                  <option value="aliyun_vod">阿里云点播（视频 / 音频）</option>
                   <option value="bilibili">B站视频</option>
                   <option value="external_url">外部视频链接</option>
                   <option value="upload_mp4">上传 MP4</option>
                 </select>
               </div>
               <div style="flex:1;min-width:240px" id="videoAliyunVidWrap">
-                <label>阿里云视频ID *</label>
-                <input class="input" id="videoAliyunVid" placeholder="自动获取，或手动粘贴已有视频 ID" />
+                <label for="videoAliyunVid">阿里云媒体 ID *</label>
+                <input class="input" id="videoAliyunVid" placeholder="上传后自动填写，或粘贴已有音视频 ID" />
                 <div id="videoAliyunUploadBox" style="margin-top:8px;padding:10px;border:1px dashed rgba(168,85,247,.4);border-radius:8px;background:rgba(168,85,247,.04);">
                   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                    <input type="file" id="videoAliyunFile" accept="video/*,.mp4,.mov,.m4v,.mkv,.avi,.flv,.wmv,.webm,.ts" style="display:none;" />
-                    <button type="button" class="btn tiny primary" id="videoAliyunFileBtn">📤 上传视频文件</button>
+                    <input type="file" id="videoAliyunFile" accept="${MEDIA_ACCEPT}" style="display:none;" />
+                    <button type="button" class="btn tiny primary" id="videoAliyunFileBtn" style="min-height:44px">📤 上传视频 / 音频</button>
                     <button type="button" class="btn tiny danger" id="videoAliyunCancelBtn" style="display:none;">⏹ 停止上传</button>
-                    <span class="small muted" id="videoAliyunFileStatus">支持 mp4 / mov / mkv 等，单文件 ≤ 2 GB</span>
+                    <span class="small muted" id="videoAliyunFileStatus" role="status" style="overflow-wrap:anywhere">视频 MP4 / MOV / MKV 等；音频 MP3 / M4A / WAV / AAC / FLAC / WMA / APE。单文件 ≤ 2 GB</span>
                   </div>
+                  <p class="small muted" style="margin:8px 0 0">音频建议使用 MP3；其他音频格式需在阿里云完成音频转码后收听。可先保存草稿，在阿里云试听确认后再上架。</p>
                   <div id="videoAliyunUploadProgress" style="margin-top:10px;display:none;">
                     <div style="background:rgba(255,255,255,.08);border-radius:4px;height:8px;overflow:hidden;">
                       <div id="videoAliyunUploadBar" style="background:#4a90e2;height:100%;width:0%;transition:width .2s;"></div>
                     </div>
-                    <div class="small muted" id="videoAliyunUploadText" style="margin-top:4px;">准备中…</div>
+                    <div class="small muted" id="videoAliyunUploadText" role="status" style="margin-top:4px;">准备中…</div>
                   </div>
                 </div>
               </div>
@@ -997,10 +1140,6 @@ async function init(){
                 <label>主讲人</label>
                 <input class="input" id="videoSpeaker" />
               </div>
-              <div style="flex:1;min-width:260px">
-                <label>所属专科（可多选，留空 = 免费公开视频）</label>
-                <div id="videoSpecialtyChecks" class="spec-checks" style="display:flex;flex-wrap:wrap;gap:8px 14px;padding:8px 10px;border:1px solid rgba(255,255,255,.1);border-radius:6px;min-height:38px;align-items:center"></div>
-              </div>
               <div style="min-width:180px">
                 <label>内容来源</label>
                 <select class="input" id="videoContentSource">
@@ -1009,27 +1148,11 @@ async function init(){
                   <option value="external">外部资源</option>
                 </select>
               </div>
-              <div style="min-width:220px">
-                <label>访问权限 *</label>
-                <select class="input" id="videoAccessType">
-                  <option value="registered_free">注册后可看（免费）</option>
-                  <option value="paid_single">单视频付费</option>
-                  <option value="paid_specialty">跟随专科课程</option>
-                  <option value="paid_membership">付费会员可看</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="form-row" id="videoPriceRow" hidden>
-              <div style="min-width:160px">
-                <label>价格（元）</label>
-                <input class="input" id="videoPrice" type="number" min="0" step="0.01" placeholder="0.00" />
-              </div>
             </div>
 
             <div class="form-row">
               <div style="flex:1;min-width:240px">
-                <label>视频简介</label>
+                <label for="videoDescription">课程简介</label>
                 <textarea class="input" id="videoDescription" rows="2" style="resize:vertical"></textarea>
               </div>
             </div>
@@ -1043,11 +1166,12 @@ async function init(){
                 <label>排序</label>
                 <input class="input" id="videoSortOrder" type="number" value="0" />
               </div>
+              <div style="min-width:180px">
+                <label for="videoMediaType">媒体类型 *</label>
+                <select class="input" id="videoMediaType"><option value="">请选择音频或视频</option><option value="audio">音频</option><option value="video">视频</option></select>
+                <p class="small muted">本地文件自动识别；手动填写媒体 ID 时请按实际内容选择。</p>
+              </div>
             </div>
-
-            <!-- Hidden legacy fields for backward compat -->
-            <input type="hidden" id="videoIsPaid" />
-            <input type="hidden" id="videoMembershipAccessible" />
 
             <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center">
               <button class="btn" type="button" id="videoSaveDraft">保存草稿</button>
@@ -1055,13 +1179,20 @@ async function init(){
               <span class="small muted" id="videoHint"></span>
             </div>
           </form>
+          <fieldset id="mediaBatchPanel" style="min-width:0;margin:22px 0 0"></fieldset>
           <div class="hr"></div>
           <div>
             <div class="section-title" style="margin:0">
-              <div><h3 style="margin:0">最近添加的视频</h3></div>
+              <div><h3 style="margin:0">全部课程管理</h3><p class="small muted" id="videoAdminCount"></p></div>
               <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px">
                 <input type="checkbox" id="showDeletedVideos" /> 显示已删除
               </label>
+            </div>
+            <div class="form-row" style="margin-top:14px;gap:10px">
+              <div style="flex:2;min-width:200px"><label for="videoAdminSearch">搜索课程 / 系列 / 主讲人</label><input class="input" id="videoAdminSearch" type="search" placeholder="如：电解质" /></div>
+              <div style="flex:1;min-width:160px"><label for="videoAdminAudienceFilter">课程权限</label><select class="input" id="videoAdminAudienceFilter"><option value="">全部权限</option><option value="training">付费培训</option><option value="member">299 元会员回放</option><option value="free">免费课程</option><option value="legacy">历史权限待确认</option></select></div>
+              <div style="flex:1;min-width:130px"><label for="videoAdminMediaFilter">媒体类型</label><select class="input" id="videoAdminMediaFilter"><option value="">全部类型</option><option value="video">视频</option><option value="audio">音频</option><option value="unknown">类型待确认</option></select></div>
+              <div style="flex:1;min-width:200px"><label for="videoAdminProjectFilter">培训项目</label><select class="input" id="videoAdminProjectFilter"><option value="">全部项目</option></select></div>
             </div>
             <div id="videoAdminList" style="margin-top:10px"></div>
           </div>
@@ -1079,12 +1210,13 @@ async function init(){
     els.videoIsPaid = document.getElementById('videoIsPaid');
     els.videoMembershipAccessible = document.getElementById('videoMembershipAccessible');
     els.videoSourceType = document.getElementById('videoSourceType');
-    els.videoAccessType = document.getElementById('videoAccessType');
+    els.videoAudience = document.getElementById('videoAudience');
     els.videoPrice = document.getElementById('videoPrice');
     els.videoDescription = document.getElementById('videoDescription');
     els.videoCoverImage = document.getElementById('videoCoverImage');
     els.videoContentSource = document.getElementById('videoContentSource');
     els.videoSortOrder = document.getElementById('videoSortOrder');
+    els.videoMediaType = document.getElementById('videoMediaType');
     els.videoSaveDraft = document.getElementById('videoSaveDraft');
     els.videoPriceRow = document.getElementById('videoPriceRow');
     els.videoAliyunVidWrap = document.getElementById('videoAliyunVidWrap');
@@ -1103,6 +1235,11 @@ async function init(){
   // Load specialties + admin videos in parallel
   await Promise.all([loadSpecialties(), loadAdminVideos()]);
 
+  document.getElementById('videoAdminSearch')?.addEventListener('input', () => renderVideoAdminList(_allAdminVideos));
+  ['videoAdminAudienceFilter', 'videoAdminMediaFilter', 'videoAdminProjectFilter'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', () => renderVideoAdminList(_allAdminVideos));
+  });
+
   // Toggle show/hide deleted videos
   els.showDeletedVideos?.addEventListener('change', ()=>{
     renderVideoAdminList(_allAdminVideos);
@@ -1119,85 +1256,26 @@ async function init(){
   els.videoSourceType?.addEventListener('change', updateSourceTypeUI);
   updateSourceTypeUI();
 
-  // ── Access type toggle: show price row for paid_single ──
-  function updateAccessTypeUI(){
-    const at = els.videoAccessType?.value || 'registered_free';
-    if(els.videoPriceRow) els.videoPriceRow.hidden = (at !== 'paid_single');
-    // Sync legacy fields for backward compatibility
-    const isPaid = at !== 'registered_free';
-    const isMembership = at === 'paid_membership';
-    if(els.videoIsPaid) els.videoIsPaid.value = isPaid ? '1' : '';
-    if(els.videoMembershipAccessible) els.videoMembershipAccessible.value = isMembership ? '1' : '';
-  }
-
-  // ── Mutual exclusion: GlomCon source ⊥ specialty / paid_specialty ──
-  // GlomCon 内容统一为「付费会员可看」，且不绑定专科；
-  // 反过来，绑定专科或选「付费专科可看」的视频不能标 GlomCon 来源。
-  function applyAccessConsistency(){
-    const src = els.videoContentSource?.value || '';
-    const at = els.videoAccessType?.value || 'registered_free';
-    const hasSpecialty = getCheckedSpecialtyIds('video').length > 0;
-    const specChecks = document.querySelectorAll('.video-spec-check');
-
-    if(src === 'glomcon'){
-      if(els.videoAccessType){
-        els.videoAccessType.value = 'paid_membership';
-        els.videoAccessType.disabled = true;
-        els.videoAccessType.title = 'GlomCon 内容统一为「付费会员可看」';
+  // One explicit audience setting controls all saved permission fields.
+  ['videoAudience', 'videoSpecialtyChecks', 'videoMediaType'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', () => {
+      if (id === 'videoSpecialtyChecks') {
+        const selected = getCheckedSpecialtyIds('video');
+        if (selected.length === 1 && els.videoCategory) {
+          const code = _specialtiesMap.get(selected[0])?.code;
+          const category = code === 'patho' ? 'path' : code;
+          if (VIDEO_CATEGORIES.some(item => item.key === category)) els.videoCategory.value = category;
+        }
       }
-      specChecks.forEach(c => { c.checked = false; c.disabled = true; });
-      if(els.videoSpecialtyChecks){
-        els.videoSpecialtyChecks.title = 'GlomCon 内容不绑定专科';
-        els.videoSpecialtyChecks.style.opacity = '.5';
-      }
-    } else {
-      if(els.videoAccessType){
-        els.videoAccessType.disabled = false;
-        els.videoAccessType.title = '';
-      }
-      specChecks.forEach(c => { c.disabled = false; });
-      if(els.videoSpecialtyChecks){
-        els.videoSpecialtyChecks.title = '';
-        els.videoSpecialtyChecks.style.opacity = '';
-      }
-    }
-
-    if(els.videoContentSource){
-      const glomconOpt = els.videoContentSource.querySelector('option[value="glomcon"]');
-      if(glomconOpt){
-        const blockGlomcon = (hasSpecialty || at === 'paid_specialty') && src !== 'glomcon';
-        glomconOpt.disabled = blockGlomcon;
-        glomconOpt.title = blockGlomcon ? '绑定专科或「付费专科可看」的视频不能选 GlomCon 来源' : '';
-      }
-    }
-
-    updateAccessTypeUI();
-  }
-
-  els.videoAccessType?.addEventListener('change', applyAccessConsistency);
-  applyAccessConsistency();
+      updatePermissionUI('video');
+    });
+  });
+  updatePermissionUI('video');
 
   // ── Aliyun VOD direct upload (admin only) ──
+  _adminUploadOwner = user.id;
   setupAliyunDirectUpload();
-
-  // Listen for specialty checkbox changes (delegated)
-  els.videoSpecialtyChecks?.addEventListener('change', (e)=>{
-    if(!e.target.classList.contains('video-spec-check')) return;
-    if(getCheckedSpecialtyIds('video').length > 0 && els.videoAccessType){
-      if(els.videoAccessType.value === 'registered_free'){
-        els.videoAccessType.value = 'paid_specialty';
-      }
-    }
-    applyAccessConsistency();
-  });
-
-  // Auto-set access type when GlomCon source is selected
-  els.videoContentSource?.addEventListener('change', ()=>{
-    if(els.videoContentSource.value === 'glomcon' && els.videoAccessType){
-      els.videoAccessType.value = 'paid_membership';
-    }
-    applyAccessConsistency();
-  });
+  setupBatchUpload(user);
 
   // Save draft button
   els.videoSaveDraft?.addEventListener('click', async ()=>{
@@ -1297,7 +1375,7 @@ async function loadTrainingProjects(){
       return;
     }
 
-    // Fetch related products for buy buttons (full+video editions)
+    // Fetch active registration products. Retired replay editions are never sold.
     const { data: allProducts } = await supabase
       .from('products')
       .select('id, product_code, title, subtitle, price_cny, list_price_cny, product_type, project_id')
@@ -1307,6 +1385,7 @@ async function loadTrainingProjects(){
 
     const productsByProject = {};
     for(const p of (allProducts || [])){
+      if (isRetiredTrainingReplay(p)) continue;
       if(p.project_id){
         if(!productsByProject[p.project_id]) productsByProject[p.project_id] = [];
         productsByProject[p.project_id].push(p);
@@ -1335,12 +1414,11 @@ async function loadTrainingProjects(){
         const sl = PROJECT_STATUS_LABELS[proj.status] || { label: proj.status, color: 'gray' };
         const hasAccess = userEnts.has(proj.id);
         const prods = productsByProject[proj.id] || [];
-        const fullProd  = prods.find(p => /full|完整|报名/.test(p.product_code + p.title));
+        const fullProd = prods.find(p => classifyTrainingProduct(p) === 'registration');
 
         function priceTag(p){
           if(!p) return '';
-          const early = p.list_price_cny ? `<s class="muted" style="font-weight:400">¥${esc(String(p.list_price_cny))}</s> ` : '';
-          return `${early}<b>¥${esc(String(p.price_cny))}</b>`;
+          return `<b>¥${esc(String(p.price_cny))}</b>`;
         }
 
         let ctaHtml = '';
@@ -1400,39 +1478,22 @@ async function loadTrainingProjects(){
 // 流程参考: https://help.aliyun.com/zh/vod/developer-reference/upload-media-files-by-using-the-vod-upload-sdk-for-javascript
 // 但我们直接用 OSS SDK + CreateUploadVideo, 不依赖 aliyun-upload-sdk.
 // ──────────────────────────────────────────────────────────
-const OSS_SDK_URL = 'https://gosspublic.alicdn.com/aliyun-oss-sdk-6.20.0.min.js';
+let _currentUpload = null;
+let _mediaSaveInProgress = false;
+let _batchBusy = false;
+let _adminUploadOwner = null;
+let _vodUploader;
 
-function loadOssSdk() {
-  if (window.OSS) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector(`script[src="${OSS_SDK_URL}"]`);
-    if (existing) {
-      existing.addEventListener('load', () => resolve());
-      existing.addEventListener('error', () => reject(new Error('OSS SDK 加载失败')));
-      return;
-    }
-    const s = document.createElement('script');
-    s.src = OSS_SDK_URL;
-    s.async = true;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error('OSS SDK 加载失败 (网络问题?)'));
-    document.head.appendChild(s);
+function vodUploader() {
+  if (!_vodUploader) _vodUploader = createVodUploader({
+    getToken: async () => {
+      const session = (await supabase.auth.getSession())?.data?.session;
+      if (!session?.access_token) throw new Error('登录已失效，请重新登录后重试。');
+      if (session.user?.id !== _adminUploadOwner) throw new Error('当前登录账号已变化，请重新打开课程管理页面。');
+      return session.access_token;
+    },
   });
-}
-
-// 当前上传状态 (供取消按钮访问).
-// 不同时支持多个上传 — admin 一般也只传一个文件.
-let _currentUpload = null;  // { client, videoId, token, cancelled }
-
-async function aliyunDeleteOrphan(videoId, token) {
-  if (!videoId || !token) return;
-  try {
-    await fetch('/api/videos/upload-credentials/delete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ videoId }),
-    });
-  } catch (_e) { /* best effort, 失败也无所谓 */ }
+  return _vodUploader;
 }
 
 function setupAliyunDirectUpload() {
@@ -1445,155 +1506,134 @@ function setupAliyunDirectUpload() {
   const textEl = document.getElementById('videoAliyunUploadText');
   const vidInput = document.getElementById('videoAliyunVid');
   const titleInput = document.getElementById('videoTitle');
-  if (!fileInput || !fileBtn || !vidInput) return;
-  if (fileBtn.dataset.wired === '1') return;
+  const batchPanel = document.getElementById('mediaBatchPanel');
+  if (!fileInput || !fileBtn || !vidInput || fileBtn.dataset.wired === '1') return;
   fileBtn.dataset.wired = '1';
-
+  vidInput.addEventListener('input', () => {
+    delete vidInput.ksMediaMetadata;
+    if (els.videoMediaType) els.videoMediaType.value = '';
+  });
   fileBtn.addEventListener('click', () => fileInput.click());
-
-  cancelBtn?.addEventListener('click', async () => {
+  cancelBtn?.addEventListener('click', () => {
     if (!_currentUpload) return;
-    if (!confirm('确定停止上传？已上传的分片会被丢弃，需要从头开始重传。')) return;
-    _currentUpload.cancelled = true;
-    try { _currentUpload.client?.cancel(); } catch {}
+    _currentUpload.abort();
     textEl.textContent = '正在停止…';
     cancelBtn.disabled = true;
   });
-
   fileInput.addEventListener('change', async () => {
+    if (_currentUpload) return;
+    if (_mediaSaveInProgress || _batchBusy) {
+      alert('课程正在保存或批量上传，请完成后再上传单个文件。');
+      fileInput.value = '';
+      return;
+    }
     const file = fileInput.files?.[0];
     if (!file) return;
-
-    if (!/\.(mp4|mov|m4v|mkv|avi|flv|wmv|webm|ts)$/i.test(file.name)) {
-      alert('请选择视频文件 (mp4 / mov / mkv / avi 等)');
-      fileInput.value = '';
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024 * 1024) {
-      alert('文件 > 2 GB, 请压缩后再传');
-      fileInput.value = '';
-      return;
-    }
-
+    const validation = validateMediaFile(file);
+    if (validation.error) { alert(validation.error); fileInput.value = ''; return; }
+    try { readCoursePermissions('video', validation.mediaType); }
+    catch (error) { alert(String(error?.message || error)); fileInput.value = ''; return; }
+    const mediaLabel = validation.mediaType === 'audio' ? '音频' : '视频';
+    const previousVid = vidInput.value;
+    const controls = [vidInput, els.videoSave, els.videoSaveDraft, els.videoSourceType, els.videoMediaType, batchPanel, fileBtn]
+      .filter(Boolean).map(control => [control, control.disabled]);
+    controls.forEach(([control]) => { control.disabled = true; });
     const title = String(titleInput?.value || '').trim() || file.name.replace(/\.[^.]+$/, '');
-
-    statusEl.textContent = `已选: ${file.name} · ${(file.size / 1024 / 1024).toFixed(1)} MB`;
-    progressEl.style.display = 'block';
-    barEl.style.width = '0%';
-    barEl.style.background = '#4a90e2';
-    textEl.textContent = '请求上传凭证…';
-    fileBtn.disabled = true;
-    cancelBtn.style.display = '';
-    cancelBtn.disabled = false;
-    _currentUpload = { client: null, videoId: null, token: null, cancelled: false };
-
+    statusEl.textContent = `已选${mediaLabel}：${file.name} · ${(file.size / 1024 / 1024).toFixed(1)} MB`;
+    progressEl.style.display = 'block'; barEl.style.width = '0%'; barEl.style.background = '#4a90e2';
+    cancelBtn.style.display = ''; cancelBtn.disabled = false;
+    _currentUpload = new AbortController();
     try {
-      // 1. 拿 supabase session token (作为 admin 鉴权)
-      const sess = (await supabase.auth.getSession())?.data?.session;
-      const token = sess?.access_token;
-      if (!token) throw new Error('未登录, 请先登录');
-      _currentUpload.token = token;
-
-      // 2. 服务器签发 UploadAuth / UploadAddress / VideoId
-      const credRes = await fetch('/api/videos/upload-credentials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ title, fileName: file.name }),
-      });
-      const cred = await credRes.json().catch(() => ({}));
-      if (!credRes.ok) {
-        throw new Error(cred.message || cred.error || `凭证签发失败 (HTTP ${credRes.status})`);
-      }
-      _currentUpload.videoId = cred.videoId;
-
-      // 3. base64 解码 UploadAuth / UploadAddress
-      const auth = JSON.parse(atob(cred.uploadAuth));
-      const addr = JSON.parse(atob(cred.uploadAddress));
-
-      // 4. 加载 OSS SDK
-      textEl.textContent = '加载上传 SDK…';
-      await loadOssSdk();
-
-      // 5. 创建 OSS client (用 STS 临时凭证)
-      // timeout 120s: 默认 60s 在慢网络上经常 TCP 握手都超时
-      // 创建后立刻挂到 _currentUpload, 让 cancelBtn 能调 client.cancel()
-      const client = new window.OSS({
-        region: 'oss-' + auth.Region,
-        accessKeyId: auth.AccessKeyId,
-        accessKeySecret: auth.AccessKeySecret,
-        stsToken: auth.SecurityToken,
-        bucket: addr.Bucket,
-        endpoint: addr.Endpoint,
-        secure: true,
-        timeout: 120000,
-        refreshSTSToken: async () => {
-          const r = await fetch('/api/videos/upload-credentials/refresh', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ videoId: cred.videoId }),
-          });
-          const rd = await r.json().catch(() => ({}));
-          if (!r.ok) throw new Error(rd.message || rd.error || 'STS 续签失败');
-          const newAuth = JSON.parse(atob(rd.uploadAuth));
-          return {
-            accessKeyId: newAuth.AccessKeyId,
-            accessKeySecret: newAuth.AccessKeySecret,
-            stsToken: newAuth.SecurityToken,
-          };
-        },
-      });
-      _currentUpload.client = client;
-
-      // 6. 分片上传到 OSS, 报告进度
-      // 分片策略: 大文件用大分片 (减少并发开销), 小文件用小分片 (避免一片传太久没进度)
-      //   - <100 MB  -> 1 MB 分片
-      //   - 100-500 MB -> 4 MB 分片
-      //   - >500 MB  -> 8 MB 分片
-      // 并发 2: 比 4 慢但慢网络下成功率高很多 (60s timeout 内能跑完 1 个分片)
-      textEl.textContent = '上传中…';
-      const sizeMB = file.size / 1024 / 1024;
-      const partSize = sizeMB < 100 ? 1 * 1024 * 1024
-                     : sizeMB < 500 ? 4 * 1024 * 1024
-                                    : 8 * 1024 * 1024;
-      await client.multipartUpload(addr.FileName, file, {
-        partSize,
-        parallel: 2,
-        timeout: 120000,
-        progress: (p) => {
-          const pct = Math.round(p * 100);
+      const durationTask = readLocalMediaDuration(file, validation.mediaType);
+      const result = await vodUploader()(file, {
+        title, signal: _currentUpload.signal,
+        onStatus: message => { textEl.textContent = message; },
+        onProgress: value => {
+          const pct = Math.round(value * 100);
           barEl.style.width = pct + '%';
-          textEl.textContent = `上传中 ${pct}%${pct < 100 ? '' : ' · 阿里云正在收尾'}`;
+          textEl.textContent = `上传中 ${pct}%`;
         },
       });
-
-      // 7. 成功, 自动填写 VideoId
-      vidInput.value = cred.videoId;
-      barEl.style.width = '100%';
-      barEl.style.background = '#22c55e';
-      textEl.innerHTML = `✅ 上传成功 · 视频 ID 已自动填写 (<code>${cred.videoId}</code>)`;
-      statusEl.textContent = '点击下方"保存并上架"完成入库';
-    } catch (err) {
-      const wasCancelled = _currentUpload?.cancelled || err?.name === 'cancel' || /cancel/i.test(String(err?.message || ''));
-      console.error('[aliyun-upload]', err);
-      barEl.style.background = wasCancelled ? '#888' : '#e74c3c';
-      textEl.textContent = wasCancelled
-        ? '⏹ 已停止上传，孤儿记录已清理'
-        : `❌ ${err?.message || err}`;
-      vidInput.value = '';
-      // 失败/取消都要清理已在阿里云创建的视频记录 (CreateUploadVideo 已经
-      // 写了一条 status=Uploading 的 video, 不删的话永远是孤儿)
-      const orphanId = _currentUpload?.videoId;
-      const t = _currentUpload?.token;
-      if (orphanId && t) {
-        aliyunDeleteOrphan(orphanId, t);
-      }
+      vidInput.value = result.videoId;
+      vidInput.ksMediaMetadata = { videoId: result.videoId, mediaType: validation.mediaType,
+        durationSeconds: await durationTask };
+      if (els.videoMediaType) els.videoMediaType.value = validation.mediaType;
+      updatePermissionUI('video');
+      if (els.videoAliyunUrl) els.videoAliyunUrl.value = '';
+      if (titleInput && !titleInput.value.trim()) titleInput.value = title;
+      barEl.style.width = '100%'; barEl.style.background = '#22c55e';
+      textEl.textContent = `✅ ${mediaLabel}上传成功 · 媒体 ID 已自动填写`;
+      statusEl.textContent = '可先保存草稿；在阿里云确认处理完成并试听或试看后，再上架。';
+    } catch (error) {
+      const stopped = _currentUpload.signal.aborted || error?.name === 'AbortError';
+      barEl.style.background = stopped ? '#888' : '#e74c3c';
+      textEl.textContent = stopped ? '已停止上传，可重新选择文件。' : `上传失败：${error?.message || error}`;
+      vidInput.value = previousVid;
     } finally {
-      fileBtn.disabled = false;
-      fileInput.value = '';
-      cancelBtn.style.display = 'none';
-      cancelBtn.disabled = false;
+      controls.forEach(([control, disabled]) => { control.disabled = disabled; });
+      fileInput.value = ''; cancelBtn.style.display = 'none'; cancelBtn.disabled = false;
       _currentUpload = null;
     }
+  });
+}
+
+function setupBatchUpload(user) {
+  const root = document.getElementById('mediaBatchPanel');
+  const form = document.getElementById('videoAddForm');
+  if (!root || !form || root.dataset.wired === '1') return;
+  root.dataset.wired = '1';
+  let lockedControls = [], listDirty = false;
+  const label = element => element?.selectedOptions?.[0]?.textContent?.trim() || '';
+  function getSettings() {
+    if (_currentUpload || _mediaSaveInProgress) throw new Error('请先完成当前单个文件的上传或保存。');
+    const category = String(els.videoCategory?.value || '').trim();
+    const source = String(els.videoContentSource?.value || 'external');
+    const audience = String(els.videoAudience?.value || '');
+    const specialtyIds = getCheckedSpecialtyIds('video');
+    const specialties = Array.from(_specialtiesMap.values());
+    // Actual file types are checked for the complete queue before uploading.
+    const permissions = buildCoursePermissions({ audience, specialtyIds, specialties, mediaType: 'video' });
+    const sortStart = Number(els.videoSortOrder?.value || 0);
+    if (!category) throw new Error('请先在上方选择频道。');
+    if (!Number.isInteger(sortStart) || sortStart < 0 || sortStart > 2147383647) throw new Error('起始排序须为非负整数，且预留章节排序空间。');
+    return {
+      category, categoryLabel: label(els.videoCategory), source, sourceLabel: label(els.videoContentSource),
+      speaker: String(els.videoSpeaker?.value || '').trim(), audience, specialties,
+      specialtyIds: permissions.specialty_ids,
+      specialtyLabels: trainingProjectOptions(specialties).filter(project => permissions.specialty_ids.includes(project.id)).map(project => project.label),
+      accessType: permissions.access_type, accessLabel: label(els.videoAudience),
+      membershipScope: permissions.membership_scope, membershipScopeLabel: MEMBERSHIP_SCOPES[permissions.membership_scope],
+      price: permissions.price, sortStart, createdBy: user.id,
+      description: String(els.videoDescription?.value || '').trim(), coverImage: String(els.videoCoverImage?.value || '').trim(),
+    };
+  }
+  const queue = new BatchQueue({
+    upload: async (item, onProgress, signal) => {
+      const durationTask = readLocalMediaDuration(item.file, item.mediaType);
+      const result = await vodUploader()(item.file, { title: item.title, onProgress, signal });
+      return { ...result, durationSeconds: await durationTask };
+    },
+    save: (item, settings) => saveBatchCourse(supabase, item, settings),
+  });
+  const view = mountBatchUpload(root, {
+    queue, getSettings,
+    onSaved: () => { listDirty = true; },
+    onBusy: busy => {
+      _batchBusy = busy;
+      if (busy && !lockedControls.length) {
+        lockedControls = [...form.querySelectorAll('input,select,textarea,button')].filter(control => !root.contains(control)).map(control => [control, control.disabled]);
+        lockedControls.forEach(([control]) => { control.disabled = true; });
+      } else if (!busy) {
+        lockedControls.forEach(([control, disabled]) => { control.disabled = disabled; });
+        lockedControls = [];
+        if (listDirty) { listDirty = false; loadAdminVideos(); }
+      }
+    },
+  });
+  form.addEventListener('change', () => { view.refreshSettings(); });
+  form.addEventListener('input', () => { view.refreshSettings(); });
+  window.addEventListener('beforeunload', event => {
+    if (_batchBusy || _currentUpload || _mediaSaveInProgress) { event.preventDefault(); event.returnValue = ''; }
   });
 }
 

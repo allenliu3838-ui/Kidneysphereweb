@@ -7,7 +7,7 @@
   <meta name="description" content="肾域 — 面向肾脏专科的学术社区、临床科研与医生工具平台">
   <meta name="robots" content="noindex,nofollow" />
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+  <link rel="stylesheet" href="styles.css?v=20260914_depth1" />
 </head>
 <body>
   <header class="nav"></header>
@@ -21,7 +21,7 @@
       <p>使用 <b>邮箱 + 密码</b> 登录。首次使用请先注册。</p>
 
       <div class="note" style="margin:12px 0 6px">
-        <b>提示：</b>如本网站启用了邮箱验证，新注册用户需先完成邮箱确认后才能登录。
+        <b>提示：</b>注册后系统会根据账号状态自动登录，或提示你完成邮箱确认。
       </div>
 
       <form id="loginForm">
@@ -38,13 +38,13 @@
 
         <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px">
           <button class="btn primary" type="submit">登录</button>
-          <a class="btn" href="register.html">去注册</a>
-          <a class="btn" href="forgot.html">忘记密码</a>
+          <a class="btn" href="register.html" data-auth-return>去注册</a>
+          <a class="btn" href="forgot.html" data-auth-return>忘记密码</a>
           <a class="btn" href="index.html">返回首页</a>
         </div>
 
         <div class="small muted" style="margin-top:10px">
-          若未收到验证邮件，可检查垃圾箱或稍后重试。
+          如系统提示需要邮箱确认，请检查收件箱或垃圾箱。
         </div>
       </form>
 
@@ -54,12 +54,11 @@
 
 <script type="module">
   import { supabase, ensureSupabase, getSupabaseDebugInfo, toast, isConfigured } from './supabaseClient.js?v=20260401_fix';
+  import { getAuthReturnTarget, preserveAuthReturnLinks } from './auth-return.js?v=20260915_mobile1';
 
   const qs = new URLSearchParams(location.search);
-  const nextRaw = qs.get('next') || '';
-  const next = (nextRaw && !nextRaw.startsWith('http') && !nextRaw.startsWith('//') && !nextRaw.includes('..'))
-    ? nextRaw
-    : 'post-case.html';
+  const next = getAuthReturnTarget();
+  preserveAuthReturnLinks(next);
 
   const form = document.getElementById('loginForm');
   const emailInput = document.getElementById('emailInput');
@@ -73,7 +72,7 @@
 
   async function syncProfileFromMetadata(user){
     if(!user) return;
-    const full_name = String(user.user_metadata?.full_name || '').trim();
+    const full_name = String(user.user_metadata?.full_name || user.user_metadata?.display_name || '').trim();
     const payload = { id: user.id };
     if(full_name) payload.full_name = full_name;
 
@@ -85,6 +84,31 @@
     }catch(_e){ /* profiles 表可能尚未创建，忽略 */ }
   }
 
+function friendlyAuthError(error){
+  const code = String(error?.code || '').toLowerCase();
+  const status = Number(error?.status || 0);
+  const name = String(error?.name || '').toLowerCase();
+  const message = String(error?.message || error || '').toLowerCase();
+
+  if(code === 'invalid_credentials' || message.includes('invalid login credentials')){
+    return '邮箱或密码错误，请检查后重试。';
+  }
+  if(code === 'email_not_confirmed' || message.includes('email not confirmed')){
+    return '该邮箱尚未完成确认，请检查邮箱后再登录。';
+  }
+  if(status === 429 || code.includes('rate_limit') || message.includes('rate limit')){
+    return '请求过于频繁，请稍后再试。';
+  }
+  if(
+    status === 0 || name.includes('authretryablefetcherror') || name.includes('aborterror') ||
+    message.includes('load failed') || message.includes('failed to fetch') ||
+    message.includes('network') || message.includes('timeout') || message.includes('timed out')
+  ){
+    return '网络连接失败，请检查网络或切换网络后重试。';
+  }
+  return '登录暂未完成，请稍后重试。';
+}
+
   form.addEventListener('submit', async (e)=>{
     e.preventDefault();
 
@@ -92,6 +116,7 @@
     const oldText = submitBtn.textContent;
     submitBtn.textContent = '登录中…';
 
+    try{
     if(!isConfigured()){
       toast('服务暂不可用','系统正在维护中，请稍后再试。如持续出现请联系 china@kidneysphere.com。','err');
       submitBtn.disabled = false;
@@ -132,16 +157,7 @@ SDK 来源：${dbg.libSource}` : '';
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if(error){
-      const msg = String(error.message || '');
-      if(msg.toLowerCase().includes('confirm')){
-        toast('登录失败','该邮箱可能还未确认。请先去邮箱完成确认后再登录。\n','err');
-        submitBtn.disabled = false;
-        submitBtn.textContent = oldText;
-        return;
-      }
-      toast('登录失败', msg || '未知错误', 'err');
-      submitBtn.disabled = false;
-      submitBtn.textContent = oldText;
+      toast('登录失败', friendlyAuthError(error), 'err');
       return;
     }
 
@@ -157,6 +173,12 @@ SDK 来源：${dbg.libSource}` : '';
 
     toast('登录成功','正在跳转…','ok');
     setTimeout(()=> location.href = next, 600);
+    }catch(error){
+      toast('登录失败', friendlyAuthError(error), 'err');
+    }finally{
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldText;
+    }
   });
 
       // If coming from reset.html, show a success toast. Reuse existing qs.

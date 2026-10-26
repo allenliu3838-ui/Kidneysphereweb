@@ -250,32 +250,17 @@ const VIDEO_CAT_ZH = {
 async function loadNewVideos(sinceIso){
   if(!els.videosList) return [];
   try{
-    const candidates = [
-      { fields: 'id, title, category, speaker, kind, source_url, mp4_url, created_at, enabled, deleted_at', filterDeleted: true },
-      { fields: 'id, title, category, speaker, kind, source_url, mp4_url, created_at, enabled', filterDeleted: false },
-    ];
-
-    let res = null;
-    for(const c of candidates){
-      let q = supabase.from('learning_videos').select(c.fields)
-        .gt('created_at', sinceIso)
-        .eq('enabled', true);
-      if(c.filterDeleted) q = q.is('deleted_at', null);
-      q = q.order('created_at', { ascending: false }).limit(20);
-      res = await q;
-      if(!res?.error) break;
-      const msg = String(res.error.message || res.error).toLowerCase();
-      if(!(msg.includes('column') && (msg.includes('deleted_at') || msg.includes('kind') || msg.includes('mp4_url')))) break;
-    }
-
-    const { data, error } = res || {};
+    const { data, error } = await supabase.from('learning_videos')
+      .select('id,title,category,speaker,media_type,created_at')
+      .gt('created_at', sinceIso).eq('enabled', true).eq('is_published', true)
+      .is('deleted_at', null).order('created_at', { ascending: false }).limit(20);
     if(error) throw error;
     return data || [];
   }catch(e){
     const msg = String(e?.message || e || '');
     // If table doesn't exist yet, silently return empty
     if(/relation .*learning_videos.* does not exist/i.test(msg)) return [];
-    els.videosList.innerHTML = `<div class="note"><b>读取视频失败</b><div class="small" style="margin-top:6px">${esc(msg)}</div></div>`;
+    els.videosList.innerHTML = `<div class="note"><b>读取课程失败</b><div class="small" style="margin-top:6px">${esc(msg)}</div></div>`;
     return [];
   }
 }
@@ -284,11 +269,12 @@ function renderVideos(list){
   if(!els.videosList) return;
   els.videosCount && (els.videosCount.textContent = String(list.length || 0));
   if(!list.length){
-    els.videosList.innerHTML = renderEmpty('视频');
+    els.videosList.innerHTML = renderEmpty('音视频课程');
     return;
   }
   els.videosList.innerHTML = list.map(v=>{
-    const title = v.title || '未命名视频';
+    const title = v.title || '未命名课程';
+    const typeLabel = v.media_type === 'audio' ? '♫ 新音频' : v.media_type === 'video' ? '▶ 新视频' : '新课程';
     const cat = VIDEO_CAT_ZH[v.category] || v.category || '';
     const speaker = v.speaker || '';
     const metaParts = [relTime(v.created_at)];
@@ -297,7 +283,7 @@ function renderVideos(list){
     const meta = metaParts.filter(Boolean).map(esc).join(' · ');
     return `
       <a class="list-item" href="watch.html?id=${encodeURIComponent(v.id)}">
-        <b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🎬 新视频：${esc(title)}</b>
+        <b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${typeLabel}：${esc(title)}</b>
         <div class="small muted" style="margin-top:6px">${meta}</div>
       </a>
     `;

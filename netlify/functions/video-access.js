@@ -13,7 +13,6 @@ const https = require('https');
 const http = require('http');
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
 
 const json = (statusCode, payload) => ({
@@ -79,144 +78,46 @@ function pickToken(event) {
   return '';
 }
 
-async function sbQuery(path) {
-  const key = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
-  return httpRequest(`${SUPABASE_URL}/rest/v1/${path}`, {
-    headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' },
-  });
-}
-
+// PostgREST verifies the JWT and the RPC binds authorization to auth.uid().
+// Never decode an unverified token here or read original media locators.
 exports.handler = async (event) => {
-  console.log('[video-access] invoked, path:', event.path, 'method:', event.httpMethod);
-  console.log('[video-access] env: SUPABASE_URL=', SUPABASE_URL ? 'SET' : 'MISSING',
-    'SERVICE_KEY=', SUPABASE_SERVICE_ROLE_KEY ? 'SET' : 'MISSING',
-    'ANON_KEY=', SUPABASE_ANON_KEY ? 'SET' : 'MISSING');
   try {
-    const ip = getClientIp(event);
-    if (!rateCheck(ip)) return json(429, { error: 'rate_limited' });
-
     if (event.httpMethod !== 'GET') return json(405, { error: 'method_not_allowed' });
-
-    const pathMatch = (event.path || '').match(/\/api\/videos\/([^/]+)\/access/);
-    if (!pathMatch) return json(400, { error: 'missing_video_id' });
-    const videoId = decodeURIComponent(pathMatch[1]);
-    console.log('[video-access] videoId:', videoId);
-
-    if (!SUPABASE_URL) return json(500, { error: 'server_not_configured' });
-
-    console.log('[video-access] fetching video from DB...');
-    const videoRes = await sbQuery(
-      `learning_videos?id=eq.${encodeURIComponent(videoId)}&select=id,title,access_type,price,cover_image,description,speaker,category,kind,bvid,specialty_id,product_id,aliyun_vid,is_paid,membership_accessible,is_published,deleted_at&limit=1`
-    );
-    console.log('[video-access] DB response status:', videoRes.status);
-    if (!videoRes.ok) {
-      const errBody = await videoRes.text().catch(() => '');
-      console.error('[video-access] DB error body:', errBody);
-      return json(500, { error: 'db_error', detail: errBody });
+    if (!rateCheck(getClientIp(event))) return json(429, { error: 'rate_limited' });
+    const match = (event.path || '').match(/\/api\/videos\/([^/]+)\/access\/?$/);
+    if (!match) return json(400, { error: 'missing_video_id' });
+    let videoId;
+    try { videoId = decodeURIComponent(match[1]); } catch (_) { return json(400, { error: 'invalid_video_id' }); }
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(videoId)) {
+      return json(400, { error: 'invalid_video_id' });
     }
-    const videos = await videoRes.json();
-    const video = videos?.[0];
-    console.log('[video-access] video found:', video ? video.id : 'null', 'title:', video?.title);
-
-    if (!video || video.deleted_at) return json(404, { error: 'video_not_found' });
-    if (!video.is_published && video.is_published !== null) return json(404, { error: 'video_not_published' });
-
-    const accessType = video.access_type || (video.is_paid ? 'paid_single' : 'registered_free');
-    console.log('[video-access] accessType:', accessType);
-
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return json(503, { error: 'server_not_configured' });
     const token = pickToken(event);
-    let user = null;
-    if (token) {
-      console.log('[video-access] decoding user token...');
-      try {
-        const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
-        if (payload.sub && payload.aud === 'authenticated' && payload.exp > Date.now() / 1000) {
-          user = { id: payload.sub, email: payload.email, role: payload.role };
-          console.log('[video-access] token valid, user:', user.id);
-        } else {
-          console.log('[video-access] token invalid or expired, sub:', payload.sub, 'exp:', payload.exp);
-        }
-      } catch (decodeErr) {
-        console.error('[video-access] token decode error:', decodeErr.message);
-      }
-    } else {
-      console.log('[video-access] no auth token provided');
-    }
-
-    let canPlay = false;
-    let needLogin = false;
-    let needPurchase = false;
-    let reason = '';
-
-    if (!user) {
-      needLogin = true;
-      if (accessType === 'registered_free') {
-        reason = 'login_required';
-      } else {
-        reason = 'login_then_purchase';
-        needPurchase = true;
-      }
-    } else if (accessType === 'registered_free') {
-      canPlay = true;
-      reason = 'free';
-    } else {
-      const rpcRes = await httpRequest(`${SUPABASE_URL}/rest/v1/rpc/check_video_access`, {
-        method: 'POST',
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          p_user_id: user.id,
-          p_video_id: videoId,
-          p_specialty_id: video.specialty_id || null,
-        }),
-      });
-      console.log('[video-access] RPC response status:', rpcRes.status);
-      if (rpcRes.ok) {
-        canPlay = await rpcRes.json();
-        console.log('[video-access] check_video_access result:', canPlay);
-      } else {
-        const rpcErr = await rpcRes.text().catch(() => '');
-        console.error('[video-access] RPC error:', rpcErr);
-      }
-      if (canPlay) {
-        reason = 'entitled';
-      } else {
-        needPurchase = true;
-        reason = 'purchase_required';
-      }
-    }
-
-    const safeVideo = {
-      id: video.id,
-      title: video.title,
-      accessType: accessType,
-      price: video.price || 0,
-      coverImage: video.cover_image || '',
-      description: video.description || '',
-      speaker: video.speaker || '',
-      category: video.category || '',
-      kind: video.kind || 'external',
-      bvid: video.bvid || null,
-      specialtyId: video.specialty_id || null,
-      productId: video.product_id || null,
-      hasAliyunVod: !!(video.aliyun_vid),
-      membershipAccessible: video.membership_accessible || false,
-    };
-
-    console.log('[video-access] result: canPlay=', canPlay, 'needLogin=', needLogin, 'needPurchase=', needPurchase, 'reason=', reason);
-    return json(200, {
-      canPlay,
-      needLogin,
-      needPurchase,
-      reason,
-      video: safeVideo,
+    if (token.length > 8192) return json(401, { error: 'invalid_token', canPlay: false, needLogin: true });
+    const response = await httpRequest(`${SUPABASE_URL}/rest/v1/rpc/get_video_access_info`, {
+      method: 'POST', headers: { apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${token || SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ p_video_id: videoId }),
     });
-  } catch (e) {
-    console.error('[video-access] error:', e);
-    return json(500, { error: 'internal_error', message: String(e?.message || e) });
+    if (response.status === 401 || response.status === 403) return json(401, {
+      error: 'invalid_token', canPlay: false, needLogin: true,
+    });
+    if (!response.ok) return json(503, { error: 'access_check_unavailable', canPlay: false });
+    const result = await response.json();
+    if (result?.error === 'not_found') return json(404, { error: 'video_not_found', canPlay: false });
+    const row = result?.video;
+    if (!row || !['unclassified','weekly_replay','training','other_paid'].includes(row.membershipScope) ||
+      typeof result.canPlay !== 'boolean') return json(503, { error: 'access_schema_not_ready', canPlay: false });
+    const video = {};
+    for (const field of ['id','title','accessType','price','coverImage','description','speaker','category',
+      'specialtyId','productId','membershipScope','hasAliyunVod','membershipAccessible']) {
+      if (Object.hasOwn(row, field)) video[field] = row[field];
+    }
+    return json(200, { canPlay: !!token && result.canPlay === true,
+      needLogin: !token || result.needLogin === true, needPurchase: result.needPurchase === true,
+      reason: typeof result.reason === 'string' ? result.reason : 'access_check', video });
+  } catch (_) {
+    return json(503, { error: 'access_check_unavailable', canPlay: false });
   }
 };

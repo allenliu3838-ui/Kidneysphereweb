@@ -31,8 +31,8 @@ async function initAdminGate(){
       return;
     }
     const p = await getUserProfile(u);
-    const role = normalizeRole(p?.role || u?.user_metadata?.role);
-    const ok = isAdminRole(role);
+    const role = normalizeRole(p?.role);
+    const ok = p?.id === u.id && isAdminRole(role);
 
     if(!ok){
       location.replace('index.html');
@@ -77,7 +77,9 @@ async function injectAdminContent(role){
             <a class="btn" href="#events">管理会议与活动</a>
             <a class="btn" href="#research">管理临床研究中心</a>
             <a class="btn" href="#articles">文章管理</a>
+            <a class="btn" href="editorial.html">内容审核箱</a>
             <a class="btn" href="#training">培训项目</a>
+            <a class="btn primary" href="learning.html#videoAdminPanel">全部视频 / 音频管理</a>
             <a class="btn" href="#moderators">版主管理</a>
             <a class="btn" href="#doctor">医生认证</a>
             ${isSuperAdmin ? '<a class="btn" href="#roles">权限与管理员</a>' : ''}
@@ -160,6 +162,7 @@ async function injectAdminContent(role){
             <div class="section-title"><div><h3>文章管理</h3><p>管理员可发布文章，并在首页自动推送最新文章。</p></div><span class="badge">Articles</span></div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
               <a class="btn primary" href="article-editor.html">写文章</a>
+              <a class="btn" href="editorial.html">待审内容工作台</a>
               <a class="btn" href="articles.html">查看文章列表</a>
             </div>
             <div class="hr"></div>
@@ -256,7 +259,7 @@ async function injectAdminContent(role){
 
           ${isSuperAdmin ? `
           <div class="card soft" id="roles">
-            <div class="section-title"><div><h3>权限与管理员</h3><p>仅超级管理员可将成员提升为管理员。</p></div><span class="badge">Super</span></div>
+            <div class="section-title"><div><h3>权限与管理员</h3><p>仅超级管理员可分配内容编辑、版主和管理员权限。</p></div><span class="badge">Super</span></div>
             <div class="form-row" style="gap:10px;flex-wrap:wrap;align-items:center">
               <input class="input" id="roleSearchInput" placeholder="搜索姓名 / 用户ID（UUID）…" style="flex:1;min-width:260px" />
               <button class="btn" id="roleSearchBtn" type="button">搜索</button>
@@ -274,14 +277,14 @@ async function injectAdminContent(role){
   const modules = [
     'events.js?v=20260327_001',
     'research.js?v=20260327_001',
-    'articlesAdmin.js?v=20260327_001',
+    'articlesadmin.js?v=20260917_content1',
     'doctorAdmin.js?v=20260327_001',
     'trainingAdmin.js?v=20260327_001',
     'moderatorsAdmin.js?v=20260327_001',
   ];
 
   if(isSuperAdmin){
-    modules.push('roles.js?v=20260327_001');
+    modules.push('roles.js?v=20260917_content1');
   }
 
   for(const src of modules){

@@ -11,8 +11,9 @@ import {
   ensureSupabase,
   isConfigured,
   getSession,
-  canAccessNephroPro,
 } from './supabaseClient.js?v=20260401_fix';
+import { classifyTrainingProduct } from './training-commerce.js?v=20260914_pricing1';
+import { hasPublishedWeeklyReplays } from './membership-offer.js?v=20260916_learn2';
 
 // ── 工具函数 ──────────────────────────────────────────────────
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -40,6 +41,19 @@ function cohortStatusClass(s){
   return MAP[s] || 'planning';
 }
 
+function groupTrainingProducts(products){
+  const bySpec = {};
+  for(const p of products){
+    if(p.is_active !== true) continue;
+    const kind = classifyTrainingProduct(p);
+    if(kind !== 'registration' && kind !== 'bundle') continue;
+    const spec = String(p.product_code).split('-')[0].toLowerCase();
+    if(!bySpec[spec]) bySpec[spec] = {};
+    bySpec[spec][kind === 'registration' ? 'full' : 'bundle'] = p;
+  }
+  return bySpec;
+}
+
 // ── 主流程 ──────────────────────────────────────────────────
 async function init(){
   if(!isConfigured()) return;         // 未配置 Supabase，静态骨架保持原样
@@ -47,41 +61,31 @@ async function init(){
   await ensureSupabase();
 
   // 并行拉取数据
-  const [productsRes, projectsRes, sessionRes] = await Promise.allSettled([
+  const [productsRes, projectsRes, sessionRes, weeklyRes] = await Promise.allSettled([
     fetchProducts(),
     fetchProjects(),
     getSession(),
+    hasPublishedWeeklyReplays(supabase),
   ]);
 
   const products  = productsRes.status  === 'fulfilled' ? (productsRes.value  || []) : [];
   const projects  = projectsRes.status  === 'fulfilled' ? (projectsRes.value  || []) : [];
   const session   = sessionRes.status   === 'fulfilled' ? sessionRes.value : null;
 
-  // 按 product_code 前缀归类
-  const bySpec = {};
-  for(const p of products){
-    const code = (p.product_code || '').toUpperCase();
-    const spec = code.startsWith('ICU') ? 'icu'
-               : code.startsWith('TX')  ? 'tx'
-               : code.startsWith('PATHO') ? 'patho'
-               : code.startsWith('DA-')  ? 'da'
-               : code.startsWith('GLOM-BUNDLE') || code.startsWith('GLOM-REG') ? 'glom'
-               : null;
-    if(!spec) continue;
-    if(!bySpec[spec]) bySpec[spec] = {};
-    if(/full|完整|reg.*full/i.test(code)) bySpec[spec].full = p;
-    else if(/video|视频|回放/i.test(code)) bySpec[spec].video = p;
-    else if(/bundle|整套/i.test(code)) bySpec[spec].bundle = p;
-  }
+  // 商品类型由明确的 SKU / product_type 决定；推荐标记不决定购买范围。
+  const bySpec = groupTrainingProducts(products);
+  const productsReady = productsRes.status === 'fulfilled';
 
   // 用户权益（已购的 product_id set）
   let purchasedIds = new Set();
+  let hasMembership = false;
   if(session?.user){
     try{
       const { data: ents } = await supabase
         .rpc('get_my_entitlements');
       if(ents?.length){
         ents.forEach(e => { if(e.source_product_id) purchasedIds.add(e.source_product_id); });
+        hasMembership = ents.some(isCurrentMembership);
         renderStatusBar(ents);
       }
     }catch(_e){}
@@ -89,15 +93,13 @@ async function init(){
 
   // ── 渲染会员产品 ──
   const memberYearly = products.find(p => p.product_code === 'MEMBERSHIP-YEARLY');
-  const memberMonthly = products.find(p => p.product_code === 'MEMBERSHIP-MONTHLY');
-  renderMembership(memberYearly, memberMonthly, purchasedIds);
+  renderMembership(memberYearly, hasMembership, productsReady, weeklyRes.status === 'fulfilled' && weeklyRes.value === true);
 
   // 按专科渲染
   ['glom','icu','tx','patho','da'].forEach(spec => {
-    const ps = bySpec[spec];
-    if(!ps) return;
-    renderPricingCards(spec, ps, purchasedIds);
-    renderBundle(spec, ps.bundle, purchasedIds);
+    const ps = bySpec[spec] || {};
+    renderPricingCards(spec, ps, purchasedIds, productsReady);
+    renderBundle(spec, ps.bundle, purchasedIds, productsReady);
   });
 
   // 班期信息
@@ -118,7 +120,7 @@ async function init(){
 async function fetchProducts(){
   const { data, error } = await supabase
     .from('products')
-    .select('id,product_code,title,subtitle,price_cny,list_price_cny,product_type,recommended,is_active,project_id,specialty_id,early_bird_deadline,membership_period')
+    .select('id,product_code,title,subtitle,price_cny,list_price_cny,product_type,is_active,project_id,specialty_id,membership_period,duration_days')
     .eq('is_active', true)
     .in('product_type', ['project_registration','specialty_bundle','membership_plan'])
     .order('sort_order');
@@ -141,105 +143,71 @@ async function fetchProjects(){
 
 // ── DOM 渲染 ──────────────────────────────────────────────────
 
-function renderMembership(yearly, monthly, purchasedIds){
-  const priceEl = document.getElementById('membershipYearlyPrice');
-  const origEl = document.getElementById('membershipYearlyOrig');
-  const monthlyEl = document.getElementById('membershipMonthlyPrice');
-  const ctaEl = document.getElementById('membershipCta');
+function isCurrentMembership(entitlement){
+  return entitlement?.entitlement_type === 'membership' && entitlement.status === 'active'
+    && (!entitlement.start_at || Date.parse(entitlement.start_at) <= Date.now())
+    && (!entitlement.end_at || Date.parse(entitlement.end_at) > Date.now());
+}
 
-  // Check if user already has membership
-  const hasMembership = purchasedIds.has(yearly?.id) || purchasedIds.has(monthly?.id);
+function renderMembership(yearly, hasMembership = false, productsReady = true, catalogReady = false){
+  const priceEl = document.getElementById('membershipYearlyPrice');
+  const comparisonPrice = document.getElementById('membershipComparisonPrice');
+  const ctaEl = document.getElementById('membershipCta');
+  const available = yearly?.product_code === 'MEMBERSHIP-YEARLY'
+    && yearly.product_type === 'membership_plan' && yearly.is_active === true
+    && yearly.membership_period === 'yearly' && Number(yearly.duration_days) === 365
+    && Number.isFinite(Number(yearly.price_cny)) && Number(yearly.price_cny) > 0;
+  const price = available ? fmtPrice(yearly.price_cny) + '/年' : '暂未开放开通';
+  if(priceEl) priceEl.textContent = available || productsReady ? price : '价格加载失败';
+  if(comparisonPrice) comparisonPrice.textContent = priceEl?.textContent || price;
 
   if(hasMembership && ctaEl){
-    ctaEl.innerHTML = '<span class="badge" style="border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.1);color:#4ade80;padding:8px 16px;font-size:14px">已开通会员</span> <a class="btn" href="videos.html?source=glomcon">进入 GlomCon 视频</a> <a class="btn" href="nephro-pro.html">进入肾域 Pro</a>';
+    ctaEl.innerHTML = '<span class="badge">已开通会员</span> <a class="btn primary" href="videos.html?access=member">观看学术回放</a> <a class="btn" href="my-learning.html">查看我的已购权益</a>';
     return;
   }
-
-  if(yearly){
-    if(priceEl) priceEl.textContent = fmtPrice(yearly.price_cny) + '/年';
-    if(origEl) origEl.hidden = true;
-    const buyYearly = document.getElementById('membershipBuyYearly');
-    if(buyYearly){
-      buyYearly.href = `checkout.html?product_id=${encodeURIComponent(yearly.id)}`;
-      buyYearly.textContent = `开通教育会员 ${fmtPrice(yearly.price_cny)}/年`;
-    }
-  }
-  if(monthly){
-    if(monthlyEl) monthlyEl.textContent = fmtPrice(monthly.price_cny) + '/月';
-    const buyMonthly = document.getElementById('membershipBuyMonthly');
-    if(buyMonthly){
-      buyMonthly.href = `checkout.html?product_id=${encodeURIComponent(monthly.id)}`;
-      buyMonthly.textContent = `月费 ${fmtPrice(monthly.price_cny)}`;
-    }
+  if(ctaEl){
+    ctaEl.innerHTML = available && catalogReady
+      ? `<a class="btn primary" id="membershipBuyYearly" href="checkout.html?product=MEMBERSHIP-YEARLY">开通回放会员 ${esc(price)}</a> <a class="btn" href="videos.html?access=member">先看包含的学术回放</a><p class="small muted">仅含周三、周日学术活动视频回放，所有培训项目另行收费。</p>`
+      : `<p class="small muted">${!productsReady ? '会员信息暂未加载，请刷新重试。' : available ? '会员回放目录正在整理，开放后可开通。已购权益可继续使用。' : '会员暂未开放开通。'}</p><a class="btn" href="videos.html?access=free">先看免费课程</a><a class="btn" href="my-learning.html">我的已购权益</a>`;
   }
 }
 
-function earlyBirdTag(p){
-  if(!p?.early_bird_deadline) return '';
-  const deadline = new Date(p.early_bird_deadline);
-  const now = new Date();
-  if(deadline <= now) return '';   // expired — don't show
-  const days = Math.ceil((deadline - now) / 864e5);
-  const label = days <= 7
-    ? `🐦 早鸟价 · 还剩 ${days} 天`
-    : `🐦 早鸟价 · 截止 ${deadline.toLocaleDateString('zh-CN',{month:'long',day:'numeric'})}`;
-  return `<div style="font-size:11px;font-weight:700;color:#fbbf24;margin-bottom:4px">${label}</div>`;
-}
-
-function renderPricingCards(spec, ps, purchasedIds){
+function renderPricingCards(spec, ps, purchasedIds, productsReady = true){
   const container = document.getElementById(`proj-pricing-${spec}`);
   if(!container) return;
 
-  const fullP  = ps.full;
-  const videoP = ps.video;
-
-  function cardHtml(p, isRec){
-    if(!p) return '';
-    const bought = purchasedIds.has(p.id);
-    const cur  = fmtPrice(p.price_cny);
-    const orig = p.list_price_cny ? fmtPrice(p.list_price_cny) : null;
-    const label = isRec ? '报名版（完整版）' : '视频版（回放版）';
-    const includes = isRec
-      ? '含直播互动 + 学习群 + 全程回放'
-      : '仅含视频回放，不含直播与学习群';
-    const btnLabel = bought ? '已购买' : (isRec ? '立即报名' : '购买视频版');
-    const btnClass = isRec ? 'btn primary' : 'btn';
-    const btnHref  = bought ? 'my-learning.html' : `checkout.html?product=${encodeURIComponent(p.product_code)}`;
-    return `
-      <div class="price-option${isRec ? ' recommended' : ''}">
-        ${isRec ? '<div class="rec-tag">★ 推荐</div>' : ''}
-        ${earlyBirdTag(p)}
-        <div class="p-label">${esc(label)}</div>
-        <div>
-          <span class="p-price">${esc(cur||'—')}</span>
-          ${orig ? `<span class="p-orig">${esc(orig)}</span>` : ''}
-        </div>
-        <div class="p-includes">${esc(includes)}</div>
-        <div class="p-btn">
-          <a class="${btnClass}" href="${esc(btnHref)}">${bought ? '✅ 已购买 → 我的学习' : esc(btnLabel)}</a>
-        </div>
-      </div>`;
+  const p = ps.full;
+  if(!p){
+    const message = productsReady ? '暂未开放报名' : '报名信息暂未加载，请稍后重试';
+    container.innerHTML = `<div class="price-option"><div class="p-label">培训报名</div><div class="p-includes">${message}</div><div class="p-btn"><a class="btn" href="my-learning.html">已购学员进入学习</a></div></div>`;
+    return;
   }
-
-  container.innerHTML = cardHtml(fullP, true) + cardHtml(videoP, false);
+  const bought = purchasedIds.has(p.id);
+  const cur = fmtPrice(p.price_cny);
+  const btnHref = bought ? 'my-learning.html' : `checkout.html?product=${encodeURIComponent(p.product_code)}`;
+  container.innerHTML = `
+    <div class="price-option recommended">
+      <div class="p-label">培训报名（完整版）</div>
+      <div><span class="p-price">${esc(cur||'—')}</span></div>
+      <div class="p-includes">含直播互动 + 学习群 + 全程回放</div>
+      <div class="p-btn"><a class="btn primary" href="${esc(btnHref)}">${bought ? '✅ 已购买 → 我的学习' : '立即报名'}</a></div>
+    </div>`;
 }
 
-function renderBundle(spec, p, purchasedIds){
-  if(!p) return;
+function renderBundle(spec, p, purchasedIds, productsReady = true){
   const banner = document.getElementById(`bundle-${spec}`);
   if(!banner) return;
 
-  const bought = purchasedIds.has(p.id);
-  const cur  = fmtPrice(p.price_cny);
-  const orig = p.list_price_cny ? fmtPrice(p.list_price_cny) : null;
-  const btnHref = bought ? 'my-learning.html' : `checkout.html?product=${encodeURIComponent(p.product_code)}`;
-  const btnLabel = bought ? '✅ 已购买 → 我的学习' : '购买整套课';
+  const bought = p && purchasedIds.has(p.id);
+  const cur = p ? fmtPrice(p.price_cny) : (productsReady ? '暂未开放销售' : '价格暂未加载');
+  const btnHref = !p || bought ? 'my-learning.html' : `checkout.html?product=${encodeURIComponent(p.product_code)}`;
+  const btnLabel = !p ? '已购学员进入学习' : bought ? '✅ 已购买 → 我的学习' : '购买整套课';
 
   // Update price
   const priceEl = banner.querySelector('.bb-price');
   const origEl  = banner.querySelector('.bb-orig');
   if(priceEl && cur) priceEl.textContent = cur;
-  if(origEl && orig) origEl.textContent = orig; else if(origEl) origEl.remove();
+  origEl?.remove();
 
   // Update button
   const btn = banner.querySelector('.btn');
@@ -288,7 +256,7 @@ function renderProjectMeta(spec, proj){
       const d = new Date(nextCohort.enrollment_deadline);
       dateEl.textContent = `报名截止：${d.toLocaleDateString('zh-CN',{month:'long',day:'numeric'})}`;
     } else {
-      dateEl.textContent = '开班时间待定，可先报名锁定早鸟价';
+      dateEl.textContent = '开班时间待定，以项目通知为准';
     }
   }
 }
@@ -308,10 +276,6 @@ function renderStatusBar(ents){
     single_video: '单视频',
   };
   const labels = [...new Set(active.map(e => typeLabels[e.entitlement_type] || e.entitlement_type))];
-  // 肾域 Pro 是教育会员/付费会员/项目学员的核心权益, 多角色叠加时单独显示一个标签
-  if(canAccessNephroPro(active)){
-    labels.push('肾域 Pro');
-  }
   text.textContent = `已开通权益：${labels.join(' · ')}`;
   bar.hidden = false;
 }
