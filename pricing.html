@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>价格与方案 · 肾域·科研</title>
+  <meta name="description" content="肾域·科研价格方案：30天免费试用、个人科研版 ¥499/月起、机构科研合作版定制报价。支持 SaaS 与私有化部署。"/>
+  <meta property="og:title" content="价格与方案 · 肾域·科研"/>
+  <meta property="og:description" content="30天免费试用、个人科研版、机构科研合作版。支持 SaaS 与私有化部署。"/>
+  <meta property="og:type" content="website"/>
+  <link rel="canonical" href="https://kidneysphereregistry.cn/pricing"/>
+  <link rel="stylesheet" href="https://kidneysphere.com/shared/ks-topbar.css">
+  <link rel="stylesheet" href="https://kidneysphere.com/shared/ks-brand.css">
+  <script src="https://kidneysphere.com/shared/ks-topbar.js" defer></script>
+  <link rel="stylesheet" href="/app.css"/>
+  <link rel="icon" href="/assets/kidneysphere-ai.png"/>
+  <style>
+    /* ── 年付/月付切换 ── */
+    .billing-toggle{display:flex;align-items:center;justify-content:center;gap:10px;margin:14px 0 20px;}
+    .billing-toggle span{font-size:14px;font-weight:600;}
+    .billing-toggle .saving-badge{font-size:12px;background:rgba(22,163,74,.12);color:#15803d;border:1px solid rgba(22,163,74,.25);border-radius:999px;padding:2px 9px;margin-left:4px;}
+    .toggle-switch{position:relative;width:44px;height:24px;cursor:pointer;}
+    .toggle-switch input{opacity:0;width:0;height:0;}
+    .toggle-slider{position:absolute;inset:0;background:rgba(15,23,42,.14);border-radius:999px;transition:.25s;}
+    .toggle-slider::before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.25s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+    input:checked + .toggle-slider{background:var(--brand);}
+    input:checked + .toggle-slider::before{transform:translateX(20px);}
+
+    /* ── 功能对比表 ── */
+    .compare-wrap{overflow-x:auto;margin-top:14px;}
+    .compare-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;}
+    .compare-table th,.compare-table td{padding:9px 12px;border-bottom:1px solid rgba(15,23,42,.07);text-align:center;vertical-align:middle;}
+    .compare-table th{font-weight:700;color:var(--muted);background:rgba(2,6,23,.02);}
+    .compare-table td:first-child,.compare-table th:first-child{text-align:left;color:var(--text);font-weight:500;}
+    .compare-table tr:last-child td{border-bottom:none;}
+    .compare-table tr:hover td{background:rgba(2,6,23,.015);}
+    .compare-table .col-pro{background:rgba(37,99,235,.04);}
+    .check{color:#15803d;font-size:16px;}
+    .cross{color:#94a3b8;font-size:15px;}
+    .partial{color:#d97706;font-size:13px;font-weight:600;}
+
+    /* ── 价格数字年付/月付动态显示 ── */
+    .price-yearly{display:none;}
+    .billing-yearly .price-monthly{display:none;}
+    .billing-yearly .price-yearly{display:inline;}
+    .billing-yearly .yearly-extra-label{display:block;}
+    .billing-yearly .monthly-extra-label{display:none;}
+    .yearly-extra-label{display:none;}
+
+    /* ── 核心能力图标行 ── */
+    .capability-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px;}
+    @media(max-width:700px){.capability-row{grid-template-columns:1fr;}}
+    .cap-item{border:1px solid rgba(15,23,42,.09);border-radius:12px;padding:12px;background:#fff;}
+    .cap-icon{font-size:22px;margin-bottom:6px;}
+    .cap-title{font-weight:700;font-size:13px;margin-bottom:4px;}
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ── Header ── -->
+  <div class="card">
+    <div class="brand">
+      <img src="/assets/kidneysphere-ai.png" alt="肾域·科研"/>
+      <div>
+        <h1 class="brand-title">价格与方案</h1>
+        <div class="brand-sub">科研优先 · 多中心合并 · IgAN MEST‑C · 数据标准化与质量治理</div>
+      </div>
+    </div>
+    <div class="btnbar" style="margin-top:12px">
+      <a class="btn" href="/">返回首页</a>
+      <a class="btn" href="/guide#trial">试用说明</a>
+      <a class="btn" href="/slides">系统介绍PPT</a>
+      <a class="btn" href="/demo">预约演示</a>
+      <a class="btn" href="/collaboration">合作项目</a>
+      <a class="btn primary" href="/signup?trial=1">开始试用</a>
+    </div>
+  </div>
+
+  <!-- ── Step 2: 定位 + 核心能力（合并） ── -->
+  <div class="card" style="background:rgba(37,99,235,.04);border:1.5px solid rgba(37,99,235,.15);">
+    <h2 style="margin:0 0 6px">我们提供的不是软件，而是科研基础设施</h2>
+    <p class="small" style="margin:0 0 10px">
+      KidneySphere AI 用于肾内专科科研登记与多中心协作的数据标准化与质量治理。
+      面向科研与质量改进场景，帮助中心建立统一 CRF / 数据字典、质控闭环与可复现数据导出流程。
+    </p>
+    <div class="capability-row">
+      <div class="cap-item">
+        <div class="cap-icon">📦</div>
+        <div class="cap-title">一键导出分析包（可复现）</div>
+        <div class="small muted">结构化数据 + 字段说明 + 示例分析代码，便于复现与协作。</div>
+      </div>
+      <div class="cap-item">
+        <div class="cap-icon">🔗</div>
+        <div class="cap-title">多中心合并与统一编码</div>
+        <div class="small muted">center_code + patient_code 全局不冲突，跨中心稳定合并与追溯。</div>
+      </div>
+      <div class="cap-item">
+        <div class="cap-icon">✅</div>
+        <div class="cap-title">质控闭环（核查 → 补录 → 复跑）</div>
+        <div class="small muted">先过核心字段完整率，再复跑导出包，确保可复现与可审计。</div>
+      </div>
+    </div>
+    <div class="muted small" style="margin-top:10px">不提供诊断 / 处方建议；请勿录入姓名 / 电话 / 病案号 / 身份证等可识别个人信息（PII）。</div>
+  </div>
+
+  <!-- ── Step 1: 定价主体 ── -->
+  <div class="card">
+    <h2 style="margin:0 0 4px">定价与试用</h2>
+
+    <!-- 年付/月付切换 -->
+    <div class="billing-toggle">
+      <span>月付</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="billingToggle"/>
+        <span class="toggle-slider"></span>
+      </label>
+      <span>年付 <span class="saving-badge">立省 ¥1,198</span></span>
+    </div>
+
+    <div class="pricing-grid" id="pricingGrid">
+
+      <!-- 试用 -->
+      <div class="price-card">
+        <div class="price-title">试用（30 天）</div>
+        <div class="price-main" style="font-size:1.6rem">免费</div>
+        <div class="small muted" style="margin-top:4px">适用于科研流程评估与院内沟通</div>
+        <div class="hr"></div>
+        <ul class="small" style="margin:0;padding-left:16px;line-height:1.9">
+          <li>标准化 CRF 数据录入</li>
+          <li>基础 QC 校验与问题提示</li>
+          <li>结构化导出（CSV / Excel）</li>
+          <li>最多 1 个项目</li>
+        </ul>
+        <div class="small muted" style="margin-top:8px">
+          到期后 7 天只读宽限（支持导出），不允许新增 / 修改，保证可复现。
+        </div>
+        <div style="margin-top:14px">
+          <a class="btn primary small" href="/signup?trial=1" style="width:100%;justify-content:center">申请免费试用</a>
+        </div>
+      </div>
+
+      <!-- Pro -->
+      <div class="price-card recommended">
+        <div class="price-title">个人科研版（Pro）</div>
+        <div class="price-main" data-testid="pricing-pro-price">
+          <span class="price-monthly"><span data-pricing="proMonthlyBase">¥499</span><span class="small muted"> / 月</span></span>
+          <span class="price-yearly"><span data-pricing="proYearlyBase">¥4,790</span><span class="small muted"> / 年</span></span>
+        </div>
+        <div class="small" style="margin-top:2px">
+          <span class="monthly-extra-label" data-pricing="proMonthlyLabel" style="color:var(--muted)">含 3 个项目，额外 +¥99 / 个 / 月</span>
+          <span class="yearly-extra-label" style="color:var(--muted)">含 <span data-pricing="proBaseProjects">3</span> 个项目，额外 +<span data-pricing="proYearlyExtra">¥950</span> / 个 / 年</span>
+        </div>
+        <div class="hr"></div>
+        <ul class="small" style="margin:0;padding-left:16px;line-height:1.9">
+          <li>标准化 CRF 数据录入与管理</li>
+          <li>自动结构化导出（CSV / Excel + 字段说明）</li>
+          <li>基础 QC 校验与问题提示</li>
+          <li>统计分析代码模板（不承诺发表）</li>
+          <li>含 <span data-pricing="proBaseProjects">3</span> 个项目</li>
+          <li>数据快照与可复现导出包</li>
+        </ul>
+        <div class="small muted" style="margin-top:8px">支持微信、支付宝、公司对公转账</div>
+        <div class="btnbar" style="margin-top:12px;flex-direction:column;gap:8px">
+          <a class="btn primary small" href="/checkout" style="justify-content:center" data-track="click_upgrade" data-track-source="pricing_card">立即升级 Pro</a>
+          <a class="btn small" href="/signup?trial=1" style="justify-content:center">先免费试用</a>
+        </div>
+      </div>
+
+      <!-- 机构版 -->
+      <div class="price-card" style="border-color:rgba(37,99,235,.4);background:rgba(37,99,235,.03)">
+        <div class="price-title">机构科研合作版（Institutional）</div>
+        <div class="small muted" style="margin-top:2px">省级三甲肾内中心 / 多中心协作 / 区域数据联盟</div>
+        <div class="price-main" style="margin-top:8px;font-size:1.3rem">联系报价</div>
+        <div class="hr"></div>
+        <ul class="small" style="margin:0;padding-left:16px;line-height:1.9">
+          <li>多中心协作数据结构与权限治理</li>
+          <li>统一编码体系 / 数据字典 / CRF 共建</li>
+          <li>质控闭环 + 审计记录</li>
+          <li>定期数据质量与统计简报</li>
+          <li>方法学与统计分析支持（不承诺发表）</li>
+          <li>国际学术交流与专家协作机会</li>
+          <li>合规材料模板（伦理 / 数据脱敏）</li>
+        </ul>
+        <div class="btnbar" style="margin-top:14px;flex-direction:column;gap:8px">
+          <a class="btn primary small" href="/demo" style="justify-content:center" data-track="click_book_demo" data-track-source="pricing_card">获取机构合作方案</a>
+          <a class="btn small" href="/collaboration" style="justify-content:center">查看合作项目</a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 功能对比表 -->
+    <div style="margin-top:20px">
+      <div style="font-weight:700;margin-bottom:4px">功能对比</div>
+      <div class="compare-wrap">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th style="width:42%">功能</th>
+              <th>试用</th>
+              <th class="col-pro">Pro</th>
+              <th>机构版</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>CRF 数据录入</td>
+              <td><span class="check">✓</span></td>
+              <td class="col-pro"><span class="check">✓</span></td>
+              <td><span class="check">✓</span></td>
+            </tr>
+            <tr>
+              <td>结构化导出（CSV / Excel）</td>
+              <td><span class="check">✓</span></td>
+              <td class="col-pro"><span class="check">✓</span></td>
+              <td><span class="check">✓</span></td>
+            </tr>
+            <tr>
+              <td>基础 QC 校验</td>
+              <td><span class="check">✓</span></td>
+              <td class="col-pro"><span class="check">✓</span></td>
+              <td><span class="check">✓</span></td>
+            </tr>
+            <tr>
+              <td>项目数量</td>
+              <td class="small muted">1 个</td>
+              <td class="col-pro"><span data-pricing="proBaseProjects">3</span> 个起</td>
+              <td class="small muted">不限</td>
+            </tr>
+            <tr>
+              <td>数据快照（可复现引用）</td>
+              <td><span class="cross">—</span></td>
+              <td class="col-pro"><span class="check">✓</span></td>
+              <td><span class="check">✓</span></td>
+            </tr>
+            <tr>
+              <td>统计分析代码模板</td>
+              <td><span class="cross">—</span></td>
+              <td class="col-pro"><span class="check">✓</span></td>
+              <td><span class="check">✓</span></td>
+            </tr>
+            <tr>
+              <td>多中心合并（center_code）</td>
+              <td><span class="cross">—</span></td>
+              <td class="col-pro"><span class="partial">有限</span></td>
+              <td><span class="check">✓</span></td>
+            </tr>
+            <tr>
+              <td>质控闭环 + 审计记录</td>
+              <td><span class="cross">—</span></td>
+              <td class="col-pro"><span class="partial">基础</span></td>
+              <td><span class="check">✓ 完整</span></td>
+            </tr>
+            <tr>
+              <td>方法学 / 统计分析支持</td>
+              <td><span class="cross">—</span></td>
+              <td class="col-pro"><span class="cross">—</span></td>
+              <td><span class="check">✓</span></td>
+            </tr>
+            <tr>
+              <td>合规材料模板（伦理 / 脱敏）</td>
+              <td><span class="cross">—</span></td>
+              <td class="col-pro"><span class="cross">—</span></td>
+              <td><span class="check">✓</span></td>
+            </tr>
+            <tr>
+              <td>到期只读宽限（7 天导出）</td>
+              <td><span class="check">✓</span></td>
+              <td class="col-pro"><span class="check">✓</span></td>
+              <td><span class="check">✓</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Step 2: 机构合作模式与交付物 ── -->
+  <div class="card" style="background:rgba(37,99,235,.03);border:1.5px solid rgba(37,99,235,.12)">
+    <h2 style="margin:0 0 10px">机构合作模式与交付物</h2>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+      <div>
+        <div style="font-weight:700;margin-bottom:6px;font-size:13px">合作形式</div>
+        <ul class="small" style="margin:0;padding-left:16px;line-height:1.9">
+          <li>年度科研服务协议</li>
+          <li>多中心登记项目合作</li>
+          <li>区域数据联盟共建</li>
+        </ul>
+      </div>
+      <div>
+        <div style="font-weight:700;margin-bottom:6px;font-size:13px">交付物</div>
+        <ul class="small" style="margin:0;padding-left:16px;line-height:1.9">
+          <li>CRF 与数据字典</li>
+          <li>导出规范 + QC 规则与质控报告模板</li>
+          <li>可复现导出包（数据 + 字段说明 + 版本记录）</li>
+          <li>系统培训与权限配置建议</li>
+          <li>伦理材料模板 + 数据脱敏说明（配合院方评估，不承诺通过）</li>
+        </ul>
+      </div>
+    </div>
+    <div class="btnbar" style="margin-top:14px">
+      <a class="btn primary" href="/demo" data-track="click_book_demo" data-track-source="pricing">预约演示</a>
+      <a class="btn" href="/collaboration">查看合作项目</a>
+      <a class="btn" href="mailto:china@kidneysphere.com">发送邮件咨询</a>
+    </div>
+  </div>
+
+  <!-- ── Step 3: FAQ ── -->
+  <div class="card">
+    <h2 style="margin:0 0 8px">FAQ</h2>
+
+    <details class="faq" open>
+      <summary>Pro 包含几个项目，超出怎么算？</summary>
+      <div class="small">
+        Pro 基础包含 <span data-pricing="proBaseProjects">3</span> 个项目，覆盖大多数个人科研场景。<br>
+        月付超出：每个项目 +<span data-pricing="proMonthlyExtra">¥99</span> / 月；
+        年付超出：每个项目 +<span data-pricing="proYearlyExtra">¥950</span> / 年。<br>
+        示例（月付 5 个项目）：<span data-pricing="proMonthlyBase">¥499</span> + 2×<span data-pricing="proMonthlyExtra">¥99</span> = ¥697 / 月。
+      </div>
+    </details>
+
+    <details class="faq">
+      <summary>年付和月付怎么选？</summary>
+      <div class="small">
+        年付 <span data-pricing="proYearlyBase">¥4,790</span> / 年，相比月付立省约 ¥1,198（约 8 折）。
+        如果项目周期确定（如已立题或在研），年付更划算；
+        如仍在评估阶段，建议先月付或免费试用。
+      </div>
+    </details>
+
+    <details class="faq">
+      <summary>支持哪些付款方式？</summary>
+      <div class="small">支持微信扫码、支付宝扫码和公司对公转账。个人 / 小团队建议扫码支付，医院 / 机构建议对公转账并可开具增值税电子发票。</div>
+    </details>
+
+    <details class="faq">
+      <summary>如何开票？</summary>
+      <div class="small">在升级页面下单时填写开票信息，默认支持增值税电子发票。机构对公转账后请将汇款凭证发送至 <a href="mailto:china@kidneysphere.com">china@kidneysphere.com</a>，我们在 1-2 个工作日内确认并开票。</div>
+    </details>
+
+    <details class="faq">
+      <summary>试用到期后会怎样？</summary>
+      <div class="small">试用到期后进入 7 天只读宽限：可导出与复核，不允许新增 / 修改，避免"边分析边改数据"，保证可复现。宽限期结束后数据保留，升级 Pro 即可继续使用。</div>
+    </details>
+
+    <details class="faq">
+      <summary>可以退款吗？</summary>
+      <div class="small">
+        支持按剩余未使用天数比例退款（prorated）。<br>
+        · 月付：随时取消，按剩余天数退款，3-7 个工作日原路退回。<br>
+        · 年付：随时取消，按剩余天数退款；已使用期间按月价折算。<br>
+        首次大额年付支持 7 天无理由全额退款（可选）。具体以购买页与合同条款为准。
+      </div>
+    </details>
+
+    <details class="faq">
+      <summary>机构版如何开始？</summary>
+      <div class="small">
+        1. 预约演示或提交合作意向（<a href="/demo">点此预约</a>）<br>
+        2. 明确合作路径（试点 / 联合 / 牵头）<br>
+        3. 启动字段梳理、QC 规则和导出规范<br>
+        如有紧急需求，可直接发邮件至 <a href="mailto:china@kidneysphere.com">china@kidneysphere.com</a>。
+      </div>
+    </details>
+
+    <!-- CTA -->
+    <div style="background:rgba(37,99,235,.05);border:1.5px solid rgba(37,99,235,.15);border-radius:14px;padding:16px;margin-top:16px;text-align:center;">
+      <div style="font-weight:800;font-size:16px;margin-bottom:6px">准备好了？选择最适合你的方案</div>
+      <div class="small muted" style="margin-bottom:14px">30 天免费试用，无需信用卡；随时可退款</div>
+      <div class="btnbar" style="justify-content:center">
+        <a class="btn primary" href="/signup?trial=1" data-track="click_trial" data-track-source="pricing_cta">免费试用 30 天</a>
+        <a class="btn primary" href="/checkout" data-track="click_upgrade" data-track-source="pricing_cta">立即升级 Pro</a>
+        <a class="btn" href="/demo" data-track="click_book_demo" data-track-source="pricing_cta">预约演示（机构版）</a>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+    <div class="muted small">本系统用于科研随访登记与研究汇总，不提供诊断 / 处方建议；请勿录入任何可识别个人信息（PII）。更多：<a href="/security">安全与合规</a> · <a href="/deployment">部署方式</a></div>
+  </div>
+
+</div>
+<footer class="site-footer">
+  <div>微信：GlomConChina1 · 邮箱：<a href="mailto:china@kidneysphere.com">china@kidneysphere.com</a></div>
+  <div style="margin-top:4px">© 2025–2026 上海胤域医学科技有限公司 · 肾域·科研 · <a href="/security">安全合规</a> · <a href="/privacy">隐私政策</a> · <a href="/terms">用户协议</a> · <a href="/disclaimer">免责声明</a> · <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">沪ICP备2026008040号-1</a></div>
+</footer>
+<script src="/config.js"></script>
+<script src="/pricing-config.js"></script>
+<script src="/analytics.js"></script>
+<script>
+(function(){
+  var toggle = document.getElementById("billingToggle");
+  var grid   = document.getElementById("pricingGrid");
+  if (!toggle || !grid) return;
+  toggle.addEventListener("change", function(){
+    if (this.checked) {
+      grid.classList.add("billing-yearly");
+    } else {
+      grid.classList.remove("billing-yearly");
+    }
+  });
+})();
+</script>
+</body>
+</html>

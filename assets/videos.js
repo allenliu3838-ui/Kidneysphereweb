@@ -14,6 +14,7 @@ export const VIDEO_CATEGORIES = [
   { key: 'rare',    zh: '罕见肾脏病',                             en: 'Rare Kidney Diseases' },
   { key: 'meeting', zh: '病例讨论会议',                           en: 'Case Meetings' },
   { key: 'path',    zh: '肾脏病理',                               en: 'Renal Pathology' },
+  { key: 'da',      zh: '血管通路',                               en: 'Vascular Access' },
   { key: 'other',   zh: '其他肾脏病',                             en: 'Other' },
 ];
 
@@ -152,7 +153,19 @@ export const FREE_VIDEOS = [
     source: 'glomcon',
     source_url: 'https://www.bilibili.com/video/BV1HAmGBdE1M/',
   },
-];
+].map(video => ({
+  ...video,
+  // This curated list contains public Bilibili videos only. Declare its public
+  // metadata here; missing access flags on database rows remain unknown.
+  kind: 'bilibili',
+  media_type: 'video',
+  enabled: true,
+  is_published: true,
+  is_paid: false,
+  membership_accessible: false,
+  membership_scope: 'unclassified',
+  access_type: 'registered_free',
+}));
 
 export function getVideoById(id){
   return FREE_VIDEOS.find(v => v.id === id) || null;

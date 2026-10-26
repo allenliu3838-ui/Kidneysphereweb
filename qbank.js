@@ -4,6 +4,7 @@
  */
 
 import { ensureSupabase, supabase, getCurrentUser, getUserProfile, isAdminRole, normalizeRole, toast } from './supabaseClient.js';
+import { readAllQbankRows, latestQbankAnswers } from './qbank-data.js?v=20260917_qbank_integrity';
 
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
@@ -15,6 +16,7 @@ let _selectedSubjects = new Set();
 let _selectedCount = 20;
 let _allSubjects = [];
 let _user = null;
+let _selectionVersion = 0;
 
 async function init() {
   await ensureSupabase();
@@ -40,27 +42,20 @@ async function init() {
 }
 
 async function loadBankStats() {
-  const { data } = await supabase
-    .from('qbank_questions')
-    .select('bank')
-    .eq('status', 'published');
-
-  const counts = {};
-  for (const q of (data || [])) {
-    counts[q.bank] = (counts[q.bank] || 0) + 1;
-  }
-
-  for (const bank of BANKS) {
+  await Promise.all(BANKS.map(async bank => {
     const el = document.querySelector(`[data-bank-stat="${bank}"]`);
-    if (el) {
-      const c = counts[bank] || 0;
-      el.textContent = c > 0 ? `${c} 道题` : '即将上线';
-    }
-  }
+    const { count, error } = await supabase
+      .from('qbank_questions')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'published')
+      .eq('bank', bank);
+    if (el) el.textContent = error ? '暂时无法加载' : count > 0 ? `${count} 道题` : '即将上线';
+  }));
 }
 
 async function selectBank(bank) {
   _currentBank = bank;
+  const selectionVersion = ++_selectionVersion;
   _selectedSubjects.clear();
 
   // Update UI
@@ -76,12 +71,34 @@ async function selectBank(bank) {
   // Update URL
   history.replaceState(null, '', `qbank.html?bank=${encodeURIComponent(bank)}`);
 
-  // Load data for this bank
-  await Promise.all([
-    loadSubjects(bank),
-    _user ? loadMyProgress(_user, bank) : showLoginPrompt(),
-    loadSubjectStats(_user, bank),
-  ]);
+  // Fetch metadata and attempts once for all three panels, with full pagination.
+  const startButton = document.getElementById('btnStart');
+  startButton.disabled = true;
+  for (const id of ['subjectPills', 'myProgress', 'subjectStats']) {
+    document.getElementById(id).innerHTML = '<div class="muted small">加载中…</div>';
+  }
+  try {
+    const [questions, answers] = await Promise.all([
+      readAllQbankRows(() => supabase.from('qbank_questions')
+        .select('id, subject').eq('status', 'published').eq('bank', bank).order('id')),
+      _user ? readAllQbankRows(() => supabase.from('qbank_user_answers')
+        .select('id, question_id, is_correct, created_at').eq('user_id', _user.id)
+        .order('created_at', { ascending: false }).order('id', { ascending: false })) : [],
+    ]);
+    if (selectionVersion !== _selectionVersion) return;
+    const latest = latestQbankAnswers(answers);
+    loadSubjects(questions);
+    if (_user) loadMyProgress(questions, latest);
+    else showLoginPrompt();
+    loadSubjectStats(_user, questions, latest);
+  } catch (_error) {
+    if (selectionVersion !== _selectionVersion) return;
+    for (const id of ['subjectPills', 'myProgress', 'subjectStats']) {
+      document.getElementById(id).innerHTML = '<div class="muted small">加载失败，请重新选择题库重试。</div>';
+    }
+    return;
+  }
+  startButton.disabled = false;
 }
 
 function groupSubjects(subjects) {
@@ -111,13 +128,7 @@ function renderSubjectGroup(group, subs) {
   </div>`;
 }
 
-async function loadSubjects(bank) {
-  const { data } = await supabase
-    .from('qbank_questions')
-    .select('subject')
-    .eq('status', 'published')
-    .eq('bank', bank);
-
+function loadSubjects(data) {
   const set = new Set();
   for (const q of (data || [])) set.add(q.subject);
   _allSubjects = [...set].sort();
@@ -220,37 +231,16 @@ function filterSubjectGroups(query) {
   });
 }
 
-async function loadMyProgress(user, bank) {
+function loadMyProgress(bankQuestions, latest) {
   const el = document.getElementById('myProgress');
-
-  // Get question IDs for this bank
-  const { data: bankQuestions } = await supabase
-    .from('qbank_questions')
-    .select('id')
-    .eq('status', 'published')
-    .eq('bank', bank);
-
-  const bankQIds = new Set((bankQuestions || []).map(q => q.id));
+  const bankQIds = new Set(bankQuestions.map(q => q.id));
   const total = bankQIds.size;
-
-  // Get user answers
-  const { data: myAnswers } = await supabase
-    .from('qbank_user_answers')
-    .select('question_id, is_correct')
-    .eq('user_id', user.id);
-
   const answeredSet = new Set();
   let correctCount = 0;
-  const latestByQ = {};
-
-  for (const a of (myAnswers || [])) {
-    if (!bankQIds.has(a.question_id)) continue;
-    answeredSet.add(a.question_id);
-    latestByQ[a.question_id] = a;
-  }
-
-  for (const a of Object.values(latestByQ)) {
-    if (a.is_correct) correctCount++;
+  for (const [questionId, answer] of latest) {
+    if (!bankQIds.has(questionId)) continue;
+    answeredSet.add(questionId);
+    if (answer.is_correct) correctCount++;
   }
 
   const answered = answeredSet.size;
@@ -282,45 +272,29 @@ function showLoginPrompt() {
     </div>`;
 }
 
-async function loadSubjectStats(user, bank) {
+function loadSubjectStats(user, questions, latest) {
   const el = document.getElementById('subjectStats');
-
-  const { data: questions } = await supabase
-    .from('qbank_questions')
-    .select('id, subject')
-    .eq('status', 'published')
-    .eq('bank', bank);
 
   if (!questions || questions.length === 0) {
     el.innerHTML = '<div class="muted small">暂无题目</div>';
     return;
   }
 
-  const subjectMap = {};
+  const subjectMap = Object.create(null);
   for (const q of questions) {
     if (!subjectMap[q.subject]) subjectMap[q.subject] = { total: 0, ids: [] };
     subjectMap[q.subject].total++;
     subjectMap[q.subject].ids.push(q.id);
   }
 
-  let userStats = {};
+  let userStats = Object.create(null);
   if (user) {
-    const { data: ans } = await supabase
-      .from('qbank_user_answers')
-      .select('question_id, is_correct')
-      .eq('user_id', user.id);
-
-    const latest = {};
-    for (const a of (ans || [])) {
-      latest[a.question_id] = a;
-    }
-
     for (const [subj, info] of Object.entries(subjectMap)) {
       let done = 0, correct = 0;
       for (const qid of info.ids) {
-        if (latest[qid]) {
+        if (latest.has(qid)) {
           done++;
-          if (latest[qid].is_correct) correct++;
+          if (latest.get(qid).is_correct) correct++;
         }
       }
       userStats[subj] = { done, correct };
@@ -361,6 +335,7 @@ function bindEvents() {
     document.getElementById('practicePanel').hidden = true;
     document.querySelectorAll('.qb-bank-card').forEach(c => c.classList.remove('qb-bank-selected'));
     _currentBank = '';
+    ++_selectionVersion;
     history.replaceState(null, '', 'qbank.html');
   });
 
@@ -439,4 +414,4 @@ function bindEvents() {
   });
 }
 
-init();
+init().catch(() => toast('题库加载失败', '请刷新后重试', 'err'));

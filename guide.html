@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>使用说明 · 肾域·科研 — KidneySphere Research</title>
+  <meta name="description" content="肾域·科研使用说明：PI 建队列、CRC 录入质控、多中心数据合并、可复现论文包导出。IgAN / LN / MN / CKD 场景操作手册，10 分钟跑通首版 Table 1。"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:title" content="使用说明 · 肾域·科研"/>
+  <meta property="og:description" content="PI、CRC、多中心团队必读：建队列、录入质控、可复现论文包导出全流程操作说明。"/>
+  <meta property="og:url" content="https://kidneysphereregistry.cn/guide"/>
+  <link rel="canonical" href="https://kidneysphereregistry.cn/guide"/>
+  <link rel="stylesheet" href="https://kidneysphere.com/shared/ks-topbar.css">
+  <link rel="stylesheet" href="https://kidneysphere.com/shared/ks-brand.css">
+  <script src="https://kidneysphere.com/shared/ks-topbar.js" defer></script>
+  <link rel="stylesheet" href="/app.css"/>
+  <link rel="stylesheet" href="/guide.css"/>
+  <link rel="stylesheet" href="/guide-steps.css"/>
+  <link rel="icon" href="/assets/kidneysphere-ai.png"/>
+</head>
+<body>
+  <div class="container guide">
+    <div class="card">
+      <div class="brand">
+        <img src="/assets/kidneysphere-ai.png" alt="KidneySphere"/>
+        <div>
+          <h1 class="brand-title">使用说明（试用必读 · 面向所有人）</h1>
+          <div class="brand-sub">零门槛上手 · 10 分钟科研闭环 · 多中心合并 · IgAN MEST‑C · 基因变异长表</div>
+        </div>
+      </div>
+
+      <div class="warnbox" style="margin-top:12px">
+        <b>科研用途优先：</b>本系统仅用于随访数据登记与研究汇总，不提供诊断/处方/急救指导；
+        <b>请勿</b>录入姓名/电话/病案号/身份证等可识别个人信息（PII）。
+      </div>
+
+      <div class="guide-hero" style="margin-top:12px">
+        <div class="guide-hero-title">🎯 10 分钟拿到论文核心材料（科研小白也能跑通）</div>
+        <div class="guide-hero-sub">
+          最短路径：<b>后台导出论文包 zip → 本地一键运行 → 自动生成 Table 1 / QC / 趋势图 / 12m 结局 / Methods 草稿</b>。
+          多中心合并键为 <code>center_code + patient_code</code>。
+        </div>
+        <div class="guide-hero-actions">
+          <a class="linkbtn primary" href="/login" target="_blank">登录后台</a>
+          <a class="linkbtn" href="/">← 首页</a>
+          <a class="linkbtn" href="#scenarios">科研场景举例</a>
+          <a class="linkbtn" href="#rct">RCT随机化说明</a>
+          <a class="linkbtn" href="#general-module">GENERAL模块说明</a>
+          <a class="linkbtn" href="#trial">试用必读</a>
+          <a class="linkbtn" href="#roles">选择角色</a>
+          <a class="linkbtn" href="/slides">系统介绍PPT</a>
+          <a class="linkbtn" href="/collaboration">合作项目</a>
+          <a class="linkbtn" href="/demo">预约演示</a>
+          <a class="linkbtn" href="/user-manual-cn">详细培训手册</a>
+          <a class="linkbtn" href="#advanced">国际标准对接</a>
+        </div>
+        <div class="muted small" style="margin-top:10px">
+          提示：系统导出 CSV 默认带 UTF‑8 BOM，Excel 直接打开一般不乱码；若出现 <code>######</code> 多为列宽不足（双击列边界自动适配）。
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <h2 id="trial">试用必读（所有人必须看）</h2>
+      <div class="trial-grid">
+        <div class="trial-card">
+          <div class="trial-title">试用目的</div>
+          <div class="small">
+            在 3–10 个中心联动场景下，用最少操作跑通科研闭环：<br/>
+            <b>录入 → 导出论文包 → 一键统计 → QC → 补录 → 再导出 → 固化版本</b>。
+          </div>
+        </div>
+        <div class="trial-card">
+          <div class="trial-title">试用周期（默认建议）</div>
+          <div class="small">
+            <b>1 个月试用（30 天）</b>（可录入/修改/导出） + <b>7 天宽限</b>（仅用于导出最终论文包与复核，原则上不再新增/修改）。<br/>
+            以后台显示的到期日为准。
+          </div>
+        </div>
+        <div class="trial-card">
+          <div class="trial-title">到期后会怎样？</div>
+          <div class="small">
+            到期后项目进入 <b>只读</b>（保证多中心结果可复现，避免“边分析边改数据”）。<br/>
+            宽限期内仍可导出最终论文包用于 DCC 合并与复核。
+          </div>
+        </div>
+        <div class="trial-card">
+          <div class="trial-title">合规与去标识化</div>
+          <div class="small">
+            <b>禁止录入 PII</b>（姓名/电话/MRN/身份证等）。<br/>
+            patient_code 只能是研究编号；各中心本地保存映射表，不上传系统。
+          </div>
+        </div>
+      </div>
+
+      <div class="okbox" style="margin-top:10px">
+        <b>试用成功验收（建议）</b><br/>
+        1) 能稳定生成论文包并跑出输出；2) 至少完成 1 轮 QC→补录→复跑；3) 核心四项（日期/BP/Scr/UPCR）完整率明显提升；4) 多中心合并无冲突；5) 同一导出包重复运行结果一致。
+      </div>
+
+      <div class="hr"></div>
+
+      <!-- ===== 科研场景举例 ===== -->
+      <h2 id="scenarios">📋 这套系统能做什么科研？（场景举例）</h2>
+      <div class="muted small" style="margin-bottom:10px">以下均为<b>真实常见科研需求</b>，系统可直接支持，无需额外开发。</div>
+
+      <div class="scenario-grid">
+
+        <div class="scenario-card">
+          <div class="scenario-tag igan">IgAN</div>
+          <div class="scenario-title">IgA 肾病多中心队列研究</div>
+          <div class="small">
+            <b>研究目的：</b>评估 Oxford MEST-C 病理积分与 5 年肾功能进展（eGFR 下降 ≥ 40%）的关联。<br/>
+            <b>参与方：</b>北京/上海/广州 3 家中心，合计 280 例。<br/>
+            <b>做法：</b>各中心用同一 center_code 录入基线（含 MEST-C）+ 每季度随访（BP/Scr/UPCR）；后台导出合并包 → 一键跑出 Kaplan-Meier 曲线 + Table 1 + Cox 回归 draft。<br/>
+            <b>投稿方向：</b>JASN / KI / AJKD
+          </div>
+        </div>
+
+        <div class="scenario-card">
+          <div class="scenario-tag ln">LN</div>
+          <div class="scenario-title">狼疮性肾炎诱导缓解疗效比较</div>
+          <div class="small">
+            <b>研究目的：</b>比较他克莫司 vs. MMF 在 III/IV 型 LN 的 12 个月完全缓解率。<br/>
+            <b>参与方：</b>单中心，120 例。<br/>
+            <b>做法：</b>录入基线用药方案 + 每月随访 UPCR/补体/dsDNA；12 个月时后台一键生成结局表（完全缓解 = UPCR < 0.5 + Scr 稳定）。<br/>
+            <b>投稿方向：</b>ARD / Rheumatology
+          </div>
+        </div>
+
+        <div class="scenario-card">
+          <div class="scenario-tag mn">MN</div>
+          <div class="scenario-title">膜性肾病 PLA2R 滴度与缓解预测</div>
+          <div class="small">
+            <b>研究目的：</b>分析基线 PLA2R 抗体滴度与 24 个月自发缓解率的关系。<br/>
+            <b>参与方：</b>单中心，80 例。<br/>
+            <b>做法：</b>基线录入 PLA2R 滴度（labs_long 表）+ 每 3 月随访 UPCR；系统自动判断缓解（UPCR < 0.5）并输出缓解时间分布。<br/>
+            <b>投稿方向：</b>JASN / KI
+          </div>
+        </div>
+
+        <div class="scenario-card">
+          <div class="scenario-tag ktx">KTX</div>
+          <div class="scenario-title">肾移植术后排斥反应监测</div>
+          <div class="small">
+            <b>研究目的：</b>描述活体肾移植术后 12 个月内急性排斥发生率及其危险因素。<br/>
+            <b>参与方：</b>单中心移植科，60 例。<br/>
+            <b>做法：</b>使用 KTX 模块，记录供体信息、免疫诱导方案、术后随访 Scr/他克莫司谷浓度；系统自动计算 eGFR 趋势。<br/>
+            <b>投稿方向：</b>Transplantation / AJT
+          </div>
+        </div>
+
+        <div class="scenario-card">
+          <div class="scenario-tag general">GENERAL</div>
+          <div class="scenario-title">FSGS / ANCA / 糖尿病肾病 / 任意病种真实世界研究</div>
+          <div class="small">
+            <b>研究目的：</b>例如：评估 FSGS 患者使用 sparsentan 治疗后 UPCR 变化（真实世界观察性研究）。<br/>
+            <b>参与方：</b>1–5 家中心，任意规模。<br/>
+            <b>做法：</b>选 GENERAL 模块 → 录入任何肾病患者的核心四项（日期/BP/Scr/UPCR）+可选药物/检验 → 导出分析。无需适配特定病种字段。<br/>
+            <b>投稿方向：</b>任意肾病/内科期刊
+          </div>
+        </div>
+
+        <div class="scenario-card">
+          <div class="scenario-tag general">多中心</div>
+          <div class="scenario-title">多中心 DCC 数据合并示例（任意病种）</div>
+          <div class="small">
+            <b>场景：</b>4 个中心各自独立录入，DCC（数据协调中心）负责汇总分析。<br/>
+            <b>关键：</b>各中心 center_code 不同（BJ01/SH01/GZ01/CD01），patient_code 各自分配；合并时以 center_code+patient_code 作为全局唯一键。<br/>
+            <b>操作：</b>各中心后台分别导出论文包 → DCC 将 4 份 CSV 按中心键合并 → 统一运行分析脚本 → 一键生成合并版 Table 1 + QC + 结局。
+          </div>
+        </div>
+
+        <div class="scenario-card" id="rct-scenario">
+          <div class="scenario-tag" style="background:#7c3aed;color:#fff">RCT</div>
+          <div class="scenario-title">随机对照试验（RCT）干预效果评估</div>
+          <div class="small">
+            <b>研究目的：</b>比较干预组 vs. 对照组在 12 个月主要终点（UPCR 下降 ≥ 50% 或 eGFR 稳定）的差异。<br/>
+            <b>参与方：</b>单中心或多中心，例如 120 例（干预组 60 例、对照组 60 例）。<br/>
+            <b>做法：</b>创建患者基线时填写"RCT 随机化信息"（干预组别 / 随机号 / 随机化日期）→ 每季度随访 BP / Scr / UPCR → 后台导出论文包，CSV 中含 <code>treatment_arm</code> 分组列，一键出组间比较表 + KM 曲线草稿。<br/>
+            <b>投稿方向：</b>NEJM / Lancet / JASN
+          </div>
+        </div>
+
+      </div>
+
+      <div class="hr"></div>
+
+      <!-- ===== GENERAL 模块详解 ===== -->
+      <h2 id="general-module">🔎 什么是 GENERAL（通用 / 混合）模块？</h2>
+
+      <div class="infobox" style="margin-bottom:12px">
+        <b>一句话：</b>GENERAL 是"万能接口"——当你的病种不是 IgAN / LN / MN / KTX 时，或你想<b>混合多个病种</b>放进同一个项目，就选 GENERAL。
+      </div>
+
+      <div class="guide-grid2">
+        <div>
+          <b>什么时候选 GENERAL？</b>
+          <ul class="compact small" style="margin-top:6px">
+            <li>病种为 FSGS、ANCA、IgA 血管炎、糖尿病肾病、高血压肾病、慢性肾脏病（CKD 泛人群）等</li>
+            <li>研究对象是"所有肾内科住院患者"（混合病种）</li>
+            <li>做<b>跨病种比较</b>（如 IgAN vs. LN 对照组）</li>
+            <li>只想快速建一个随访数据库，暂时不确定病种分层</li>
+            <li>科室做<b>质量改进（QI）项目</b>，需要跑全科患者数据</li>
+          </ul>
+        </div>
+        <div>
+          <b>GENERAL 与其他模块的区别</b>
+          <table class="table" style="margin-top:6px">
+            <thead><tr><th>模块</th><th>适用场景</th><th>特有字段</th></tr></thead>
+            <tbody>
+              <tr><td>IgAN</td><td>IgA肾病研究</td><td>Oxford MEST-C 病理积分</td></tr>
+              <tr><td>LN</td><td>狼疮性肾炎</td><td>补体/dsDNA</td></tr>
+              <tr><td>MN</td><td>膜性肾病</td><td>PLA2R/CD19抗体与B细胞监测</td></tr>
+              <tr><td>KTX</td><td>肾移植随访</td><td>供体/手术/排斥信息；BKV/CMV病毒载量</td></tr>
+              <tr><td>C3G</td><td>C3肾小球肾病</td><td>补体通路检测（GENERAL模块兜底）</td></tr>
+              <tr><td>DKD</td><td>糖尿病肾病</td><td>HBA1C、UACR（GENERAL模块兜底）</td></tr>
+              <tr><td><b>GENERAL</b></td><td><b>任意/混合病种</b></td><td><b>无特有字段，全部通用；支持自定义化验</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="okbox" style="margin-top:10px">
+        <b>GENERAL 模块能做什么分析？</b><br/>
+        核心四项（日期 / BP / Scr / UPCR）全病种通用 → 可自动计算：<b>eGFR 趋势、UPCR 缓解率、12 个月结局、QC 报告、Table 1 基线特征表、Methods 草稿</b>。<br/>
+        如需病种特有指标（如补体、抗体）→ 使用 <code>labs_long</code> 表的自由字段追加即可，分析脚本中可自定义读取。
+      </div>
+
+      <details class="faq" style="margin-top:10px">
+        <summary>GENERAL 模块举例：全科 CKD 数据库</summary>
+        <div class="small">
+          <b>场景：</b>某肾内科希望建立科室级别的全患者随访数据库（不区分病种），用于年度质量报告和发表真实世界研究论文。<br/>
+          <b>做法：</b>
+          <ol>
+            <li>后台创建项目，模块选 GENERAL，center_code = 本中心代码</li>
+            <li>每位患者录入：研究编号（patient_code）、入组日期、基线 Scr/UPCR/BP</li>
+            <li>每次随访录入：日期 + Scr + UPCR + BP</li>
+            <li>年底一键导出论文包 → 运行脚本 → 自动生成：平均 eGFR 变化、UPCR 改善率、随访完整率报告</li>
+          </ol>
+          <b>结果：</b>不用 Excel，不用手写脚本，全科一年数据 1 小时出图出表，直接用于年会汇报和论文。
+        </div>
+      </details>
+
+      <details class="faq" style="margin-top:8px">
+        <summary>GENERAL 模块举例：混合病种研究（IgAN + FSGS 对照）</summary>
+        <div class="small">
+          <b>场景：</b>研究者想比较 IgAN 与 FSGS 患者对相同治疗方案的反应差异，希望把两组放在同一项目中。<br/>
+          <b>做法：</b>选 GENERAL 模块（而不是 IgAN），在 patients_baseline 的 diagnosis 字段分别填 "IgAN" 和 "FSGS" → 分析脚本按 diagnosis 分层即可。<br/>
+          <b>优势：</b>同一个项目，同一个 center_code，合并导出时不需要跨项目拼接。
+        </div>
+      </details>
+
+      <div class="hr"></div>
+
+      <!-- ===== RCT 随机化说明 ===== -->
+      <h2 id="rct">🎲 RCT 随机化录入说明（从未做过 RCT 也能一看就会）</h2>
+
+      <!-- 第一块：概念解释 -->
+      <div class="guide-grid2" style="margin-bottom:12px">
+        <div class="callout">
+          <div class="callout-title">RCT 是什么？（给没做过的人）</div>
+          <div class="small" style="margin-top:6px">
+            把符合入组条件的患者<b>随机</b>分成两组，然后比较谁效果更好：<br/><br/>
+            <table class="table">
+              <thead><tr><th>组别</th><th>接受什么治疗</th><th>常见叫法</th></tr></thead>
+              <tbody>
+                <tr><td><b>干预组</b></td><td>新药 / 新方案</td><td>试验组、治疗组</td></tr>
+                <tr><td><b>对照组</b></td><td>常规治疗 / 安慰剂</td><td>空白对照组</td></tr>
+                <tr><td><b>安慰剂组</b></td><td>外观相同的无效药</td><td>三臂试验时用</td></tr>
+              </tbody>
+            </table>
+            <div style="margin-top:6px"><b>随机号</b>：统计师提前生成的随机分配表，每个编号对应一个组别，按顺序分配给入组患者。</div>
+          </div>
+        </div>
+        <div class="callout">
+          <div class="callout-title">在本系统里只需做一件事</div>
+          <div class="small" style="margin-top:6px">
+            创建患者基线时，在底部"<b>RCT 随机化信息</b>"框里额外填 <b>3 个字段</b>，其余步骤（随访录入 / 导出 / 分析）与普通观察性研究<b>完全相同</b>。<br/><br/>
+            <table class="table">
+              <thead><tr><th>字段名称</th><th>填什么</th><th>填写示例</th></tr></thead>
+              <tbody>
+                <tr><td>干预组别</td><td>这位患者被分到哪组</td><td>干预组</td></tr>
+                <tr><td>随机号</td><td>纸质盲底上的编号</td><td>R-0042</td></tr>
+                <tr><td>随机化日期</td><td>患者正式入组当天</td><td>2024-03-01</td></tr>
+              </tbody>
+            </table>
+            <div class="muted" style="margin-top:6px">⚑ 观察性队列研究 → 三个字段全部留空即可，不影响任何现有功能。</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 第二块：完整操作流程 -->
+      <b>完整操作流程（5 步，含 RCT 专属动作）</b>
+      <table class="table" style="margin-top:8px">
+        <thead><tr><th>步骤</th><th>谁来做</th><th>具体操作</th><th>RCT 额外动作</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>① 建项目</b></td>
+            <td>PI / 管理员</td>
+            <td>后台 → 新建项目，选病种模块 + 填中心代码</td>
+            <td>无，和普通研究相同</td>
+          </tr>
+          <tr>
+            <td><b>② 录基线</b></td>
+            <td>研究助理</td>
+            <td>每位患者录入性别、出生年、基线 Scr / UPCR</td>
+            <td>⭐ <b>额外填写"RCT 随机化信息"三个字段</b></td>
+          </tr>
+          <tr>
+            <td><b>③ 发链接</b></td>
+            <td>研究助理</td>
+            <td>后台 → 患者列表 → 生成随访链接 → 发给患者/随访员</td>
+            <td>无，和普通研究相同</td>
+          </tr>
+          <tr>
+            <td><b>④ 按时随访</b></td>
+            <td>患者 / 随访员</td>
+            <td>用链接录入：日期 / BP / Scr / UPCR（每季度一次）</td>
+            <td>无，和普通研究相同</td>
+          </tr>
+          <tr>
+            <td><b>⑤ 导出分析</b></td>
+            <td>统计人员</td>
+            <td>后台 → 一键生成论文包 → 运行脚本</td>
+            <td>CSV 中自动含 <code>treatment_arm</code> 列，按组分析即可</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 第三块：手把手举例（默认展开） -->
+      <details class="faq" style="margin-top:14px" open>
+        <summary><b>手把手举例：某 IgAN 双臂 RCT（120 例）从零到出图全流程</b></summary>
+        <div class="small" style="padding-top:8px">
+
+          <b>研究设计</b><br/>
+          单中心，IgAN 患者 120 例，由统计师提前生成随机分配表（1:1），患者按入组顺序领取随机号，分配至：<br/>
+          &nbsp;&nbsp;· <b>干预组（60 例）</b>：恩格列净（SGLT2 抑制剂）10 mg/d + 标准治疗<br/>
+          &nbsp;&nbsp;· <b>对照组（60 例）</b>：安慰剂 + 标准治疗<br/>
+          主要终点：12 个月 UPCR 下降 ≥ 50%。<br/><br/>
+
+          <b>① 建项目（管理员，做一次）</b><br/>
+          后台 → 新建项目 → 项目名称填"IgAN_RCT_BJ01" → 病种模块选 <b>IgAN</b> → 中心代码 <code>BJ01</code>。<br/><br/>
+
+          <b>② 录基线（研究助理，每位患者做一次）——重点看第 4 列起</b>
+          <table class="table" style="margin-top:6px">
+            <thead>
+              <tr>
+                <th>研究编号</th><th>性别</th><th>出生年</th>
+                <th style="background:#fef9c3">干预组别 ⭐</th>
+                <th style="background:#fef9c3">随机号 ⭐</th>
+                <th style="background:#fef9c3">随机化日期 ⭐</th>
+                <th>基线 Scr</th><th>基线 UPCR</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>0001</td><td>男</td><td>1978</td><td style="background:#fef9c3">干预组</td><td style="background:#fef9c3">R-0001</td><td style="background:#fef9c3">2024-03-01</td><td>112 μmol/L</td><td>1200 mg/g</td></tr>
+              <tr><td>0002</td><td>女</td><td>1985</td><td style="background:#fef9c3">对照组</td><td style="background:#fef9c3">R-0002</td><td style="background:#fef9c3">2024-03-01</td><td>98 μmol/L</td><td>950 mg/g</td></tr>
+              <tr><td>0003</td><td>男</td><td>1990</td><td style="background:#fef9c3">干预组</td><td style="background:#fef9c3">R-0003</td><td style="background:#fef9c3">2024-03-02</td><td>125 μmol/L</td><td>1450 mg/g</td></tr>
+              <tr><td>0004</td><td>女</td><td>1972</td><td style="background:#fef9c3">对照组</td><td style="background:#fef9c3">R-0004</td><td style="background:#fef9c3">2024-03-02</td><td>87 μmol/L</td><td>780 mg/g</td></tr>
+              <tr><td>0005</td><td>男</td><td>1968</td><td style="background:#fef9c3">干预组</td><td style="background:#fef9c3">R-0005</td><td style="background:#fef9c3">2024-03-03</td><td>140 μmol/L</td><td>1680 mg/g</td></tr>
+              <tr class="muted"><td>…（共 120 行）</td><td></td><td></td><td style="background:#fef9c3"></td><td style="background:#fef9c3"></td><td style="background:#fef9c3"></td><td></td><td></td></tr>
+            </tbody>
+          </table>
+          <div class="muted" style="margin:4px 0 10px">黄色列 = RCT 专属；白色列 = 和普通研究完全一样。</div>
+
+          <b>③ 每季度随访（录入方式与普通研究完全相同）</b><br/>
+          后台 → 患者列表 → 点击研究编号 → 复制随访链接发给患者/随访员 → 患者用链接填写：日期 / BP / Scr / UPCR。<br/><br/>
+
+          <b>④ 导出并分析</b><br/>
+          后台 → 一键生成论文包 → 解压 → 运行脚本。<br/>
+          导出的 <code>patients_baseline.csv</code> 中自动包含分组列：
+
+          <div class="codebox" style="margin-top:6px">
+            <div class="codebox-head">
+              <div><b>patients_baseline.csv（节选，关键列）</b></div>
+              <button class="copybtn" type="button" data-copy="patient_code,treatment_arm,randomization_id,randomization_date,baseline_scr,baseline_upcr&#10;0001,干预组,R-0001,2024-03-01,112,1200&#10;0002,对照组,R-0002,2024-03-01,98,950&#10;0003,干预组,R-0003,2024-03-02,125,1450&#10;0004,对照组,R-0004,2024-03-02,87,780&#10;0005,干预组,R-0005,2024-03-03,140,1680">复制</button>
+            </div>
+            <pre><code>patient_code,treatment_arm,randomization_id,randomization_date,baseline_scr,baseline_upcr
+0001,干预组,R-0001,2024-03-01,112,1200
+0002,对照组,R-0002,2024-03-01,98,950
+0003,干预组,R-0003,2024-03-02,125,1450
+0004,对照组,R-0004,2024-03-02,87,780
+0005,干预组,R-0005,2024-03-03,140,1680</code></pre>
+          </div>
+
+          <b>⑤ R 分析示例（按组比较基线特征）</b>
+          <div class="codebox" style="margin-top:6px">
+            <div class="codebox-head">
+              <div><b>按 treatment_arm 分组分析（R）</b></div>
+              <button class="copybtn" type="button" data-copy="df <- read.csv('patients_baseline.csv')&#10;&#10;# 查看各组人数&#10;table(df$treatment_arm)&#10;&#10;# 两组基线 UPCR 比较（均值 ± SD）&#10;by(df$baseline_upcr, df$treatment_arm, function(x) c(mean=mean(x,na.rm=T), sd=sd(x,na.rm=T)))&#10;&#10;# t 检验&#10;t.test(baseline_upcr ~ treatment_arm, data=df)">复制</button>
+            </div>
+            <pre><code>df &lt;- read.csv("patients_baseline.csv")
+
+# 查看各组人数（应接近 1:1）
+table(df$treatment_arm)
+#  对照组  干预组
+#    60      60
+
+# 两组基线 UPCR 比较（均值 ± SD）
+by(df$baseline_upcr, df$treatment_arm, function(x)
+   c(mean=mean(x,na.rm=T), sd=sd(x,na.rm=T)))
+
+# t 检验
+t.test(baseline_upcr ~ treatment_arm, data=df)</code></pre>
+          </div>
+
+          <b>⑥ Methods 部分参考写法（投稿用）</b><br/>
+          <div style="margin-top:4px;padding:8px 10px;background:#f8fafc;border-radius:6px;font-style:italic;line-height:1.7">
+            "Eligible patients were randomly assigned 1:1 to intervention or control using a computer-generated randomization list
+            (randomization_id recorded at enrollment). The primary endpoint was a ≥50% reduction in UPCR at 12 months.
+            All visit data were prospectively recorded in KidneySphere AI (data snapshot archived prior to analysis;
+            Snapshot ID: [填入快照编号])."
+          </div>
+        </div>
+      </details>
+
+      <div class="warnbox" style="margin-top:12px">
+        <b>注意：</b>本系统适用于研究者发起课题（IIT）和真实世界干预性研究；不适合作为药厂注册临床试验（GCP 稽查路径）的主系统。<a href="#faq">见下方 FAQ</a>。
+      </div>
+
+      <div class="hr"></div>
+
+      <h2 id="roles">你属于哪类角色？（点一下只看你需要的）</h2>
+      <div class="rolebar">
+        <button class="rolebtn active" data-role="all" type="button">全部内容</button>
+        <button class="rolebtn" data-role="entry" type="button">我是录入者（护士/医生/随访）</button>
+        <button class="rolebtn" data-role="stats" type="button">我是统计者（研究生/DCC）</button>
+        <button class="rolebtn" data-role="pi" type="button">我是 PI/管理员</button>
+      </div>
+
+      <section class="role-section" data-role="entry all">
+        <div class="hr"></div>
+        <h2>录入者：3 分钟上手</h2>
+        <div class="guide-grid2">
+          <div class="callout">
+            <div class="callout-title">你只需要记住两句话</div>
+            <ol class="compact">
+              <li>每次随访至少录 4 项：<b>日期 / BP / Scr / UPCR</b></li>
+              <li><b>不要录入 PII</b>，只用研究编号 <code>patient_code</code></li>
+            </ol>
+          </div>
+          <div class="callout">
+            <div class="callout-title">最短步骤</div>
+            <ol class="compact">
+              <li>打开中心给你的随访链接（token）</li>
+              <li>填：日期、血压、Scr、UPCR</li>
+              <li>确认无误后提交</li>
+            </ol>
+          </div>
+        </div>
+
+        <details class="faq" style="margin-top:10px">
+          <summary>录入常见坑（看一眼就避雷）</summary>
+          <ul class="compact small">
+            <li>Excel 显示 <code>######</code>：列宽不足，不是坏数据</li>
+            <li>Scr/UPCR 数值怪：优先怀疑单位/小数点</li>
+            <li>同一天多条随访：尽量避免，会影响趋势/结局计算</li>
+          </ul>
+        </details>
+      </section>
+
+      <section class="role-section" data-role="stats all" id="research">
+        <div class="hr"></div>
+        <h2>统计者：科研统计 & 论文 Starter Kit（交互教程）</h2>
+        <div class="muted">
+          目标：让科研小白“点一下按钮就能写论文”。按步骤推进：<b>生成论文包 → 本地运行 → 看 QC → 补数据 → 复现输出</b>。
+        </div>
+
+        <div class="stepper" id="stepper">
+          <div class="step-nav" role="navigation" aria-label="科研教程步骤">
+            <div class="step-nav-title">步骤导航</div>
+            <button class="step-item" data-step="0" type="button"><span class="step-idx">0</span> 准备环境</button>
+            <button class="step-item" data-step="1" type="button"><span class="step-idx">1</span> 生成论文包</button>
+            <button class="step-item" data-step="2" type="button"><span class="step-idx">2</span> 解压与目录核对</button>
+            <button class="step-item" data-step="3" type="button"><span class="step-idx">3</span> 安装依赖</button>
+            <button class="step-item" data-step="4" type="button"><span class="step-idx">4</span> 一键运行</button>
+            <button class="step-item" data-step="5" type="button"><span class="step-idx">5</span> 看 QC 并补数据</button>
+            <button class="step-item" data-step="6" type="button"><span class="step-idx">6</span> 放进论文</button>
+
+            <div class="hr" style="margin:12px 0"></div>
+            <a class="step-link" href="#faq">常见问题（FAQ）</a>
+          </div>
+
+          <div class="step-content">
+            <section class="step-panel" data-step-panel="0">
+              <div class="step-title">Step 0 · 准备环境（只做一次）</div>
+              <p class="small">你只需要一台电脑 + Python 3.10+。科研小白推荐安装 <b>Anaconda</b>。</p>
+              <div class="codebox">
+                <div class="codebox-head">
+                  <div><b>检查 Python 是否可用</b></div>
+                  <button class="copybtn" type="button" data-copy="python --version&#10;pip --version">复制</button>
+                </div>
+                <pre><code>python --version
+pip --version</code></pre>
+              </div>
+              <details class="faq">
+                <summary>如果提示“python 不是内部命令”，怎么办？</summary>
+                <ul class="compact small">
+                  <li><b>Windows：</b>重新安装 Python（勾选 Add Python to PATH）或安装 Anaconda。</li>
+                  <li><b>Mac：</b>建议安装 python.org 或 Homebrew 版本。</li>
+                </ul>
+              </details>
+              <label class="donecheck"><input type="checkbox" data-done-step="0"> 我已完成此步</label>
+            </section>
+
+            <section class="step-panel" data-step-panel="1">
+              <div class="step-title">Step 1 · 在后台一键生成论文包（zip）</div>
+              <p class="small">
+                后台 <code>/staff</code> 打开项目后点击：<b>「一键生成论文包（zip）」</b>。
+                系统会打包：去标识化 CSV 长表 + Starter Kit（脚本与模板）。
+              </p>
+              <label class="donecheck"><input type="checkbox" data-done-step="1"> 我已完成此步</label>
+            </section>
+
+            <section class="step-panel" data-step-panel="2">
+              <div class="step-title">Step 2 · 解压与目录核对</div>
+              <p class="small">解压 zip 后，确认包含 <code>analysis/data/</code> 与 <code>analysis/run_analysis.py</code>。</p>
+              <div class="codebox">
+                <div class="codebox-head">
+                  <div><b>目录应类似这样</b></div>
+                  <button class="copybtn" type="button" data-copy="paper_pack_xxx/&#10;  analysis/&#10;    data/&#10;      patients_baseline.csv&#10;      visits_long.csv&#10;      labs_long.csv&#10;      meds_long.csv&#10;      variants_long.csv&#10;    run_analysis.py&#10;    outputs/&#10;  manuscript/&#10;    METHODS_AUTO_EN.md">复制</button>
+                </div>
+                <pre><code>paper_pack_xxx/
+  analysis/
+    data/
+      patients_baseline.csv
+      visits_long.csv
+      labs_long.csv
+      meds_long.csv
+      variants_long.csv
+    run_analysis.py
+    outputs/
+  manuscript/
+    METHODS_AUTO_EN.md</code></pre>
+              </div>
+              <label class="donecheck"><input type="checkbox" data-done-step="2"> 我已完成此步</label>
+            </section>
+
+            <section class="step-panel" data-step-panel="3">
+              <div class="step-title">Step 3 · 安装依赖（第一次才需要）</div>
+              <div class="codebox">
+                <div class="codebox-head">
+                  <div><b>安装依赖</b></div>
+                  <button class="copybtn" type="button" data-copy="pip install -r analysis/requirements.txt">复制</button>
+                </div>
+                <pre><code>pip install -r analysis/requirements.txt</code></pre>
+              </div>
+              <label class="donecheck"><input type="checkbox" data-done-step="3"> 我已完成此步</label>
+            </section>
+
+            <section class="step-panel" data-step-panel="4">
+              <div class="step-title">Step 4 · 一键运行（生成 Table1/QC/图/12m结局/Methods）</div>
+              <div class="codebox">
+                <div class="codebox-head">
+                  <div><b>运行脚本</b></div>
+                  <button class="copybtn" type="button" data-copy="python analysis/run_analysis.py">复制</button>
+                </div>
+                <pre><code>python analysis/run_analysis.py</code></pre>
+              </div>
+              <label class="donecheck"><input type="checkbox" data-done-step="4"> 我已完成此步</label>
+            </section>
+
+            <section class="step-panel" data-step-panel="5">
+              <div class="step-title">Step 5 · 先看 QC，再补数据，再跑一遍</div>
+              <p class="small">
+                顶刊级研究最重要的是：数据干净、口径统一、可复现。请优先打开 <code>analysis/outputs/qc_report.xlsx</code>。
+              </p>
+              <label class="donecheck"><input type="checkbox" data-done-step="5"> 我已完成此步</label>
+            </section>
+
+            <section class="step-panel" data-step-panel="6">
+              <div class="step-title">Step 6 · 把输出放进论文</div>
+              <table class="table">
+                <thead><tr><th>输出</th><th>用于论文</th><th>备注</th></tr></thead>
+                <tbody>
+                  <tr><td><code>table1_baseline.xlsx</code></td><td>Table 1</td><td>基线特征表</td></tr>
+                  <tr><td><code>qc_report.xlsx</code></td><td>质量控制</td><td>缺失/异常/重复/中心汇总</td></tr>
+                  <tr><td><code>plot_*.png</code></td><td>Figure</td><td>趋势图</td></tr>
+                  <tr><td><code>outcomes_12m.csv</code></td><td>Results</td><td>12 个月结局</td></tr>
+                  <tr><td><code>METHODS_AUTO_EN.md</code></td><td>Methods 草稿</td><td>PI 最终审阅</td></tr>
+                </tbody>
+              </table>
+              <label class="donecheck"><input type="checkbox" data-done-step="6"> 我已完成此步</label>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <section class="role-section" data-role="pi all">
+        <div class="hr"></div>
+        <h2>PI/管理员：多中心治理要点（务实）</h2>
+        <div class="kv">
+          <div>合并键</div><div><b>center_code + patient_code</b>（必须全局唯一）</div>
+          <div>去标识化</div><div>系统不存身份信息；各中心本地受控保存映射表</div>
+          <div>口径统一</div><div>最少四项（日期/BP/Scr/UPCR）+ 单位一致性</div>
+          <div>试用到期</div><div>到期后只读，避免边分析边改数据，保证可复现</div>
+          <div>IgAN 病理</div><div>支持 Oxford <b>MEST‑C</b>（常用于分层/预测/敏感性分析）</div>
+          <div>基因</div><div>支持 variants_long（如有：ACMG、zygosity、HGVS 等）</div>
+          <div>RCT 随机化</div><div>基线可录入干预组别 / 随机号 / 随机化日期；导出 CSV 含 <code>treatment_arm</code> 分组列，可直接用于组间比较分析</div>
+        </div>
+      </section>
+
+      <div class="hr"></div>
+
+      <!-- ===== 国际标准对接（进阶，面向 PI 和统计者） ===== -->
+      <h2 id="advanced">🔬 进阶：国际标准对接（想发顶刊、想跨国合作的 PI 看这里）</h2>
+      <div class="muted small" style="margin-bottom:10px">
+        普通用户<b>不需要了解这些</b>，日常录入完全不受影响。PI 和统计者如果想让数据"在国际上通用"，可以用这三个功能。
+      </div>
+
+      <!-- 1. LOINC -->
+      <details class="faq" open>
+        <summary><b>① 化验项的 LOINC 编码是什么？为什么需要它？</b></summary>
+        <div class="small" style="padding-top:8px">
+          <b>一句话解释：</b>LOINC 是给每个化验项发一个"国际条形码"，让全世界的系统都能认出它是同一个指标。<br/><br/>
+
+          <b>举个例子：</b><br/>
+          血肌酐，在北京协和的检验单上叫"肌酐"，在梅奥诊所叫"Creatinine"，在数据库里叫"CREAT"。
+          电脑怎么知道这三个是同一个东西？靠 LOINC 编码 <code>2160-0</code>——无论叫什么名字，编码都一样，全世界通用。<br/><br/>
+
+          <b>本系统目前已支持的常用 LOINC 编码：</b>
+          <table class="table" style="margin-top:6px">
+            <thead><tr><th>化验项目</th><th>中文名</th><th>LOINC 编码</th><th>标准单位</th><th>模块</th></tr></thead>
+            <tbody>
+              <tr><td>CREAT</td><td>血肌酐</td><td><code>2160-0</code></td><td>mg/dL</td><td>全部</td></tr>
+              <tr><td>UPCR</td><td>尿蛋白/肌酐比</td><td><code>13705-9</code></td><td>g/g</td><td>全部</td></tr>
+              <tr><td>eGFR（CKD-EPI 2021）</td><td>估算肾小球滤过率</td><td><code>62238-1</code></td><td>mL/min/1.73m²</td><td>全部（自动计算）</td></tr>
+              <tr><td>HGB</td><td>血红蛋白</td><td><code>718-7</code></td><td>g/dL</td><td>全部</td></tr>
+              <tr><td>ALB</td><td>血清白蛋白</td><td><code>1751-7</code></td><td>g/dL</td><td>全部</td></tr>
+              <tr><td>TCHOL</td><td>总胆固醇</td><td><code>2093-3</code></td><td>mmol/L</td><td>全部</td></tr>
+              <tr><td>PLA2R</td><td>抗PLA2R抗体</td><td><code>56741-0</code></td><td>RU/mL</td><td>MN</td></tr>
+              <tr><td>CD19</td><td>CD19+ B细胞计数</td><td><code>8122-7</code></td><td>cells/μL</td><td>MN</td></tr>
+              <tr><td>BKV</td><td>BK病毒载量</td><td><code>72495-5</code></td><td>copies/mL</td><td>KTX</td></tr>
+              <tr><td>CMV</td><td>巨细胞病毒载量</td><td><code>72493-0</code></td><td>IU/mL</td><td>KTX</td></tr>
+              <tr><td>HBA1C</td><td>糖化血红蛋白</td><td><code>4548-4</code></td><td>%（NGSP）</td><td>GENERAL/DKD</td></tr>
+              <tr><td>UACR</td><td>尿白蛋白/肌酐比</td><td><code>9318-7</code></td><td>mg/g</td><td>GENERAL/DKD</td></tr>
+            </tbody>
+          </table>
+
+          <div class="okbox" style="margin-top:8px">
+            <b>对科研的实际意义：</b>
+            未来与国际合作者共享数据时，对方系统可以自动识别你的指标，无需人工对照翻译。
+            梅奥诊所、NIH 的公开数据集都使用 LOINC——你的数据可以直接与他们合并分析。
+          </div>
+
+          <div class="muted" style="margin-top:6px">
+            <b>录入者不需要操心 LOINC：</b>录入界面只需选化验项目名称，LOINC 编码由系统在后台自动关联，不增加任何操作步骤。
+          </div>
+        </div>
+      </details>
+
+      <!-- 2. HGVS -->
+      <details class="faq" style="margin-top:8px" open>
+        <summary><b>② 基因变异的 HGVS 格式是什么？填错了会怎样？</b></summary>
+        <div class="small" style="padding-top:8px">
+          <b>一句话解释：</b>HGVS 是基因变异的"国际标准写法"，就像快递单地址要写省市区门牌号一样——写法必须规范，才能让全世界的数据库都认识这个变异。<br/><br/>
+
+          <b>举个例子：</b><br/>
+          同一个 COL4A5 基因上的变异，不同医院的报告单可能写成：<br/>
+          &nbsp;&nbsp;· <code>c.1234A>G</code>（缺参考序列，不够精确）<br/>
+          &nbsp;&nbsp;· <code>1234 A to G</code>（非标准写法）<br/>
+          &nbsp;&nbsp;· <code>NM_000495.5:c.1234A>G</code> ✅（标准 HGVS 格式，含参考序列）<br/><br/>
+
+          <b>HGVS 两个字段的含义：</b>
+          <table class="table" style="margin-top:6px">
+            <thead><tr><th>字段</th><th>含义</th><th>填写示例</th><th>什么时候填</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>HGVS c.</code></td>
+                <td>DNA 层面的变异位置<br/><span class="muted">（参考序列编号 + 碱基变化）</span></td>
+                <td><code>NM_000495.5:c.1234A&gt;G</code></td>
+                <td>基因检测报告上有就填，没有可留空</td>
+              </tr>
+              <tr>
+                <td><code>HGVS p.</code></td>
+                <td>蛋白质层面的影响<br/><span class="muted">（氨基酸变化，如有）</span></td>
+                <td><code>p.(Tyr412Cys)</code></td>
+                <td>报告上有就填，同义突变可留空</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="okbox" style="margin-top:8px">
+            <b>为什么要规范填写 HGVS？</b><br/>
+            &nbsp;&nbsp;· 可以直接在国际变异数据库（ClinVar、LOVD）中检索匹配<br/>
+            &nbsp;&nbsp;· 多中心合并时同一个变异不会被当成两个不同变异<br/>
+            &nbsp;&nbsp;· 精准医疗研究、药物基因组学分析的基础数据要求
+          </div>
+
+          <details class="faq" style="margin-top:8px">
+            <summary>不知道参考序列编号（NM_...）怎么查？</summary>
+            <div>
+              1. 打开 <a href="https://www.ncbi.nlm.nih.gov/gene" target="_blank" rel="noopener">NCBI Gene</a>，搜索基因名（如 COL4A5）<br/>
+              2. 找到 RefSeq 转录本编号（如 NM_000495.5）<br/>
+              3. 把它加在 c. 变异描述前面：<code>NM_000495.5:c.XXXX</code><br/>
+              4. 也可以直接从基因检测报告单上复制，正规报告都会注明
+            </div>
+          </details>
+        </div>
+      </details>
+
+      <!-- 3. 病理结构化 -->
+      <details class="faq" style="margin-top:8px">
+        <summary><b>③ 除了 MEST-C，其他病种的病理结果怎么录入？</b></summary>
+        <div class="small" style="padding-top:8px">
+          <b>目前已支持的结构化病理评分：</b>
+          <table class="table" style="margin-top:6px">
+            <thead><tr><th>病种</th><th>病理评分系统</th><th>字段示例</th><th>国际认可度</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>IgA 肾病</td>
+                <td>Oxford MEST-C<br/><span class="muted">（2009/2016 修订版）</span></td>
+                <td><code>M1 E0 S1 T0 C1</code></td>
+                <td>⭐⭐⭐⭐⭐ JASN/KI/AJKD 均要求</td>
+              </tr>
+              <tr>
+                <td>狼疮性肾炎</td>
+                <td>ISN/RPS 2018 分类</td>
+                <td>I / II / III / IV-G(A) / V 型</td>
+                <td>⭐⭐⭐⭐⭐ ARD/KI 均要求</td>
+              </tr>
+              <tr>
+                <td>肾移植</td>
+                <td>Banff 分类<br/><span class="muted">（最新 2022 版）</span></td>
+                <td>排斥类型 + 评分</td>
+                <td>⭐⭐⭐⭐⭐ 移植领域通用标准</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="okbox" style="margin-top:8px">
+            <b>已上线：</b>LN（ISN/RPS 分型 + NIH AI/CI 指数 + 足细胞病变）和 KTX（Banff 排斥分级）的结构化病理字段已在工作台中支持，创建患者时选择对应模块即可录入。<br/>
+            <b>备注字段仍可用：</b>如需录入上述字段之外的补充信息，仍可在化验记录的备注字段中补充，例如：<br/>
+            <code>LN 病理：ISN/RPS IV-G(A)型，NIH活动指数12分，慢性化指数3分</code>
+          </div>
+        </div>
+      </details>
+
+      <div class="hr"></div>
+
+      <h2 id="faq">常见问题（FAQ）</h2>
+      <div class="faq-tools">
+        <input id="faqSearch" placeholder="搜索：乱码 / ###### / ModuleNotFoundError / token / MEST / 基因 …"/>
+        <button class="btn small" id="faqOpenAll" type="button">全部展开</button>
+        <button class="btn small" id="faqCloseAll" type="button">全部收起</button>
+      </div>
+
+      <details class="faq" open data-faq>
+        <summary>Excel 打开 CSV 显示乱码怎么办？</summary>
+        <div class="small">
+          建议使用 Excel「数据 → 从文本/CSV」导入并选择编码 UTF‑8。系统导出的 CSV 已带 UTF‑8 BOM，直接打开通常不会乱码。
+        </div>
+      </details>
+
+      <details class="faq" data-faq>
+        <summary>Excel 里日期显示 ###### 是数据坏了吗？</summary>
+        <div class="small">不是。通常是列宽不足。双击列边界自动适配即可显示日期。</div>
+      </details>
+
+      <details class="faq" data-faq>
+        <summary>脚本运行报错：ModuleNotFoundError</summary>
+        <div class="small">说明依赖没装好。执行：<code>pip install -r analysis/requirements.txt</code>。</div>
+      </details>
+
+      <details class="faq" data-faq>
+        <summary>同一患者同一天多条随访怎么办？</summary>
+        <div class="small">通常视为重复记录。建议保留一条（或合并），否则趋势/结局会受影响。</div>
+      </details>
+
+      <details class="faq" data-faq>
+        <summary>为什么强调不录入 PII？</summary>
+        <div class="small">为了合规与多中心协作。系统用研究编号即可完成随访与分析；身份映射表由各中心本地受控保存。</div>
+      </details>
+
+
+      <details class="faq" data-faq>
+        <summary>RCT 研究怎么录入随机化信息？导出后如何按组分析？</summary>
+        <div class="small">
+          <b>录入：</b>后台 → 创建患者基线 → 在底部"RCT 随机化信息"框中填写三项：<br/>
+          · <b>干预组别</b>：选"干预组"或"对照组"（也可手动输入自定义文字）<br/>
+          · <b>随机号</b>：如 R-0001（与纸质盲底对应）<br/>
+          · <b>随机化日期</b>：随机化当天日期<br/><br/>
+          <b>导出：</b>后台 → 导出基线数据 → CSV 中即含 <code>treatment_arm</code>、<code>randomization_id</code>、<code>randomization_date</code> 三列。<br/><br/>
+          <b>分析（R 示例）：</b><br/>
+          <code>df &lt;- read.csv("patients_baseline.csv")</code><br/>
+          <code>table(df$treatment_arm) # 查看各组人数</code><br/>
+          <code>by(df$baseline_upcr, df$treatment_arm, summary) # 组间基线比较</code><br/><br/>
+          观察性研究的患者三个字段留空即可，<b>不影响任何现有功能</b>。
+        </div>
+      </details>
+
+      <details class="faq" data-faq>
+        <summary>化验列表里没有我需要的指标，怎么办？</summary>
+        <div class="small">
+          <b>两种方式可以录入列表外的化验：</b><br/><br/>
+          <b>① 项目自定义化验（推荐）</b><br/>
+          后台 → 化验记录 → 下拉选"＋ 新增自定义化验（保存到本项目目录）"→ 填写化验名称和单位 → 点添加。<br/>
+          系统会自动将该化验<b>保存到本项目目录</b>，后续同项目所有患者录入时均可从"本项目自定义"分组中直接选用，确保名称/单位一致。<br/><br/>
+          <b>② 下拉中选已保存的项目化验</b><br/>
+          首次保存后，下拉列表会出现"本项目自定义"分组，直接选用即可，无需重复输入名称和单位。<br/><br/>
+          <b>管理自定义化验目录：</b>化验记录区下方"本项目自定义化验目录"面板可查看并删除目录条目（已录入的历史记录不受影响）。
+        </div>
+      </details>
+
+      <details class="faq" data-faq>
+        <summary>这套系统可以直接用于药厂 1/2/3 期注册临床试验吗？</summary>
+        <div class="small">
+          <b>不建议直接作为注册试验主系统（eCRF/EDC）</b>。当前系统定位是科研随访与论文产出加速工具，适合观察性研究、真实世界研究（RWS）或研究者发起课题（IIT）的数据整理与分析。<br/>
+          若用于药厂 I/II/III 期注册路径，通常还需满足 GCP 稽查追踪、21 CFR Part 11 / 电子签名、完整审计追踪、受控变更、冻结锁库、角色分离、医学编码（MedDRA/WHODrug）、SDTM/ADaM 规范输出等要求。
+        </div>
+      </details>
+
+      <div class="hr"></div>
+
+      <div class="muted small">
+        最后更新：2026-03-13。可直接分享链接作为中心培训：<code>/guide#trial</code>（试用必读）、<code>/guide#research</code>（统计教程）、<code>/guide#advanced</code>（LOINC/HGVS/病理进阶）。
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/guide.js"></script>
+  <footer class="site-footer">
+    <div>微信：GlomConChina1 · 邮箱：<a href="mailto:china@kidneysphere.com">china@kidneysphere.com</a></div>
+    <div style="margin-top:4px">© 2025–2026 上海胤域医学科技有限公司 · 肾域·科研 · <a href="/security">安全合规</a> · <a href="/privacy">隐私政策</a> · <a href="/terms">用户协议</a> · <a href="/disclaimer">免责声明</a> · <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">沪ICP备2026008040号-1</a></div>
+  </footer>
+  <script src="/analytics.js"></script>
+</body>
+</html>

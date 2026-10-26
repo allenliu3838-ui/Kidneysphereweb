@@ -1,0 +1,15 @@
+.stepper{display:grid;grid-template-columns:260px 1fr;gap:12px;margin-top:10px;}
+@media (max-width: 900px){ .stepper{grid-template-columns:1fr;} }
+
+.step-nav{border:1px solid rgba(15,23,42,.10);border-radius:16px;padding:12px;background:#fff;position:sticky;top:52px;height:fit-content;}
+@media (max-width: 900px){ .step-nav{position:relative;top:auto;} }
+.step-nav-title{font-weight:800;margin-bottom:10px;color:#0f172a;}
+.step-item{width:100%;text-align:left;display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:14px;border:1px solid rgba(15,23,42,.10);background:#fff;cursor:pointer;margin-bottom:8px;font-size:13px;}
+.step-item:hover{border-color:rgba(37,99,235,.35);}
+.step-item.active{border-color:rgba(37,99,235,.45);background:rgba(37,99,235,.07);color:#1d4ed8;}
+.step-item.done{border-color:rgba(22,163,74,.30);background:rgba(22,163,74,.08);}
+.step-idx{width:22px;height:22px;border-radius:999px;border:1px solid rgba(15,23,42,.12);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;background:rgba(2,6,23,.02);}
+.step-link{display:block;margin:6px 0;color:#2563eb;font-size:13px;}
+.step-content{border:1px solid rgba(15,23,42,.10);border-radius:16px;background:#fff;padding:12px;}
+.step-panel{padding:10px 2px;}
+.step-title{font-weight:900;margin:0 0 6px 0;font-size:15px;}

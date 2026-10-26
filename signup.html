@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>注册 · 肾域·科研</title>
+  <meta name="robots" content="noindex,nofollow"/>
+  <link rel="stylesheet" href="https://kidneysphere.com/shared/ks-topbar.css">
+  <link rel="stylesheet" href="https://kidneysphere.com/shared/ks-brand.css">
+  <script src="https://kidneysphere.com/shared/ks-topbar.js" defer></script>
+  <link rel="stylesheet" href="/app.css"/>
+  <link rel="icon" href="/assets/kidneysphere-ai.png"/>
+  <style>
+    .onboarding-steps { display:flex; gap:0; margin:16px 0 12px; }
+    .ob-step { flex:1; text-align:center; padding:8px 4px; font-size:12px; color:var(--muted); border-bottom:3px solid var(--border); }
+    .ob-step.active { color:var(--brand); border-bottom-color:var(--brand); font-weight:700; }
+    .ob-step.done { color:var(--ok); border-bottom-color:var(--ok); }
+    .ob-panel { display:none; }
+    .ob-panel.active { display:block; }
+  </style>
+</head>
+<body>
+  <div class="container" style="max-width:520px">
+    <!-- Step 0: Registration -->
+    <div class="card" id="registerCard">
+      <div class="brand">
+        <img src="/assets/kidneysphere-ai.png" alt="肾域·科研"/>
+        <div>
+          <h1 class="brand-title">注册账号</h1>
+          <div class="brand-sub">30 天免费试用，功能完整</div>
+        </div>
+      </div>
+
+      <label>邮箱</label>
+      <input id="email" type="email" placeholder="name@example.com"/>
+      <label>密码（至少 8 位）</label>
+      <input id="password" type="password" placeholder="请设置密码"/>
+      <label>确认密码</label>
+      <input id="confirmPwd" type="password" placeholder="再次输入密码"/>
+
+      <div id="consentBox" style="margin-top:12px">
+        <label style="display:flex;align-items:flex-start;gap:6px;cursor:pointer;margin:0">
+          <input type="checkbox" id="agreeTerms" style="width:auto;margin-top:2px"/>
+          <span class="small">我已阅读并同意 <a href="/terms" target="_blank">用户协议</a> 和 <a href="/privacy" target="_blank">隐私政策</a></span>
+        </label>
+      </div>
+
+      <div class="btnbar">
+        <button class="btn primary" id="btnRegister">注册并开始试用</button>
+      </div>
+      <div id="registerHint" class="muted small" style="margin-top:8px"></div>
+      <div class="muted small" style="margin-top:12px">
+        已有账号？<a href="/login">直接登录</a>
+      </div>
+    </div>
+
+    <!-- Onboarding Steps (after registration) -->
+    <div id="onboardingCard" class="card" style="display:none">
+      <h2 style="margin:0 0 4px">快速上手</h2>
+      <div class="muted small">完成以下 3 步，即可开始使用。</div>
+
+      <div class="onboarding-steps">
+        <div class="ob-step active" id="obDot1">1. 研究者资料</div>
+        <div class="ob-step" id="obDot2">2. 创建项目</div>
+        <div class="ob-step" id="obDot3">3. 录入首例患者</div>
+      </div>
+
+      <!-- Onboarding Step 1: Profile -->
+      <div class="ob-panel active" id="obStep1">
+        <label>姓名</label>
+        <input id="obName" placeholder="例如：张三"/>
+        <label>医院 / 单位</label>
+        <input id="obHospital" placeholder="例如：北京协和医院"/>
+        <label>科室</label>
+        <input id="obDept" placeholder="例如：肾内科"/>
+        <div class="btnbar">
+          <button class="btn primary" id="btnObStep1">下一步</button>
+          <button class="btn" id="btnObSkip1">稍后再填</button>
+        </div>
+      </div>
+
+      <!-- Onboarding Step 2: Create Project -->
+      <div class="ob-panel" id="obStep2">
+        <label>项目名称</label>
+        <input id="obProjName" placeholder="例如：IgA肾病随访（BJ01）"/>
+        <label>中心代码</label>
+        <input id="obProjCenter" placeholder="例如：BJ01"/>
+        <label>病种模块</label>
+        <select id="obProjModule">
+          <option value="IGAN">IgAN（IgA 肾病）</option>
+          <option value="LN">LN（狼疮性肾炎）</option>
+          <option value="MN">MN（膜性肾病）</option>
+          <option value="GENERAL">通用（混合/其他）</option>
+          <option value="KTX">KTx（肾移植术后）</option>
+        </select>
+        <div class="btnbar">
+          <button class="btn primary" id="btnObStep2">创建并下一步</button>
+          <button class="btn" id="btnObSkip2">稍后再做</button>
+        </div>
+      </div>
+
+      <!-- Onboarding Step 3: First Patient -->
+      <div class="ob-panel" id="obStep3">
+        <label>研究编号</label>
+        <input id="obPatCode" placeholder="例如：0001"/>
+        <div class="row">
+          <div class="col">
+            <label>性别</label>
+            <select id="obPatSex">
+              <option value="">未填</option>
+              <option value="M">男</option>
+              <option value="F">女</option>
+            </select>
+          </div>
+          <div class="col">
+            <label>出生年份</label>
+            <input id="obPatBirthYear" type="number" placeholder="例如：1985"/>
+          </div>
+        </div>
+        <div class="btnbar">
+          <button class="btn primary" id="btnObStep3">录入并完成</button>
+          <button class="btn" id="btnObSkip3">稍后录入</button>
+        </div>
+      </div>
+
+      <!-- Onboarding Done -->
+      <div class="ob-panel" id="obDone">
+        <div class="okbox" style="margin-top:10px">
+          注册完成！您的 30 天试用已开始。
+        </div>
+        <div class="btnbar">
+          <a class="btn primary" href="/staff">进入工作台</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div>微信：GlomConChina1 · 邮箱：<a href="mailto:china@kidneysphere.com">china@kidneysphere.com</a></div>
+    <div style="margin-top:4px">© 2025–2026 上海胤域医学科技有限公司 · 肾域·科研 · <a href="/security">安全合规</a> · <a href="/privacy">隐私政策</a> · <a href="/terms">用户协议</a> · <a href="/disclaimer">免责声明</a> · <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">沪ICP备2026008040号-1</a></div>
+  </footer>
+
+  <script src="/lib/error-logger.js"></script>
+  <script src="/config.js"></script>
+  <script type="module">
+    import { supabase } from "/lib/supabase-client.js";
+    import { qs, toast } from "/lib/utils.js";
+    import { throttle } from "/lib/rate-limit.js";
+    import { validatePassword } from "/lib/password-strength.js";
+
+    const sb = supabase();
+    const rlRegister = throttle("register", { maxAttempts: 5, windowMs: 15 * 60_000, message: "注册请求过于频繁" });
+    const params = new URLSearchParams(location.search);
+    const isTrial = params.get("trial") === "1";
+    let currentObStep = 1;
+    let createdProjectId = null;
+
+    // If already logged in, go to onboarding or staff
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) { showOnboarding(); }
+
+    sb.auth.onAuthStateChange((_event, s) => {
+      if (s && _event === "SIGNED_IN") showOnboarding();
+    });
+
+    function showOnboarding() {
+      qs("#registerCard").style.display = "none";
+      qs("#onboardingCard").style.display = "block";
+    }
+
+    function goObStep(n) {
+      currentObStep = n;
+      ["obStep1","obStep2","obStep3","obDone"].forEach(id => {
+        qs("#"+id).classList.toggle("active", false);
+      });
+      const panels = ["obStep1","obStep2","obStep3","obDone"];
+      const target = n > 3 ? "obDone" : panels[n-1];
+      qs("#"+target).classList.add("active");
+      [1,2,3].forEach(i => {
+        const dot = qs("#obDot"+i);
+        dot.className = i < n ? "ob-step done" : i === n ? "ob-step active" : "ob-step";
+      });
+    }
+
+    // Registration
+    qs("#btnRegister").addEventListener("click", async () => {
+      if (!rlRegister.allow()) { toast(rlRegister.message); return; }
+      const email = qs("#email").value.trim().toLowerCase();
+      const password = qs("#password").value;
+      const confirm = qs("#confirmPwd").value;
+      if (!email) { toast("请输入邮箱"); return; }
+      const pwCheck = validatePassword(password);
+      if (!pwCheck.valid) { toast(pwCheck.message); return; }
+      if (password !== confirm) { toast("两次密码不一致"); return; }
+      if (!qs("#agreeTerms").checked) { toast("请先阅读并同意用户协议和隐私政策"); return; }
+
+      const btn = qs("#btnRegister");
+      btn.disabled = true;
+      try {
+        const { data, error } = await sb.auth.signUp({ email, password });
+        if (error) throw error;
+        if (data?.user?.identities?.length === 0) {
+          qs("#registerHint").textContent = "该邮箱已注册，请直接登录。";
+          return;
+        }
+        // Log consent
+        try {
+          await sb.rpc("log_consent", {
+            p_action: "register",
+            p_policy_type: "both",
+            p_policy_version: "v1.0",
+            p_user_agent: navigator.userAgent || null,
+          });
+        } catch (_) { /* best-effort */ }
+        toast("注册成功");
+      } catch (e) {
+        toast("注册失败：" + (e?.message || e));
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // Onboarding Step 1: Save profile
+    qs("#btnObStep1").addEventListener("click", async () => {
+      try {
+        await sb.rpc("upsert_user_profile", {
+          p_real_name: qs("#obName").value.trim() || null,
+          p_hospital: qs("#obHospital").value.trim() || null,
+          p_department: qs("#obDept").value.trim() || null,
+          p_interested_plan: "trial",
+          p_contact: null,
+          p_notes: null,
+        });
+      } catch (e) { console.warn("Profile save:", e); }
+      goObStep(2);
+    });
+    qs("#btnObSkip1").addEventListener("click", () => goObStep(2));
+
+    // Onboarding Step 2: Create project
+    qs("#btnObStep2").addEventListener("click", async () => {
+      const name = qs("#obProjName").value.trim();
+      const center = qs("#obProjCenter").value.trim();
+      if (!name) { toast("请填写项目名称"); return; }
+      if (!center) { toast("请填写中心代码"); return; }
+      try {
+        const { data, error } = await sb.rpc("create_project", {
+          p_name: name,
+          p_center_code: center,
+          p_module: qs("#obProjModule").value,
+          p_description: null,
+        });
+        if (error) throw error;
+        createdProjectId = data;
+        toast("项目创建成功");
+        goObStep(3);
+      } catch (e) {
+        toast("创建失败：" + (e?.message || e));
+      }
+    });
+    qs("#btnObSkip2").addEventListener("click", () => goObStep(4));
+
+    // Onboarding Step 3: First patient
+    qs("#btnObStep3").addEventListener("click", async () => {
+      if (!createdProjectId) { toast("请先创建项目"); goObStep(2); return; }
+      const code = qs("#obPatCode").value.trim();
+      if (!code) { toast("请填写研究编号"); return; }
+      try {
+        const { error } = await sb.rpc("create_patient_baseline", {
+          p_project_id: createdProjectId,
+          p_patient_code: code,
+          p_sex: qs("#obPatSex").value || null,
+          p_birth_year: parseInt(qs("#obPatBirthYear").value) || null,
+          p_baseline_date: null,
+          p_baseline_scr: null,
+          p_baseline_upcr: null,
+        });
+        if (error) throw error;
+        toast("患者录入成功");
+        goObStep(4);
+      } catch (e) {
+        toast("录入失败：" + (e?.message || e));
+      }
+    });
+    qs("#btnObSkip3").addEventListener("click", () => goObStep(4));
+  </script>
+</body>
+</html>

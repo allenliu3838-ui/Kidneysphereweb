@@ -7,9 +7,20 @@
   <meta name="description" content="肾域 — 面向肾脏专科的学术社区、临床科研与医生工具平台">
   <link rel="canonical" href="https://kidneysphere.com/learning" />
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+  <link rel="stylesheet" href="styles.css?v=20260914_depth1" />
+  <style>
+    #videoAddForm .form-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+    #videoAddForm .form-row>div{min-width:0!important;max-width:100%}
+    #videoAddForm .input{width:100%;min-width:0;box-sizing:border-box}
+    #videoAddForm button,#videoAddForm select,#videoAddForm input:not([type="checkbox"]):not([type="hidden"]){min-height:44px}
+    #videoAliyunUploadBox{overflow-wrap:anywhere}
+    @media(max-width:640px){#videoAddForm .form-row{grid-template-columns:minmax(0,1fr)}}
+  </style>
+  <link rel="stylesheet" href="./media-batch.css?v=20260915_learning2" />
+  <link rel="stylesheet" href="./course-catalog.css?v=20260917_visual1" />
+  <link rel="stylesheet" href="learning-visuals.css?v=20260917_visual1" />
 </head>
-<body>
+<body class="learning-visual-page">
   <header class="nav"></header>
 
   <main>
@@ -17,17 +28,31 @@
 <section class="hero">
   <div class="container">
     <div class="card">
-      <span class="badge">学习中心</span>
-      <h2 style="margin-top:10px">学习中心：培训项目 + 免费视频库</h2>
-      <p class="small">
-        免费注册后可观看免费视频库；报名培训项目获得直播、学习群与回放权益。
-      </p>
+      <div class="learning-visual-hero">
+        <div class="learning-visual-copy">
+          <span class="learning-eyebrow">KIDNEYSPHERE · 学习中心</span>
+          <h1>找到你的方向，<br>让学习持续发生。</h1>
+          <p>从免费课程到专科培训，把视频、音频和文献串成自己的学习路径。每次回来，从感兴趣的内容继续。</p>
+          <div class="learning-visual-actions">
+            <a class="btn primary" href="videos.html?access=free">免费课程</a>
+            <a class="btn" href="my-learning.html">我的学习</a>
+          </div>
+          <div class="learning-format-note"><span>六类培训方向</span><span>音频与视频</span><span>系列学习</span></div>
+        </div>
+        <div class="learning-hero-art"><img src="assets/portal/learning-v1.webp" alt="医学学习主题插画" width="960" height="540" decoding="async" fetchpriority="high"><span class="learning-art-caption">保持好奇，持续精进</span></div>
+      </div>
+
+      <div class="learning-path-grid" aria-label="选择学习方式">
+        <a class="learning-path" href="videos.html?access=free"><strong>免费开始</strong><p>先学习一节感兴趣的课程，探索不同专科主题。</p><span>浏览免费课程 →</span></a>
+        <a class="learning-path member" href="academy.html#membership"><strong>学术回放 · ¥299/年</strong><p>周日、周三学术活动视频回放。培训课程另行收费。</p><span>了解年度会员 →</span></a>
+        <a class="learning-path training" href="academy.html#training-projects"><strong>专科培训</strong><p>按项目系统学习，音视频按所购项目权限开放。</p><span>查看培训项目 →</span></a>
+      </div>
 
       <!-- 顶部引导 banner -->
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:14px;padding:14px 16px;background:rgba(63,131,248,.1);border:1px solid rgba(63,131,248,.3);border-radius:12px">
         <div>
           <div style="font-weight:600;font-size:15px">查看当前培训项目与定价</div>
-          <div class="small muted" style="margin-top:3px">重症肾内科 · 肾移植内科 · 专科整套课</div>
+          <div class="small muted" style="margin-top:3px">肾小球病 · 肾移植内科 · 重症肾内 · 肾脏病理 · 血管通路 · 儿童肾脏</div>
         </div>
         <a class="btn primary" href="academy.html">查看培训与定价 →</a>
       </div>
@@ -90,14 +115,23 @@
       </div>
       <div class="note" id="trainingProgramsHint" style="margin-top:12px" hidden></div>
 
+      <div class="learning-topic-grid" aria-label="按培训方向浏览课程">
+        <a class="learning-topic" href="videos.html?category=glom&amp;access=training"><img src="assets/portal/glomerular-v1.webp" alt="肾小球病主题插画" width="960" height="540" loading="lazy" decoding="async"><span>肾小球病<small>查看本项目课程 →</small></span></a>
+        <a class="learning-topic" href="videos.html?category=tx&amp;access=training"><img src="assets/portal/transplant-v1.webp" alt="肾移植内科主题插画" width="960" height="540" loading="lazy" decoding="async"><span>肾移植内科<small>查看本项目课程 →</small></span></a>
+        <a class="learning-topic" href="videos.html?category=icu&amp;access=training"><img src="assets/portal/critical-v1.webp" alt="重症肾内主题插画" width="960" height="540" loading="lazy" decoding="async"><span>重症肾内<small>查看本项目课程 →</small></span></a>
+        <a class="learning-topic" href="videos.html?category=path&amp;access=training"><img src="assets/portal/pathology-v1.webp" alt="肾脏病理主题插画" width="960" height="540" loading="lazy" decoding="async"><span>肾脏病理<small>查看本项目课程 →</small></span></a>
+        <a class="learning-topic" href="videos.html?category=da&amp;access=training"><img src="assets/portal/vascular-v1.webp" alt="血管通路主题插画" width="960" height="540" loading="lazy" decoding="async"><span>血管通路<small>查看本项目课程 →</small></span></a>
+        <a class="learning-topic" href="videos.html?category=peds&amp;access=training"><img src="assets/portal/pediatric-v1.webp" alt="儿童肾脏主题插画" width="960" height="540" loading="lazy" decoding="async"><span>儿童肾脏<small>查看本项目课程 →</small></span></a>
+      </div>
+
       <div class="hr"></div>
 
       <div class="section-title">
         <div>
-          <h3>免费视频库（注册后观看）</h3>
-          <p>注册登录后可在站内直接观看。</p>
+          <h3>音视频课程库</h3>
+          <p>分别筛选视频或音频，再按免费、会员与培训权限查找课程。</p>
         </div>
-        <span class="badge">注册免费</span>
+        <span class="badge">音频 / 视频</span>
       </div>
 
       <div id="videoAdminPanel"></div>
@@ -107,17 +141,19 @@
           <h3 style="margin:0">按频道查看</h3>
           <p class="small" style="margin-top:8px">肾小球与间质性肾病 / 肾移植内科 / 重症肾内（电解质/酸碱）与透析 / 儿童肾脏病 / 罕见肾脏病 / 病例讨论会议 / 肾脏病理等。</p>
           <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
-            <a class="btn primary" href="videos.html">进入免费视频库</a>
-            <a class="btn" href="register.html">注册后观看</a>
+            <a class="btn primary" href="videos.html">进入课程库</a>
+            <a class="btn" href="videos.html?media=audio">收听音频</a>
+            <a class="btn" href="videos.html?media=video">观看视频</a>
           </div>
         </div>
 
         <div class="card soft">
-          <h3 style="margin:0">老视频：登录后免费观看</h3>
-          <p class="small" style="margin-top:8px">你提供的公开视频链接会持续增加。后续也可扩展为"专家 PPT / 综述分享"。</p>
+          <h3 style="margin:0">按系列持续学习</h3>
+          <p class="small" style="margin-top:8px">打开系列目录，按章节顺序学习；音频与视频分别标明形式，已有时长的课程显示实际时长。</p>
           <div class="note" style="margin-top:12px">
-            建议：把每个视频统一归档（标题/讲者/频道/关键词），便于搜索与沉淀。
+            ¥299/年会员包含周日、周三学术直播回放。培训课程需单独付费，以课程权限说明为准。
           </div>
+          <a class="btn" href="videos.html?view=series" style="margin-top:12px">查看课程系列</a>
         </div>
       </div>
 
@@ -152,6 +188,6 @@
 
   <footer class=”footer” data-blurb=”面向肾脏专科的学术教育与持续培训平台。”></footer>
 <script type="module" src="app.js?v=20260323_001"></script>
-  <script type="module" src="learning-center.js?v=20260328_001"></script>
+  <script type="module" src="learning-center.js?v=20261026_vidguard1"></script>
 </body>
 </html>

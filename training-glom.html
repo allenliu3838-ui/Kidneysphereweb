@@ -14,7 +14,7 @@
   <meta property="og:image" content="https://kidneysphere.com/assets/logo.png" />
 
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=20260323_001" />
+  <link rel="stylesheet" href="styles.css?v=20260914_depth1" />
   <style>
     .curriculum-list{list-style:none;padding:0;margin:0}
     .curriculum-item{display:flex;align-items:baseline;gap:12px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.07)}
@@ -25,16 +25,16 @@
     .ci-inst{font-size:11px;opacity:.45;margin-top:1px}
     .ci-tbd{font-size:12px;opacity:.35;font-style:italic}
     .module-heading{font-size:12px;font-weight:700;letter-spacing:.8px;color:rgba(99,202,255,.8);text-transform:uppercase;margin:22px 0 6px;padding-bottom:6px;border-bottom:1px solid rgba(99,202,255,.2)}
-    .enroll-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:16px}
+    .enroll-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}
+    .enroll-grid .enroll-opt{min-width:0}
+    .enroll-grid .btn{min-height:44px}
+    @media(max-width:600px){.enroll-grid{grid-template-columns:minmax(0,1fr)}.enroll-grid .btn{width:100%;box-sizing:border-box}}
     .enroll-opt{border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px}
     .enroll-opt.rec{border-color:rgba(63,131,248,.5);background:rgba(63,131,248,.07)}
     .enroll-opt .eo-label{font-size:12px;opacity:.6}
     .enroll-opt .eo-price{font-size:22px;font-weight:700}
-    .enroll-opt .eo-orig{font-size:13px;opacity:.45;text-decoration:line-through;margin-left:4px}
     .enroll-opt .eo-desc{font-size:12px;opacity:.7;line-height:1.6}
     .enroll-opt .eo-cta{margin-top:auto}
-    .eb-notice{display:flex;align-items:center;gap:10px;padding:11px 14px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:10px;font-size:13px;margin-bottom:16px}
-    .eb-notice b{color:#fbbf24}
     /* 进行中特殊标签 */
     .active-banner{display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.3);border-radius:10px;font-size:13px;margin-bottom:20px}
     .active-banner b{color:#4ade80}
@@ -70,7 +70,6 @@
 
       <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px;opacity:.8">
         <span>📅 <b>进行中</b></span>
-        <span>🐦 <b>早鸟价截止 5月30日</b></span>
         <span>📺 直播 + 视频回放 + 微信学习群</span>
         <span>🎯 肾内科医生 · 肾脏病研究生 · 住院医</span>
       </div>
@@ -108,7 +107,7 @@
           <li>✅ KDIGO 2021 指南解读与临床应用</li>
           <li>✅ 新靶向治疗（sparsentan、iptacopan 等）进展</li>
           <li>✅ 直播互动 + 真实病例讨论（报名版）</li>
-          <li>✅ 全程视频回放，永久可复习</li>
+          <li>✅ 全程视频回放，2年内可复习</li>
         </ul>
       </div>
 
@@ -320,30 +319,20 @@
 <section class="section section-alt" id="enroll">
   <div class="container" style="max-width:760px">
     <h2 style="margin-bottom:4px">报名与价格</h2>
-    <p class="small muted" style="margin-bottom:16px">三种方式，选择适合自己的学习节奏</p>
-
-    <div class="eb-notice">
-      🐦 <span><b>早鸟价截止 2026年5月30日</b>，逾期恢复正价。现在报名可立即访问已发布课程。</span>
-    </div>
+    <p class="small muted" style="margin-bottom:16px">完整版培训与专科整套课，选择适合自己的学习节奏</p>
 
     <div class="enroll-grid">
       <div class="enroll-opt rec">
         <div style="font-size:10px;font-weight:700;color:#3f83f8;letter-spacing:.5px">★ 推荐</div>
         <div class="eo-label">报名版（完整版）</div>
-        <div><span class="eo-price">¥1,280</span><span class="eo-orig">¥1,580</span></div>
+        <div><span class="eo-price">¥1,580</span></div>
         <div class="eo-desc">直播互动 + 专属微信学习群 + 全程视频回放</div>
         <div class="eo-cta"><a class="btn primary" href="checkout.html?product=GLOM-REG-FULL-2026">立即报名</a></div>
       </div>
       <div class="enroll-opt">
-        <div class="eo-label">视频版（回放版）</div>
-        <div><span class="eo-price">¥780</span><span class="eo-orig">¥980</span></div>
-        <div class="eo-desc">仅视频回放，不含直播与学习群。时间灵活，自主学习。</div>
-        <div class="eo-cta"><a class="btn" href="checkout.html?product=GLOM-REG-VIDEO-2026">购买视频版</a></div>
-      </div>
-      <div class="enroll-opt">
-        <div class="eo-label">专科整套课（永久）</div>
-        <div><span class="eo-price">¥980</span><span class="eo-orig">¥1,200</span></div>
-        <div class="eo-desc">永久解锁该专科全部课程视频，无班期限制。</div>
+        <div class="eo-label">专科整套课（2年）</div>
+        <div><span class="eo-price">¥1,200</span></div>
+        <div class="eo-desc">解锁该专科全部课程视频，2年有效，无班期限制。</div>
         <div class="eo-cta"><a class="btn" href="checkout.html?product=GLOM-BUNDLE-2026">购买整套课</a></div>
       </div>
     </div>
@@ -360,9 +349,9 @@
   <div class="container">
     <div class="card" style="text-align:center;padding:28px">
       <h2 style="margin-bottom:8px">课程进行中，现在报名立即开始学习</h2>
-      <p class="muted" style="margin-bottom:18px">早鸟价截止 2026年5月30日 · 报名后可立即访问已发布课程</p>
+      <p class="muted" style="margin-bottom:18px">报名后可访问已发布课程与后续直播、回放</p>
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-        <a class="btn primary btn-lg" href="checkout.html?product=GLOM-REG-FULL-2026">立即报名（¥1,280）</a>
+        <a class="btn primary btn-lg" href="checkout.html?product=GLOM-REG-FULL-2026">立即报名（¥1,580）</a>
         <a class="btn btn-lg" href="academy.html">查看所有培训项目</a>
       </div>
     </div>

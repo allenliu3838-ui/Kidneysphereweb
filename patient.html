@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>肾域·记录 — 随访填报</title>
+  <meta name="robots" content="noindex,nofollow"/>
+  <link rel="stylesheet" href="https://kidneysphere.com/shared/ks-topbar.css">
+  <link rel="stylesheet" href="https://kidneysphere.com/shared/ks-brand.css">
+  <script src="https://kidneysphere.com/shared/ks-topbar.js" defer></script>
+  <link rel="stylesheet" href="/app.css"/>
+  <link rel="icon" href="/assets/kidneysphere-ai.png"/>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="brand">
+        <img src="/assets/kidneysphere-ai.png" alt="KidneySphere"/>
+        <div>
+          <h1 class="brand-title">肾域·记录</h1>
+          <div class="brand-sub" id="ctxSub">加载中…</div>
+        </div>
+      </div>
+
+      <div class="warnbox" style="margin-top:12px">
+        <b>重要：</b>本页仅用于科研随访登记，不提供诊疗建议。
+        <b>请勿</b>填写姓名/电话/病案号/身份证等任何可识别信息（PII）。
+      </div>
+
+      <div class="hr"></div>
+
+      <div id="ctxBox" class="kv"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin:0 0 6px 0">填写本次随访（核心 4 项必填）</h2>
+      <div class="muted small">最少录：日期 / 血压 / Scr / UPCR。Scr 默认单位 μmol/L；eGFR 将自动估算（如提供出生年与性别）。</div>
+
+      <div class="row" style="margin-top:8px">
+        <div class="col">
+          <label>随访日期（必填）</label>
+          <input id="visitDate" type="date"/>
+        </div>
+        <div class="col">
+          <label>收缩压 SBP（mmHg）</label>
+          <input id="sbp" type="number" step="1" placeholder="例如：128"/>
+        </div>
+        <div class="col">
+          <label>舒张压 DBP（mmHg）</label>
+          <input id="dbp" type="number" step="1" placeholder="例如：78"/>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <label>Scr</label>
+          <div class="inline-field"><input id="scr" type="number" step="0.1" placeholder="例如：98"/><select id="scrUnit"><option value="umol">μmol/L</option><option value="mgdl">mg/dL</option></select></div>
+        </div>
+        <div class="col">
+          <label>UPCR</label>
+          <div class="inline-field"><input id="upcr" type="number" step="0.01" placeholder="例如：800"/><select id="upcrUnit"><option value="mgg">mg/g</option><option value="gg">g/g</option></select></div>
+        </div>
+        <div class="col">
+          <label>eGFR（自动估算）</label>
+          <input id="egfr" type="number" step="0.1" disabled/>
+        </div>
+      </div>
+
+      <label>备注（可选，不要写任何 PII）</label>
+      <textarea id="notes" placeholder="例如：本次随访采血时间、检测方式等（不要写姓名/电话/MRN）"></textarea>
+
+      <div class="btnbar">
+        <button class="btn primary" id="btnSubmit">提交随访</button>
+        <button class="btn" id="btnRefresh">刷新历史</button>
+      </div>
+
+      <div id="submitHint" class="muted small" style="margin-top:10px"></div>
+      <div id="qcBox" class="infobox" style="margin-top:10px">QC：待填写</div>
+
+      <div id="receiptBox" class="okbox" style="margin-top:10px;display:none"></div>
+
+    </div>
+
+    <div class="card">
+      <h2 style="margin:0 0 6px 0">近期随访记录</h2>
+      <div class="muted small">用于核对是否重复录入（同一天多条会影响趋势/结局计算）。</div>
+      <div id="visitsBox" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <script src="/config.js"></script>
+  <script type="module" src="/patient.js"></script>
+  <footer class="site-footer">
+    <div>微信：GlomConChina1 · 邮箱：<a href="mailto:china@kidneysphere.com">china@kidneysphere.com</a></div>
+    <div style="margin-top:4px">© 2025–2026 上海胤域医学科技有限公司 · 肾域·记录 · <a href="/security">安全合规</a> · <a href="/privacy">隐私政策</a> · <a href="/terms">用户协议</a> · <a href="/disclaimer">免责声明</a> · <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">沪ICP备2026008040号-1</a></div>
+  </footer>
+</body>
+</html>

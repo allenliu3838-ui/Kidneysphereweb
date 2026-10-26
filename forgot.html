@@ -7,7 +7,7 @@
   <meta name="description" content="肾域 — 面向肾脏专科的学术社区、临床科研与医生工具平台">
   <meta name="robots" content="noindex,nofollow" />
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=20260213_001" />
+  <link rel="stylesheet" href="styles.css?v=20260914_depth1" />
 </head>
 <body>
   <header class="nav"></header>
@@ -29,7 +29,7 @@
 
             <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px">
               <button class="btn primary" type="submit">发送重置邮件</button>
-              <a class="btn" href="login.html">返回登录</a>
+              <a class="btn" href="login.html" data-auth-return>返回登录</a>
               <a class="btn" href="index.html">返回首页</a>
             </div>
           </form>
@@ -45,13 +45,11 @@
     </section>
 
     <script type="module">
-      import { supabase, toast, isConfigured } from './supabaseClient.js?v=20260401_fix';
+      import { supabase, ensureSupabase, toast, isConfigured } from './supabaseClient.js?v=20260401_fix';
+      import { getAuthReturnTarget, authFlowUrl, preserveAuthReturnLinks } from './auth-return.js?v=20260915_mobile1';
 
-      const qs = new URLSearchParams(location.search);
-      const nextRaw = qs.get('next') || '';
-      const next = (nextRaw && !nextRaw.startsWith('http') && !nextRaw.startsWith('//') && !nextRaw.includes('..'))
-        ? nextRaw
-        : 'index.html';
+      const next = getAuthReturnTarget();
+      preserveAuthReturnLinks(next);
 
       const form = document.getElementById('forgotForm');
       const emailInput = document.getElementById('emailInput');
@@ -63,8 +61,7 @@
       function getRedirectTo(){
         // 使用随机参数避免浏览器/中间缓存导致用户打开到旧版 reset 页面。
         // 注意：不要用 v 参数（它会被全站版本参数逻辑覆盖），改用 r 参数即可。
-        const u = new URL('reset.html', location.origin);
-        u.searchParams.set('r', String(Date.now()));
+        const u = new URL(authFlowUrl('reset.html', next, { r: Date.now() }), location.origin);
         return u.toString();
       }
 
@@ -75,8 +72,9 @@
         const oldText = submitBtn.textContent;
         submitBtn.textContent = '发送中…';
 
+        await ensureSupabase();
         if(!isConfigured() || !supabase){
-          toast('Supabase 还未配置','请先在 assets/config.js 填入 SUPABASE_URL 与 SUPABASE_ANON_KEY。','err');
+          toast('服务暂不可用','暂时无法连接登录服务，请稍后重试。','err');
           submitBtn.disabled = false;
           submitBtn.textContent = oldText;
           return;
@@ -94,7 +92,7 @@
         const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 
         if(error){
-          toast('发送失败', (error.message || '未知错误') + '。若提示 redirect / URL 不允许，请在 Supabase 控制台 Authentication → URL Configuration 添加允许的 Redirect URL（例如：'+getRedirectTo()+')。', 'err');
+          toast('发送失败', (error.message || '暂时无法发送邮件') + '。请稍后重试，如仍有问题请联系 china@kidneysphere.com。', 'err');
           submitBtn.disabled = false;
           submitBtn.textContent = oldText;
           return;

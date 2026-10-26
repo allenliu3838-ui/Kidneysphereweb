@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>研究合作咨询 · 肾域·科研</title>
+  <meta name="description" content="预约演示、加入现有研究项目、发起新项目或咨询机构合作。肾脏专科多中心研究登记系统，科研用途，30 天免费试用。"/>
+  <meta property="og:title" content="研究合作咨询 · 肾域·科研"/>
+  <meta property="og:description" content="预约演示或申请加入多中心研究项目，联系 china@kidneysphere.com。"/>
+  <meta property="og:type" content="website"/>
+  <link rel="canonical" href="https://kidneysphereregistry.cn/demo"/>
+  <link rel="stylesheet" href="https://kidneysphere.com/shared/ks-topbar.css">
+  <link rel="stylesheet" href="https://kidneysphere.com/shared/ks-brand.css">
+  <script src="https://kidneysphere.com/shared/ks-topbar.js" defer></script>
+  <link rel="stylesheet" href="/app.css"/>
+  <link rel="icon" href="/assets/kidneysphere-ai.png"/>
+  <script src="/config.js"></script>
+  <style>
+    .demo-success{display:none;text-align:center;padding:32px 20px;}
+    .demo-success .icon{font-size:48px;margin-bottom:12px;}
+    .demo-success h2{margin:0 0 8px;}
+    .tag-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+    .tag{display:inline-block;font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid rgba(15,23,42,.12);background:rgba(2,6,23,.02);cursor:pointer;user-select:none;}
+    .tag.sel{border-color:rgba(37,99,235,.45);background:rgba(37,99,235,.08);color:#1d4ed8;}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="brand">
+        <img src="/assets/kidneysphere-ai.png" alt="KidneySphere AI"/>
+        <div>
+          <h1 class="brand-title">研究合作咨询 · 肾域·科研</h1>
+          <div class="brand-sub">填写后我们将在 1 个工作日内联系您：可按“预约演示 / 加入现有项目 / 发起新项目 / 机构合作咨询”对接。</div>
+        </div>
+      </div>
+
+      <div class="btnbar" style="margin-top:12px">
+        <a class="btn" href="/">返回首页</a>
+        <a class="btn" href="/guide">使用说明</a>
+        <a class="btn" href="/slides">系统介绍PPT</a>
+        <a class="btn" href="/pricing">价格方案</a>
+        <a class="btn" href="/collaboration">合作项目</a>
+      </div>
+
+      <div class="hr"></div>
+
+      <!-- Form -->
+      <form id="demoForm" data-testid="demo-form" autocomplete="on">
+        <div class="row">
+          <div class="col">
+            <label>您的姓名 <span style="color:#dc2626">*</span></label>
+            <input id="f_name" type="text" placeholder="王医生 / 张老师" required autocomplete="name"/>
+          </div>
+          <div class="col">
+            <label>所在机构 / 医院 <span style="color:#dc2626">*</span></label>
+            <input id="f_institution" type="text" placeholder="北京协和医院 / 上海交大附属仁济医院" required/>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <label>科室 / 职位</label>
+            <input id="f_department" type="text" placeholder="肾内科 PI / 研究生 / 数据管理员"/>
+          </div>
+          <div class="col">
+            <label>联系邮箱 <span style="color:#dc2626">*</span></label>
+            <input id="f_email" type="email" placeholder="your@email.com" required autocomplete="email"/>
+          </div>
+        </div>
+
+        
+        <div class="row">
+          <div class="col">
+            <label>咨询类型 <span style="color:#dc2626">*</span></label>
+            <select id="f_inquiry_type" required>
+              <option value="">请选择</option>
+              <option value="预约演示">预约演示</option>
+              <option value="加入现有项目">加入现有项目</option>
+              <option value="发起新项目">发起新项目</option>
+              <option value="机构合作咨询">机构合作咨询</option>
+            </select>
+          </div>
+          <div class="col">
+            <label>您的角色</label>
+            <select id="f_role">
+              <option value="">请选择（选填）</option>
+              <option>PI / 科研负责人</option>
+              <option>研究生 / 住院医</option>
+              <option>协调员 / 护士</option>
+              <option>数据管理员 / 统计人员</option>
+              <option>医院信息科</option>
+              <option>医院伦理 / 科研管理</option>
+              <option>采购 / 行政</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <label>微信号 / 手机 <span style="color:#dc2626">*</span></label>
+            <input id="f_contact" type="text" placeholder="微信号 或 13x-xxxx-xxxx" required/>
+          </div>
+        </div>
+
+        <label style="margin-top:14px;display:block;font-size:12px;color:#64748b">
+          您的主要病种 / 使用场景（可多选）
+        </label>
+        <div class="tag-row" id="tagRow">
+          <span class="tag" data-val="IGAN">IgA 肾病</span>
+          <span class="tag" data-val="LN">狼疮性肾炎</span>
+          <span class="tag" data-val="MN">膜性肾病</span>
+          <span class="tag" data-val="KTX">肾移植</span>
+          <span class="tag" data-val="GENERAL">通用 / 其他肾病</span>
+          <span class="tag" data-val="MULTICENTER">多中心合并</span>
+          <span class="tag" data-val="PILOT">科室数据库建设</span>
+          <span class="tag" data-val="COLLAB">合作项目咨询</span>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <label>预计样本量（选填）</label>
+            <input id="f_est_sample" type="text" placeholder="例如：120"/>
+          </div>
+          <div class="col">
+            <label>预计中心数（选填）</label>
+            <input id="f_est_centers" type="text" placeholder="例如：3"/>
+          </div>
+          <div class="col">
+            <label>希望角色（选填）</label>
+            <select id="f_participation_role">
+              <option value="">请选择</option>
+              <option>牵头</option>
+              <option>参与</option>
+              <option>暂不确定</option>
+            </select>
+          </div>
+        </div>
+
+        <label style="margin-top:14px;display:block;font-size:12px;color:#64748b">补充说明 / 您最想了解的功能</label>
+        <textarea id="f_message" placeholder="例如：我们是 3 个中心的 IgAN 队列，约 200 例，想了解多中心合并与论文包功能..." rows="4"></textarea>
+
+        <div id="formErr" class="warnbox" data-testid="demo-error" style="display:none;margin-top:10px"></div>
+
+        <p style="margin-top:14px;font-size:11px;color:#94a3b8;line-height:1.6">
+          提交即表示您同意我们收集上述信息（姓名、机构、邮箱及您填写的选填项）用于安排演示或咨询跟进，
+          保存期限不超过 12 个月。您可随时发邮件至
+          <a href="mailto:china@kidneysphere.com" style="color:#94a3b8">china@kidneysphere.com</a>
+          申请查阅或删除您的信息。
+        </p>
+
+        <div class="btnbar" style="margin-top:10px">
+          <button class="btn primary" type="submit" id="btnSubmit" data-testid="demo-submit">提交申请</button>
+        </div>
+      </form>
+
+      <!-- Success state: hidden by default, shown only after confirmed server-side submit -->
+      <div class="demo-success" id="demoSuccess" data-testid="demo-success" aria-hidden="true">
+        <div class="icon">✅</div>
+        <h2>申请已提交！</h2>
+        <p class="small">我们已收到您的申请，将在 <b>1 个工作日内</b>按您的咨询类型（演示 / 加入项目 / 发起项目 / 机构合作）与您联系。<br/>如需加急，请直接发邮件至 <a href="mailto:china@kidneysphere.com">china@kidneysphere.com</a>。</p>
+        <div class="btnbar" style="justify-content:center;margin-top:16px">
+          <a class="btn primary" href="/guide">先看使用说明</a>
+          <a class="btn" href="/slides">看系统介绍PPT</a>
+          <a class="btn" href="/">返回首页</a>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="kv" style="margin-top:8px">
+        <div>演示时长</div><div>约 30 分钟（含 Q&amp;A）</div>
+        <div>演示形式</div><div>腾讯会议 / 飞书 / Zoom（按您偏好）</div>
+        <div>演示内容</div><div>后台录入演示 + 一键生成论文包 + 多中心合并 + 定价方案</div>
+        <div>适合人群</div><div>PI / 研究生 / 数据管理员 / 医院科研管理人员</div>
+      </div>
+
+      <div class="infobox" style="margin-top:12px">
+        也可以直接发邮件：<a href="mailto:china@kidneysphere.com">china@kidneysphere.com</a>，注明"预约演示"。
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    // Tag multi-select
+    const tagRow = document.getElementById('tagRow');
+    tagRow.addEventListener('click', e => {
+      const t = e.target.closest('.tag');
+      if (t) t.classList.toggle('sel');
+    });
+
+    function selectedTags() {
+      return [...tagRow.querySelectorAll('.tag.sel')].map(t => t.dataset.val).join(',');
+    }
+
+    // Form submit
+    const form = document.getElementById('demoForm');
+    const btnSubmit = document.getElementById('btnSubmit');
+    const formErr = document.getElementById('formErr');
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      formErr.style.display = 'none';
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = '提交中…';
+
+      const cfg = window.CONFIG || {};
+      let sbClient;
+      try {
+        sbClient = createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+      } catch {
+        showErr('Supabase 未配置，请联系管理员或直接发邮件至 china@kidneysphere.com');
+        reset();
+        return;
+      }
+
+      if (!document.getElementById('f_inquiry_type').value) {
+        showErr('请选择咨询类型。');
+        reset();
+        return;
+      }
+
+      if (!document.getElementById('f_contact').value.trim()) {
+        showErr('请填写微信号或手机号，方便我们联系您。');
+        reset();
+        return;
+      }
+
+      const payload = {
+        name:        document.getElementById('f_name').value.trim(),
+        institution: document.getElementById('f_institution').value.trim(),
+        department:  document.getElementById('f_department').value.trim() || null,
+        email:       document.getElementById('f_email').value.trim(),
+        contact:     document.getElementById('f_contact').value.trim() || null,
+        use_case:    selectedTags() || null,
+        message:     [
+          `咨询类型：${document.getElementById('f_inquiry_type').value}`,
+          document.getElementById('f_role').value ? `角色：${document.getElementById('f_role').value}` : '',
+          document.getElementById('f_est_sample').value.trim() ? `预计样本量：${document.getElementById('f_est_sample').value.trim()}` : '',
+          document.getElementById('f_est_centers').value.trim() ? `预计中心数：${document.getElementById('f_est_centers').value.trim()}` : '',
+          document.getElementById('f_participation_role').value ? `希望角色：${document.getElementById('f_participation_role').value}` : '',
+          document.getElementById('f_message').value.trim() || ''
+        ].filter(Boolean).join(' | ') || null,
+      };
+
+      const { error } = await sbClient.from('demo_requests').insert(payload);
+
+      if (error) {
+        showErr('提交失败：' + error.message + '。请直接发邮件至 china@kidneysphere.com');
+        reset();
+      } else {
+        form.style.display = 'none';
+        var successEl = document.getElementById('demoSuccess');
+        successEl.style.display = 'block';
+        successEl.setAttribute('aria-hidden', 'false');
+      }
+    });
+
+    function showErr(msg) {
+      formErr.textContent = msg;
+      formErr.style.display = 'block';
+    }
+    function reset() {
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = '提交申请';
+    }
+  </script>
+  <footer class="site-footer">
+    <div>微信：GlomConChina1 · 邮箱：<a href="mailto:china@kidneysphere.com">china@kidneysphere.com</a></div>
+    <div style="margin-top:4px">© 2025–2026 上海胤域医学科技有限公司 · 肾域·科研 · <a href="/security">安全合规</a> · <a href="/privacy">隐私政策</a> · <a href="/terms">用户协议</a> · <a href="/disclaimer">免责声明</a> · <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">沪ICP备2026008040号-1</a></div>
+  </footer>
+  <script src="/analytics.js"></script>
+</body>
+</html>

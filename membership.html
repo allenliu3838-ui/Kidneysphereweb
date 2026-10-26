@@ -3,138 +3,33 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>订阅管理 · 肾域</title>
-  <meta name="description" content="肾域订阅管理：查看订阅状态、订单记录与权益开通情况。" />
-  <meta name="robots" content="noindex,nofollow" />
-  <link rel="stylesheet" href="styles.css?v=20260219_001" />
+  <title>教育会员 · 肾域 KidneySphere</title>
+  <meta name="description" content="教育会员 ¥299／年，仅含周日、周三学术活动视频回放。所有培训另行收费，教材音频不含；历史已购权益保留。" />
+  <link rel="stylesheet" href="styles.css?v=20260914_depth1" />
+  <link rel="stylesheet" href="learning-visuals.css?v=20260917_visual1" />
   <link rel="icon" href="assets/logo.png" />
 </head>
-
-<body>
+<body class="learning-visual-page">
   <header class="nav"></header>
-
-  <main>
-    <section class="hero">
-      <div class="container">
-        <div class="card soft">
-          <div class="badge">订阅管理</div>
-          <h1>订阅管理</h1>
-          <p class="muted" style="max-width:900px">
-            查看你的订阅状态与订单记录。通过<b>微信/支付宝扫码付款</b>并上传凭证，审核通过后即可开通相应权益。
-          </p>
-
-          <div class="note" style="margin-top:12px;background:rgba(47,111,235,.1);border-color:rgba(47,111,235,.3)">
-            <b>推荐：</b>如需购买课程或会员，请前往 <a href="learning.html"><b>学习中心</b></a> 选择具体课程报名，享受统一结算与订单管理。
-          </div>
-
-          <div class="note" style="margin-top:8px;background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3)">
-            <b>提示：</b>此页面将自动跳转至新版结算系统。如未自动跳转，请点击 <a href="learning.html"><b>学习中心</b></a> 进行操作。
-          </div>
-
-          <div class="note" id="memberGate" style="margin-top:14px">
-            正在检查登录状态…
-          </div>
+  <main class="section">
+    <div class="container">
+      <section class="card soft membership-fallback" aria-labelledby="membership-title" style="border-color:rgba(168,85,247,.45);background:linear-gradient(145deg,rgba(168,85,247,.12),rgba(251,191,36,.04))">
+        <div class="badge" style="color:#fbbf24;border-color:rgba(251,191,36,.3)">周日 / 周三 · 学术活动回放</div>
+        <h1 id="membership-title">教育会员 ¥299／年</h1>
+        <p>年费仅含会员有效期内的周日、周三学术活动视频回放。</p>
+        <p class="muted">所有培训与专科整套课另行收费。新开通的 ¥299 年费不含教材音频、其他音频、肾域 Pro、其他或未来专属内容。</p>
+        <p class="muted">历史已购及已获赠权益继续保留，按原订单约定的范围与期限使用，可在「我的学习」中查看。</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:20px">
+          <a class="btn primary" href="academy.html#membership">开通周日/周三回放 ¥299/年</a>
+          <a class="btn" href="videos.html?access=member">查看周日/周三回放</a>
+          <a class="btn" href="videos.html?access=free">观看免费视频</a>
+          <a class="btn" href="my-learning.html">我的学习与已购权益</a>
         </div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="container">
-        <div class="grid cols-2">
-          <div class="card soft">
-            <div class="section-title">
-              <h3>当前状态</h3>
-              <p class="muted small">显示你的账户角色与认证状态。</p>
-            </div>
-
-            <div id="memberStatus">
-              <div class="muted">加载中…</div>
-            </div>
-
-            <div class="small muted" style="margin-top:10px;line-height:1.7">
-              提示：订阅开通与医生认证是独立流程。如需完成医生认证，可前往 <a href="verify-doctor.html">医生认证</a>。
-            </div>
-          </div>
-
-          <div class="card soft">
-            <div class="section-title">
-              <h3>开通订阅</h3>
-              <p class="muted small">选择支付方式，付款后上传截图提交审核。</p>
-            </div>
-
-            <div class="grid cols-2">
-              <div>
-                <div class="small muted">支付方式</div>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
-                  <button class="btn primary" id="channelWechat" type="button">微信支付</button>
-                  <button class="btn" id="channelAlipay" type="button">支付宝</button>
-                </div>
-
-                <div class="small muted" style="margin-top:14px">订阅价格</div>
-                <div style="margin-top:6px;font-size:20px"><b id="membershipPrice">—</b></div>
-
-                <div class="small muted" style="margin-top:14px">
-                  建议在付款备注里填写：<b id="payReference">—</b>（方便管理员核对）
-                </div>
-              </div>
-
-              <div>
-                <div class="small muted">收款码</div>
-                <div class="card" style="margin-top:8px">
-                  <img id="payQr" alt="payment qr" style="width:100%;max-width:260px;height:auto;border-radius:12px;display:block" />
-                  <div class="small muted" style="margin-top:10px;line-height:1.6">
-                    请使用微信或支付宝扫描上方二维码完成付款。
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <hr style="margin:18px 0;opacity:.35" />
-
-            <form id="membershipForm">
-              <div class="grid cols-2">
-                <div>
-                  <label class="small muted">真实姓名（可选）</label>
-                  <input class="input" name="real_name" placeholder="用于管理员核对" />
-                </div>
-                <div>
-                  <label class="small muted">医院/单位（可选）</label>
-                  <input class="input" name="hospital" placeholder="例如：中山大学附属第一医院" />
-                </div>
-              </div>
-
-              <div style="margin-top:12px">
-                <label class="small muted">付款截图/凭证（必填，支持 PNG/JPG/WebP/PDF）</label>
-                <input class="input" type="file" name="proof" accept="image/png,image/jpeg,image/webp,application/pdf" required />
-              </div>
-
-              <div style="margin-top:12px">
-                <label class="small muted">备注（可选）</label>
-                <textarea class="input" name="note" rows="2" placeholder="例如：我已在微信付款，备注已填写 KS-xxxx"></textarea>
-              </div>
-
-              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px">
-                <button class="btn primary" type="submit">提交审核</button>
-                <span class="small muted" id="membershipHint"></span>
-              </div>
-            </form>
-          </div>
-        </div>
-
-        <div class="card soft" style="margin-top:18px">
-          <div class="section-title">
-            <h3>我的订单</h3>
-            <p class="muted small">查看你提交的订阅开通订单状态。</p>
-          </div>
-          <div id="myOrders"><div class="muted">加载中…</div></div>
-        </div>
-      </div>
-    </section>
+      </section>
+    </div>
   </main>
-
   <footer class="footer"></footer>
-
-  <script type="module" src="app.js?v=20260219_001"></script>
-  <script type="module" src="membership.js?v=20260219_001"></script>
+  <script type="module" src="app.js?v=20260916_learn2"></script>
+  <script type="module" src="membership.js?v=20260916_learn2"></script>
 </body>
 </html>

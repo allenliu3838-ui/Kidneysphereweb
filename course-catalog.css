@@ -1,0 +1,67 @@
+.catalog-status{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--text-muted,#64748b);margin:12px 0 18px;line-height:1.7}
+.catalog-status [hidden]{display:none!important}
+.catalog-more{margin-top:14px}
+.badge-media{display:inline-flex;align-items:center;gap:5px;color:var(--text,#163459);background:rgba(55,125,195,.09);border-color:rgba(55,125,195,.24)}
+.course-media-icon{display:inline-block;flex-shrink:0;vertical-align:-3px}
+.vcard-media,.vcard-access,.course-chapter-badges{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.vcard .vcard-badges{align-items:flex-end;flex-direction:column;gap:7px}
+.course-chapter-badges{margin-top:7px}
+.badge-unknown{color:var(--text-muted,#64748b);background:rgba(100,116,139,.06);border-color:rgba(100,116,139,.25)}
+.badge-audio{color:#13746d;background:rgba(18,145,126,.08);border-color:rgba(18,145,126,.24)}
+.badge-duration{font-variant-numeric:tabular-nums;color:var(--text-muted,#64748b);background:transparent}
+.course-series-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px;align-items:start}
+.course-series-card{min-width:0;border:1px solid var(--border,#dbe4ee);border-radius:14px;background:var(--card-bg,#fff);overflow:hidden}
+.course-series-card>summary{cursor:pointer;padding:18px;position:relative;list-style:none}
+.course-series-card>summary::-webkit-details-marker{display:none}
+.course-series-card>summary:focus-visible{outline:3px solid var(--accent,#2377b8);outline-offset:-4px;border-radius:12px}
+.course-series-heading{display:block;font-size:17px;font-weight:700;line-height:1.5;overflow-wrap:anywhere;padding-right:16px}
+.course-series-meta{display:block;margin-top:6px;font-size:13px;line-height:1.5;color:var(--text-muted,#64748b);overflow-wrap:anywhere}
+.course-series-toggle{display:inline-block;margin-top:12px;font-size:13px;font-weight:600;color:var(--accent,#2377b8)}
+.course-series-toggle:after{content:' ＋'}
+.course-series-card[open] .course-series-toggle:after{content:' −'}
+.course-series-contents:not(:empty){padding:0 18px 18px;border-top:1px solid var(--border,#dbe4ee)}
+.course-chapter-list{padding-left:24px;margin:0}
+.course-chapter-list li{padding:14px 0 12px 3px;border-bottom:1px solid var(--border,#e4ebf2);line-height:1.55}
+.course-chapter-list li:last-child{border-bottom:0}
+.course-chapter-list li::marker{font-size:12px;color:var(--text-muted,#64748b);font-variant-numeric:tabular-nums}
+.course-chapter-list a,.course-chapter-list button{display:block;text-align:left;min-height:28px;font:inherit;font-size:14px;font-weight:600;line-height:1.6;color:var(--text,#183451);overflow-wrap:anywhere;text-decoration:none}
+.course-chapter-list button{padding:0;border:0;background:none;cursor:pointer}
+.course-chapter-list a:hover,.course-chapter-list button:hover{text-decoration:underline}
+.course-chapter-meta{display:block;font-size:12px;color:var(--text-muted,#64748b);font-variant-numeric:tabular-nums;margin-top:4px}
+/* Course imagery complements the written media/access badges below each cover. */
+body.learning-visual-page .vcard{display:flex;flex-direction:column;padding:0;overflow:hidden;border-radius:18px;border-color:#d0deec;background:#fff;box-shadow:0 7px 22px #23476a08}
+.course-cover{position:relative;display:block;aspect-ratio:1.9;overflow:hidden;background:#e1edf5}
+.course-cover img{display:block;width:100%;height:100%;object-fit:cover}
+.course-cover img[hidden]{display:none}
+.course-cover-label{position:absolute;left:12px;bottom:12px;display:inline-flex;gap:6px;align-items:center;max-width:calc(100% - 24px);padding:5px 9px;border-radius:999px;background:#ffffffef;color:#254b67;box-shadow:0 2px 8px #16365612;font-size:11px;font-weight:650;line-height:1.5}
+.vcard-body{display:flex;flex-direction:column;flex:1;padding:17px}
+body.learning-visual-page .vcard .vcard-top{display:block}
+body.learning-visual-page .vcard h4{font-size:16px;line-height:1.65;color:#1d3e5f}
+body.learning-visual-page .vcard .vcard-meta{line-height:1.7;color:#60728a;margin-top:6px}
+body.learning-visual-page .vcard .vcard-badges{flex-direction:row;align-items:flex-start;margin-top:12px;gap:7px}
+body.learning-visual-page .vcard .vcard-actions{margin-top:auto;padding-top:16px;gap:7px}
+body.learning-visual-page .vcard .vcard-actions>.btn{min-height:42px;padding:8px 12px}
+body.learning-visual-page .badge-free{color:#20715d;background:#e5f3ec;border-color:#b7dccb}
+body.learning-visual-page .badge-member{color:#715197;background:#f0e9fa;border-color:#d6c4eb}
+body.learning-visual-page .badge-training{color:#315f98;background:#eaf1fb;border-color:#c5d8f1}
+body.learning-visual-page .badge-purchased{color:#26715e;background:#e8f4ee;border-color:#c3dfcf}
+body.learning-visual-page .badge-source{color:#8a6531;background:#fbf2e2;border-color:#ead9b6}
+body.learning-visual-page .course-series-card{border-radius:18px;border-color:#cfdeeb;background:#fff;box-shadow:0 7px 22px #23476a08}
+body.learning-visual-page .course-series-card>summary{padding:0}
+.course-series-summary{display:block;padding:18px}
+body.learning-visual-page .course-series-heading{color:#1d3e5f}
+body.learning-visual-page .video-grid-row{grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:16px}
+@media(max-width:640px){body.learning-visual-page .hero>.container>.card:has(> #videoSections),body.learning-visual-page .hero>.container>.card:has(> #hot-articles){padding:16px}.vcard-body{padding:15px}}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){body.learning-visual-page .vcard{transition:transform .2s ease,box-shadow .2s ease}body.learning-visual-page .vcard:hover{transform:translateY(-3px);box-shadow:0 12px 26px #28456516}}
+@media(max-width:640px){
+  .filter-bar{gap:8px 6px}
+  .filter-bar .sep{display:none}
+  .filter-bar>.filter-label{flex-basis:100%;margin-top:4px}
+  .course-series-grid{grid-template-columns:minmax(0,1fr)}
+  .vcard .vcard-top{display:block}
+  .vcard .vcard-badges{margin-top:10px}
+  .vcard .vcard-actions>.btn{min-height:44px}
+  .course-chapter-list a,.course-chapter-list button{min-height:44px;display:flex;align-items:center}
+  .catalog-more{width:100%;min-height:44px}
+  #upgradeModule>div{grid-template-columns:minmax(0,1fr)!important}
+}

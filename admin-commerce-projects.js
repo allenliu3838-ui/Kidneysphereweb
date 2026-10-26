@@ -3,7 +3,7 @@
  * Handles: learning_projects CRUD + cohorts CRUD + enrollment list
  */
 import { supabase, toast } from './supabaseClient.js?v=20260401_fix';
-import { esc, fmtDate, showModal, closeModal } from './admin-commerce.js?v=20260325_001';
+import { esc, fmtDate, showModal, closeModal } from './admin-commerce.js?v=20260914_payment1';
 
 const STATUS_LABELS = {
   draft:       { label: '草稿',   dot: 'gray'   },
@@ -200,9 +200,7 @@ async function openProjectModal(projectId) {
 ============================================================ */
 async function openCohortsModal(projectId, projectTitle) {
   const { data: cohorts, error } = await supabase
-    .from('cohorts')
-    .select('*')
-    .eq('project_id', projectId)
+    .rpc('admin_get_cohorts', { p_project_id: projectId })
     .order('start_date', { ascending: true });
 
   const rows = cohorts || [];
@@ -239,7 +237,7 @@ async function openCohortsModal(projectId, projectTitle) {
 async function openCohortEditModal(cohortId, projectId, projectTitle) {
   let c = null;
   if (cohortId) {
-    const { data } = await supabase.from('cohorts').select('*').eq('id', cohortId).single();
+    const { data } = await supabase.rpc('admin_get_cohorts', { p_project_id: projectId }).eq('id', cohortId).single();
     c = data;
   }
   const isEdit = !!c;
@@ -352,13 +350,14 @@ async function openEnrollmentsModal(projectId) {
     .from('project_enrollments')
     .select(`
       id, user_id, enrollment_status, approval_status,
-      joined_group_status, created_at,
+      joined_group_status, created_at, source_order_id,
       cohorts ( title )
     `)
     .eq('project_id', projectId)
     .order('created_at', { ascending: false })
     .limit(100);
 
+  if (error) { toast('加载报名失败', error.message, 'err'); return; }
   const rows = data || [];
   const rowsHtml = rows.length ? rows.map(e => `
     <tr>
@@ -368,10 +367,10 @@ async function openEnrollmentsModal(projectId) {
       <td>${esc(e.approval_status === 'approved' ? '✅ 已批准' : e.approval_status === 'rejected' ? '❌ 驳回' : '⏳ 待审批')}</td>
       <td>${esc(fmtDate(e.created_at))}</td>
       <td>
-        ${e.approval_status === 'pending' ? `
+        ${!e.source_order_id && e.enrollment_status === 'pending' && e.approval_status === 'pending' ? `
           <button class="btn tiny" data-approve-enroll="${e.id}" type="button">批准</button>
           <button class="btn tiny" data-reject-enroll="${e.id}" type="button">驳回</button>
-        ` : ''}
+        ` : e.source_order_id ? '<span class="small muted">订单报名请到订单审核处理</span>' : ''}
       </td>
     </tr>`).join('')
   : '<tr><td colspan="6" class="muted">暂无报名记录</td></tr>';
@@ -389,23 +388,38 @@ async function openEnrollmentsModal(projectId) {
   // Approve / reject enrollments
   document.querySelectorAll('[data-approve-enroll]').forEach(btn =>
     btn.addEventListener('click', async () => {
-      const { error: err } = await supabase.from('project_enrollments')
-        .update({ approval_status: 'approved', enrollment_status: 'confirmed',
-          approved_by: (await supabase.auth.getUser()).data.user?.id,
-          approved_at: new Date().toISOString() })
-        .eq('id', btn.dataset.approveEnroll);
-      if (err) toast('操作失败', err.message, 'err');
-      else { toast('已批准', '', 'ok'); openEnrollmentsModal(projectId); }
+      await reviewManualEnrollment(rows.find(row => row.id === btn.dataset.approveEnroll), true, projectId, btn);
     }));
 
   document.querySelectorAll('[data-reject-enroll]').forEach(btn =>
     btn.addEventListener('click', async () => {
-      const { error: err } = await supabase.from('project_enrollments')
-        .update({ approval_status: 'rejected' })
-        .eq('id', btn.dataset.rejectEnroll);
-      if (err) toast('操作失败', err.message, 'err');
-      else { toast('已驳回', '', 'ok'); openEnrollmentsModal(projectId); }
+      await reviewManualEnrollment(rows.find(row => row.id === btn.dataset.rejectEnroll), false, projectId, btn);
     }));
+}
+
+const enrollmentReviewRequests = new Set();
+async function reviewManualEnrollment(enrollment, approve, projectId, button) {
+  if (!enrollment?.id || enrollment.source_order_id || enrollment.enrollment_status !== 'pending' || enrollment.approval_status !== 'pending') {
+    toast('不能直接审批', '仅待审批的人工报名可在此处理；订单报名请使用订单审核。', 'err');
+    return;
+  }
+  if (enrollmentReviewRequests.has(enrollment.id)) return;
+  enrollmentReviewRequests.add(enrollment.id);
+  if (button) button.disabled = true;
+  try {
+    const { data, error } = await supabase.rpc('admin_review_manual_enrollment', {
+      p_enrollment_id: enrollment.id, p_approve: approve, p_note: null,
+    });
+    if (error) throw error;
+    if (data?.ok !== true) throw new Error('服务端未确认审批完成，请刷新报名状态');
+    toast(approve ? '已批准' : '已驳回', '人工报名状态已更新。', 'ok');
+    await openEnrollmentsModal(projectId);
+  } catch (error) {
+    toast('报名审批失败', error.message, 'err');
+  } finally {
+    enrollmentReviewRequests.delete(enrollment.id);
+    if (button?.isConnected) button.disabled = false;
+  }
 }
 
 /* ============================================================

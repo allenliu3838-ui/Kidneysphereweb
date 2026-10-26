@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>安全与合规 · 肾域·科研</title>
+  <meta name="description" content="肾域·科研安全与合规说明：RLS 权限隔离、审计日志、去标识化、私有化部署支持。适合院内伦理评估。"/>
+  <meta property="og:title" content="安全与合规 · 肾域·科研"/>
+  <meta property="og:description" content="RLS 权限隔离、审计日志、去标识化设计，支持院内私有化部署与伦理评估。"/>
+  <meta property="og:type" content="website"/>
+  <link rel="canonical" href="https://kidneysphereregistry.cn/security"/>
+  <link rel="stylesheet" href="https://kidneysphere.com/shared/ks-topbar.css">
+  <link rel="stylesheet" href="https://kidneysphere.com/shared/ks-brand.css">
+  <script src="https://kidneysphere.com/shared/ks-topbar.js" defer></script>
+  <link rel="stylesheet" href="/app.css"/>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1 class="brand-title">安全与合规 / Security & Compliance</h1>
+      <div class="btnbar" style="margin-top:10px">
+        <a class="btn" href="/">首页</a><a class="btn" href="/pricing">价格</a><a class="btn" href="/collaboration">合作项目</a><a class="btn" href="/deployment">部署方式</a><a class="btn" href="/slides">系统PPT</a><a class="btn" href="/login">登录</a>
+      </div>
+      <div class="hr"></div>
+      <h2>1) 数据最小化</h2>
+      <div class="small">系统默认去标识化：仅使用 <code>patient_code + center_code</code>。禁止录入姓名/手机号/身份证/住院号等 PII，禁止上传含 PII 的原始单据。</div>
+      <h2>2) 权限与 RLS</h2>
+      <div class="small">采用最小权限原则与行级权限（RLS）。支持 PI/录入/统计/只读等角色隔离（按项目/中心边界控制可见数据）。</div>
+      <h2>3) 审计日志</h2>
+      <div class="small">关键操作（导出、快照创建、快照锁定、论文包生成、token 失效）写入审计日志，支持追溯“谁在何时执行了什么”。</div>
+      <h2>4) 加密与备份</h2>
+      <div class="small">传输加密（HTTPS/TLS）、静态加密（平台与存储层能力）、定期备份与恢复演练（按部署模式执行）。</div>
+      <h2>5) 伦理支持</h2>
+      <div class="small">可提供数据安全说明与伦理申请材料模板，请发邮件至 china@kidneysphere.com 获取。</div>
+      <div class="btnbar" style="margin-top:14px">
+        <a class="btn primary" href="/demo">预约演示</a>
+        <a class="btn" href="/demo">机构合作咨询</a>
+        <a class="btn" href="/collaboration">查看合作项目</a>
+        <a class="btn" href="/signup?trial=1">申请试用</a>
+      </div>
+          <div class="hr"></div>
+      <h2>院内评估常见材料</h2>
+      <ul class="small" style="line-height:1.9">
+        <li>数据最小化说明（去标识化与 PII 禁录入）</li>
+        <li>权限与 RLS 说明</li>
+        <li>审计日志说明</li>
+        <li>备份与恢复策略说明</li>
+        <li>私有化部署边界说明</li>
+        <li>伦理/信息科评估材料模板（按需提供）</li>
+      </ul>
+      <div class="btnbar" style="margin-top:10px">
+        <a class="btn primary" href="/demo">预约演示</a>
+        <a class="btn" href="/demo">机构合作咨询</a>
+        <a class="btn" href="/collaboration">查看合作项目</a>
+      </div>
+    </div>
+  </div>
+  <footer class="site-footer">
+    <div>微信：GlomConChina1 · 邮箱：<a href="mailto:china@kidneysphere.com">china@kidneysphere.com</a></div>
+    <div style="margin-top:4px">© 2025–2026 上海胤域医学科技有限公司 · 肾域·科研 · <a href="/security">安全合规</a> · <a href="/privacy">隐私政策</a> · <a href="/terms">用户协议</a> · <a href="/disclaimer">免责声明</a> · <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">沪ICP备2026008040号-1</a></div>
+  </footer>
+  <script src="/analytics.js"></script>
+</body>
+</html>

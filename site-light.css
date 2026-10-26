@@ -1,0 +1,322 @@
+/* KidneySphere shared blue-depth theme.
+ * Imported before the legacy sheet; the explicit body scope wins over its
+ * component selectors without changing their layout, visibility or behavior.
+ * The homepage has its own theme. Media surfaces and user-authored colors
+ * keep their existing presentation; no universal color/background reset.
+ */
+html:root:not(.portal-document) {
+  --bg: #eaf2fb;
+  --panel: #fff;
+  --panel2: #dbe9f7;
+  --text: #102c4c;
+  --muted: #4b627c;
+  --text-muted: #4b627c;
+  --border: #cadcec;
+  --brand: #0964eb;
+  --brand2: #0755cc;
+  --brand-rgb: 9,100,235;
+  --brand2-rgb: 7,85,204;
+  --danger: #b4233b;
+  --ok: #137549;
+  --shadow: 0 8px 24px rgba(21,59,97,.08);
+  --ks-shadow: 0 8px 24px rgba(21,59,97,.08);
+}
+
+body:not(.portal-home) {
+  --accent: #0964eb;
+  --card-bg: #fff;
+  --input-bg: #fff;
+  --text-muted: #4b627c;
+  --depth-navy: #08213d;
+  --depth-teal: #15576a;
+  --depth-aqua: #85dbe2;
+  --depth-hero: linear-gradient(115deg,#102c4c,#1b5178);
+  --depth-hero-teal: linear-gradient(110deg,#12334f,#15576a);
+  --depth-card-pad: 28px;
+  color-scheme: light;
+  color: var(--text);
+  background: radial-gradient(ellipse at 90% 0,#d4e8f7 0,transparent 44%),#eaf2fb;
+  background-attachment: scroll;
+}
+body:not(.portal-home) ::selection { color: #0b2149; background: #cce2ff; }
+body:not(.portal-home) :is(a,button,input,select,textarea,summary,[tabindex]):focus-visible {
+  outline: 3px solid #216fe3;
+  outline-offset: 3px;
+}
+body:not(.portal-home) :is(a,button,input,select,textarea,summary) { -webkit-tap-highlight-color: #0964eb1c; }
+body:not(.portal-home) :is(input,textarea,select) { accent-color: #0964eb; }
+body:not(.portal-home) a:hover { opacity: 1; }
+
+/* Navigation and account surfaces retain the current responsive breakpoints. */
+body:not(.portal-home) .nav {
+  background: rgba(244,248,253,.98);
+  border-bottom-color: #d5e1ee;
+  box-shadow: 0 2px 12px #183f7006;
+}
+body:not(.portal-home) .brand { color: #0b2149; }
+body:not(.portal-home) .brand img { box-shadow: none; }
+body:not(.portal-home) .brand .title span { color: #586b89; }
+body:not(.portal-home) .menu a { min-height: 44px; color: #254363; }
+body:not(.portal-home) .menu a:is(.active,:hover) {
+  color: #075bcc;
+  border-color: #bdd4f4;
+  background: #edf5ff;
+}
+body:not(.portal-home) .nav-dropdown { border-left-color: #d9e4f2; }
+body:not(.portal-home) .nav-dropdown-sep { border-color: #d9e4f2; }
+body:not(.portal-home) .nav-dropdown-trigger {
+  min-height: 44px;
+  color: #254363;
+  background: #f5f9ff;
+  border-color: #c6d8ef;
+}
+body:not(.portal-home) :is(.nav-dropdown:hover,.nav-dropdown.open) .nav-dropdown-trigger,
+body:not(.portal-home) .nav-dropdown-trigger:hover {
+  color: #075bcc;
+  background: #edf5ff;
+  border-color: #9bbfec;
+}
+body:not(.portal-home) :is(.nav-dropdown-menu,.user-dropdown) {
+  color: #173454;
+  background: #fff;
+  border-color: #d5e2f2;
+  box-shadow: 0 14px 36px #17345b21;
+}
+body:not(.portal-home) .nav-dropdown-menu a { min-height: 44px; color: #173454; }
+body:not(.portal-home) .nav-dropdown-menu a:hover { background: #edf5ff; }
+body:not(.portal-home) .nav-search-input {
+  min-height: 44px;
+  background: #f7faff;
+  border-color: #c6d8ef;
+  color: #173454;
+}
+body:not(.portal-home) .nav-search-input::placeholder { color: #657a94; opacity: 1; }
+body:not(.portal-home) .nav-search-input:focus { background: #fff; border-color: #0964eb; }
+body:not(.portal-home) .nav-bell { min-width: 44px; min-height: 44px; color: #24425f; }
+body:not(.portal-home) .nav-bell:hover { background: #edf5ff; }
+body:not(.portal-home) .nav-bell-badge { border-color: #fff; }
+body:not(.portal-home) .nav-member-badge { color: #7040a4; background: #f6f0ff; border-color: #d8c5ef; }
+body:not(.portal-home) .nav-member-badge:hover { background: #eee4fd; }
+body:not(.portal-home) .nav-member-badge[data-state="expiring"] { color: #85570b; background: #fff7df; border-color: #e8cd8c; }
+body:not(.portal-home) .nav-member-badge[data-state="cta"] { color: #075bcc; background: #edf5ff; border-color: #bdd4f4; }
+body:not(.portal-home) :is(.user-trigger,.nav .pill) { color: #193656; background: #f1f6ff; border-color: #d5e2f2; }
+body:not(.portal-home) .user-dropdown :is(a,button) { color: #193656; min-height: 44px; }
+body:not(.portal-home) .user-dropdown :is(a,button):hover { background: #eef5ff; border-color: #d5e2f2; }
+body:not(.portal-home) .user-dropdown :is(.ud-meta,.ud-footer) { border-color: #d5e2f2; }
+body:not(.portal-home) .user-dropdown .ud-footer { background: #f6f9ff; }
+body:not(.portal-home) .user-dropdown .ud-mode { background: #fff; border-color: #d5e2f2; }
+body:not(.portal-home) .user-dropdown .ud-danger { color: #a12c3e; }
+body:not(.portal-home) .user-dropdown .ud-danger:hover { color: #a12c3e; }
+/* These two account links have legacy inline membership colors. */
+body:not(.portal-home) .user-dropdown a[href^="checkout.html?product=MEMBERSHIP-"] { color: #805513 !important; }
+body:not(.portal-home) .user-dropdown a[href="videos.html?source=glomcon"] { color: #7040a4 !important; }
+body:not(.portal-home) :is(.ud-group,.ud-mode) { background: #f7faff; border-color: #d5e2f2; }
+body:not(.portal-home) .ud-group summary { min-height: 44px; }
+body:not(.portal-home) :is(.ud-split,.drawer-divider,.hr,.ks-editor-sep) { background: #d9e4f2; }
+body:not(.portal-home) :is(.menu-toggle,.icon-btn) {
+  min-width: 44px;
+  min-height: 44px;
+  color: #153859;
+  background: #f5f9fe;
+  border-color: #c6d8ef;
+}
+body:not(.portal-home) :is(.menu-toggle,.icon-btn):hover { background: #e7f1ff; }
+body:not(.portal-home) .drawer-panel {
+  background: #fff;
+  color: #0b2149;
+  border-color: #d9e4f2;
+  box-shadow: -15px 0 60px #061e4430;
+}
+body:not(.portal-home) .drawer-overlay { background: rgba(5,23,49,.48); }
+body:not(.portal-home) .drawer-links a {
+  min-height: 52px;
+  color: #173454;
+  background: #f6f9ff;
+  border-color: #dce6f3;
+}
+body:not(.portal-home) .drawer-links a.active { color: #075bd5; background: #eaf3ff; border-color: #a5c7f6; }
+
+/* Shared cards and content lists. */
+body:not(.portal-home) .card { background: #fff; border-color: #cadcec; box-shadow: var(--shadow); }
+body:not(.portal-home) .card.soft { background: #fff; }
+body:not(.portal-home) .card-link:hover { background: #f7fbff; border-color: #a4c4ed; }
+body:not(.portal-home) :is(.kpi .item,.mini li,.list li,.home-item,.showcase-item,.expert-item,.list-item,.thread-item,.msg,.comment,.reply,.attach-item,.file-chip,.pdf-card) {
+  background: #fff;
+  border-color: #d9e4f2;
+}
+body:not(.portal-home) :is(.list-item,.thread-item,.file-chip,.pdf-card):hover { background: #f2f7ff; border-color: #bdd4f4; }
+body:not(.portal-home) .msg-mobile[open] { background: #f7faff; }
+body:not(.portal-home) :is(.section-alt,.admin-details,.uploader,.upload-drop,.qb-explanation,.qb-references) { background: #f0f6ff; border-color: #d0e1f4; }
+body:not(.portal-home) :is(.admin-details[open],.upload-drop:hover) { background: #eaf3ff; }
+body:not(.portal-home) .uploader.dragover,
+body:not(.portal-home) .upload-drop.drop-hover { background: #e7f2ff; border-color: #0964eb; }
+body:not(.portal-home) .section-divider { border-color: #d9e4f2; }
+body:not(.portal-home) .section-alt { background: #dbe9f7; border-color: #cbddec; }
+body:not(.portal-home) :is(.expert-desc,.comment-body,.msg-body,.msg-snippet,.thread-snippet,.pdf-cap,.sponsor-name,.mention-cta) { color: #304d6d; }
+body:not(.portal-home) :is(.attach-hint,.attach-item .meta,.pdf-card-hint,.pill .who span) { color: #586b89; }
+body:not(.portal-home) .hero-link { color: #075bcc; }
+body:not(.portal-home) .hero-link:hover { color: #054fae; }
+body:not(.portal-home) .final-cta-card { color: #103250; background: #cfe6ed; border-color: #b8d4df; }
+body:not(.portal-home) :is(.home-showcase-card,.home-showcase-card.expanded,.sponsor-card) { background: #fff; border-color: #d9e4f2; }
+body:not(.portal-home) .home-showcase-card:hover { background: #f7fbff; }
+body:not(.portal-home) .home-showcase-card .title { color: #0b2149; }
+body:not(.portal-home) .home-showcase-card .desc { color: #304d6d; }
+body:not(.portal-home) :is(.home-tabs .tab,.home-showcase-card .pill,.home-showcase-card .more,.home-nav) { color: #264d7a; background: #f0f6ff; border-color: #cbdcf1; }
+body:not(.portal-home) .home-tabs .tab.active { color: #fff; background: #0964eb; border-color: #0964eb; }
+body:not(.portal-home) :is(.home-tabs .tab,.home-showcase-card .more,.home-nav):hover { background: #e7f1ff; border-color: #9bbfec; }
+body:not(.portal-home) .home-tabs .tab.active:hover { color: #fff; background: #0755cc; }
+body:not(.portal-home) :is(.home-nav,.home-showcase-card .more) { min-width: 44px; min-height: 44px; }
+body:not(.portal-home) :is(.home-carousel,.home-showcase-card.expanded .desc) { scrollbar-color: #9fb8d8 #edf3fa; }
+body:not(.portal-home) :is(.home-carousel,.home-showcase-card.expanded .desc)::-webkit-scrollbar-thumb { background: #9fb8d8; }
+body:not(.portal-home) :is(.home-carousel,.home-showcase-card.expanded .desc)::-webkit-scrollbar-track { background: #edf3fa; }
+body:not(.portal-home) .hot-article-thumb.placeholder { background: #edf4fd; border-color: #c6d8ef; }
+
+/* Buttons are class scoped so native player controls keep their own colors. */
+body:not(.portal-home) :is(.btn,.ks-btn-ghost-dark,.ks-btn-ghost-light) {
+  min-height: 44px;
+  color: #075bcc;
+  background: #fff;
+  border-color: #b9cdea;
+  border-radius: 10px;
+  box-shadow: none;
+}
+body:not(.portal-home) :is(.btn,.ks-btn-ghost-dark,.ks-btn-ghost-light):hover { background: #edf5ff; border-color: #8ab3ee; }
+body:not(.portal-home) .btn.primary {
+  color: #fff;
+  background: #0964eb;
+  border-color: #0964eb;
+}
+body:not(.portal-home) .btn.primary:hover { color: #fff; background: #0755cc; border-color: #0755cc; }
+body:not(.portal-home) .btn.danger { color: #a6233c; background: #fff0f3; border-color: #eab7c0; }
+body:not(.portal-home) .btn.danger:hover { background: #ffe3e9; border-color: #d992a1; }
+body:not(.portal-home) .btn:is(:disabled,.disabled,[aria-disabled="true"]) { cursor: not-allowed; opacity: .55; }
+body:not(.portal-home) :is(.pill,.badge,.chip,.pill-btn) { color: #264d7a; background: #f0f6ff; border-color: #cbdcf1; }
+body:not(.portal-home) :is(.pill-btn,.home-tabs .tab) { min-height: 44px; }
+body:not(.portal-home) .pill-btn:hover { background: #e7f1ff; border-color: #9bbfec; }
+body:not(.portal-home) .pill-btn.active { color: #fff; background: #0964eb; border-color: #0964eb; }
+body:not(.portal-home) .badge.mod { color: #805513; background: #fff6db; border-color: #e6cc8d; }
+body:not(.portal-home) .badge.badge-ghost { color: #586b89; background: #f3f6fa; border-color: #d9e4f2; }
+body:not(.portal-home) .chip.soon { color: #137549; background: #e8f7ef; border-color: #a8d9c2; }
+body:not(.portal-home) .chip.todo { color: #586b89; background: #f3f6fa; border-color: #d9e4f2; }
+body:not(.portal-home) :is(.avatar,.ud-avatar-initial,.composer-avatar-initial) { color: #fff; }
+
+/* Form surfaces and validation remain legible in the light theme. */
+body:not(.portal-home) :is(.input,.form input,.form textarea,.select-light-options,.ks-editor-select,.qb-subject-search) {
+  color-scheme: light;
+  color: #173454;
+  background: #fff;
+  border-color: #bdcfe6;
+}
+body:not(.portal-home) :is(.input,.form input,.form textarea,.qb-subject-search):focus { border-color: #0964eb; box-shadow: 0 0 0 3px #0964eb14; }
+body:not(.portal-home) :is(.input,.form input,.form textarea,.qb-subject-search)::placeholder { color: #687c96; opacity: 1; }
+body:not(.portal-home) :is(select.input,.select-light-options,.ks-editor-select) option { color: #173454; background: #fff; }
+body:not(.portal-home) label { color: #304d6d; }
+body:not(.portal-home) :is(input,select,textarea)[aria-invalid="true"] { border-color: #b4233b; }
+body:not(.portal-home) :is(.input,.form input,.form textarea,.qb-subject-search)[aria-invalid="true"]:focus { border-color: #b4233b; }
+body:not(.portal-home) .note { color: #31557e; background: #e8f3f8; border-color: #bfd9e4; }
+body:not(.portal-home) .toast { color: #173454; background: #fff; border-color: #c7d9ed; box-shadow: 0 12px 36px #17345b29; }
+body:not(.portal-home) .toast.ok { color: #126640; background: #edf9f2; border-color: #99d0b4; }
+body:not(.portal-home) .toast.err { color: #a6233c; background: #fff2f4; border-color: #e5a8b4; }
+body:not(.portal-home) .modal { background: rgba(5,23,49,.48); }
+body:not(.portal-home) .modal-panel { color: #173454; background: #fff; border-color: #d9e4f2; box-shadow: 0 20px 64px #061e443d; }
+body:not(.portal-home) .modal-close { min-height: 44px; min-width: 44px; color: #254363; background: #f3f7ff; border-color: #c6d8ef; }
+body:not(.portal-home) .modal-close:hover { background: #e7f1ff; }
+
+/* Reading and authoring. Explicit pasted inline colors are not overridden. */
+body:not(.portal-home) :is(.ks-prose,.article-content) { color: #213d5c; }
+body:not(.portal-home) :is(.ks-prose,.article-content) p { color: #304d6d; }
+body:not(.portal-home) :is(.ks-prose,.article-content) :is(h1,h2,h3,h4,h5,h6) { color: #0b2149; }
+body:not(.portal-home) :is(.ks-prose,.article-content) a,
+body:not(.portal-home) .auto-link { color: #075bcc; }
+body:not(.portal-home) :is(.ks-prose,.article-content) blockquote { color: #304d6d; background: #edf5ff; border-color: #6a9fe7; }
+body:not(.portal-home) :is(.ks-prose,.article-content) mark { color: #654b07; background: #fff0af; }
+body:not(.portal-home) :is(.ks-prose,.article-content) code { background: #edf3fc; border-color: #d2e0f1; }
+body:not(.portal-home) :is(.ks-prose,.article-content) pre.codeblock { color: #193656; background: #f0f5fc; border-color: #d2e0f1; }
+body:not(.portal-home) :is(.ks-prose,.article-content) pre.codeblock code { color: inherit; background: transparent; border: none; }
+body:not(.portal-home) :is(.ks-prose,.article-content) hr { background: #d9e4f2; }
+body:not(.portal-home) .ks-table-wrap { background: #fff; border-color: #d2e0f1; }
+body:not(.portal-home) :is(.ks-prose,.article-content) :is(th,td) { border-color: #d2e0f1; }
+body:not(.portal-home) :is(.ks-prose,.article-content) th { color: #173454; background: #edf4fd; }
+body:not(.portal-home) .ks-figure figcaption { color: #586b89; }
+body:not(.portal-home) .ks-editor { background: #fff; border-color: #bdcfe6; }
+body:not(.portal-home) .ks-editor-toolbar { background: #f3f7fd; border-color: #d5e2f2; }
+body:not(.portal-home) .ks-editor-btn { color: #254363; background: #fff; border-color: #c6d8ef; }
+body:not(.portal-home) .ks-editor-btn:hover { background: #e7f1ff; }
+body:not(.portal-home) .ks-editor-surface:empty:before { color: #687c96; }
+body:not(.portal-home) .ks-editor-pop { color: #173454; background: #fff; border-color: #c6d8ef; box-shadow: 0 12px 32px #17345b26; }
+body:not(.portal-home) .ks-editor-swatch { border-color: #a5b9d1; }
+body:not(.portal-home) .mention { color: #075bcc; background: #eaf3ff; border-color: #bdd4f4; }
+body:not(.portal-home) .mention-row { color: #173454; background: #f7faff; border-color: #d5e2f2; }
+body:not(.portal-home) .mention-row:hover { background: #eaf3ff; }
+body:not(.portal-home) .ks-voice-btn { color: #355778; background: #f3f7ff; border-color: #bdcfe6; }
+body:not(.portal-home) .ks-voice-btn:hover { color: #075bcc; background: #e7f1ff; border-color: #9bbfec; }
+body:not(.portal-home) .ks-voice-btn.ks-voice-active { color: #b4233b; background: #fff0f3; border-color: #d992a1; }
+
+/* Questions keep correct, incorrect, selected and bookmarked states distinct. */
+body:not(.portal-home) :is(.qb-choice,.qb-subject-group,.qb-img-card) { background: #fff; border-color: #d2e0f1; }
+body:not(.portal-home) .qb-choice:hover { background: #f1f7ff; border-color: #83aee8; }
+body:not(.portal-home) .qb-choice.qb-selected { background: #eaf3ff; border-color: #0964eb; }
+body:not(.portal-home) .qb-choice.qb-correct { background: #edf9f2; border-color: #137549; }
+body:not(.portal-home) .qb-choice.qb-incorrect { background: #fff1f4; border-color: #b4233b; }
+body:not(.portal-home) .qb-choice.qb-dimmed:hover { background: #fff; border-color: #d2e0f1; }
+body:not(.portal-home) .qb-choice-icon { background: #edf4fd; border-color: #c6d8ef; }
+body:not(.portal-home) .qb-correct .qb-choice-icon { color: #fff; background: #137549; border-color: #137549; }
+body:not(.portal-home) .qb-incorrect .qb-choice-icon { color: #fff; background: #b4233b; border-color: #b4233b; }
+body:not(.portal-home) .qb-result-correct { color: #126640; background: #edf9f2; border-color: #99d0b4; }
+body:not(.portal-home) .qb-result-incorrect { color: #a6233c; background: #fff2f4; border-color: #e5a8b4; }
+body:not(.portal-home) .qb-ce-wrong { background: #f1f5fb; border-color: #c6d8ef; }
+body:not(.portal-home) .qb-dot { color: #31557e; background: #fff; border-color: #bdcfe6; }
+body:not(.portal-home) .qb-dot-current { color: #fff; background: #0964eb; border-color: #0964eb; }
+body:not(.portal-home) .qb-dot-correct { color: #126640; background: #e8f7ef; border-color: #99d0b4; }
+body:not(.portal-home) .qb-dot-incorrect { color: #a6233c; background: #fff0f3; border-color: #e5a8b4; }
+body:not(.portal-home) .qb-progress-bar { background: #dce8f7; }
+body:not(.portal-home) .qb-subject-count { color: #586b89; background: #edf3fc; }
+/* The legacy question-bank states are important; match their intent. */
+body:not(.portal-home) .qb-pill-active,
+body:not(.portal-home) .qb-pill-active:hover { color: #fff; background: #0964eb !important; border-color: #0964eb !important; }
+body:not(.portal-home) .qb-count-active,
+body:not(.portal-home) .qb-count-active:hover { color: #075bcc; background: #eaf3ff !important; border-color: #0964eb !important; }
+body:not(.portal-home) .qb-bank-selected,
+body:not(.portal-home) .qb-bank-selected:hover { background: #eaf3ff !important; border-color: #0964eb !important; box-shadow: 0 0 0 2px #0964eb24; }
+body:not(.portal-home) .qb-bookmarked,
+body:not(.portal-home) .qb-bookmarked:hover { color: #85570b !important; border-color: #b88828 !important; }
+
+/* Footer and optional cross-product navigation. */
+body:not(.portal-home) .footer,
+body:not(.portal-home) .footer[data-custom-footer] { color: #426079; background: #e2edf6; border-color: #c5d8e8; }
+body:not(.portal-home) .footer a { color: #426080; }
+body:not(.portal-home) .footer a:hover { color: #075bcc; }
+body:not(.portal-home) :is(.footer-heading,.footer-col a) { color: #426080; }
+body:not(.portal-home) .footer-col a:hover { color: #075bcc; }
+body:not(.portal-home) .footer-bottom { color: #586b89; border-color: #d9e4f2; }
+body:not(.portal-home) .mobile-sticky-cta { background: rgba(255,255,255,.98); border-color: #d9e4f2; box-shadow: 0 -4px 16px #17345b0d; }
+body:not(.portal-home) #ks-topbar { background: #edf5ff; border-color: #d9e4f2; }
+body:not(.portal-home) #ks-topbar .ks-tb-brand { color: #0b2149; }
+body:not(.portal-home) #ks-topbar .ks-tb-link { color: #426080; }
+body:not(.portal-home) #ks-topbar .ks-tb-link:hover,
+body:not(.portal-home) #ks-topbar .ks-tb-link[data-active="true"] { color: #075bcc; background: #dcecff; }
+body:not(.portal-home) #ks-topbar .ks-tb-sep { background: #bdcfe6; }
+body:not(.portal-home) #ks-topbar .ks-tb-soon { color: #85570b; background: #fff1c7; }
+
+/* Native / embedded video and photo controls are intentionally untouched.
+ * These existing media containers need light inherited text on their dark
+ * canvas after the document's inherited text color becomes dark blue. */
+body:not(.portal-home) :is(.prism-player,.video-js,.video-embed,.moment-video,.article-video) {
+  color-scheme: dark;
+  color: #f4f8ff;
+}
+/* The legacy Bilibili fallback uses white text on a translucent wrapper.
+ * Give that media canvas a real dark surface once the page is light. */
+body:not(.portal-home) :is(.video-embed,.moment-video) { background: #071a33; }
+
+@media (max-width: 640px) {
+  body:not(.portal-home) { --depth-card-pad: 20px; }
+  body:not(.portal-home) :is(.input,.form input,.form textarea,.nav-search-input,.select-light-options,.ks-editor-select,.qb-subject-search) { font-size: 16px; }
+  body:not(.portal-home) :is(.btn,.pill-btn,.ks-editor-btn,.ks-editor-select,.qb-subject-header,.qb-radio,.nav-member-badge) { min-height: 44px; }
+  body:not(.portal-home) :is(.qb-dot,.ks-voice-btn) { min-width: 44px; min-height: 44px; }
+  body:not(.portal-home) .ks-voice-btn-inline { right: 2px; }
+  /* The voice helper inserts a 36px inline padding for its old 26px icon. */
+  body:not(.portal-home) input[data-ks-voice="1"] { padding-right: 52px !important; }
+  body:not(.portal-home) .drawer-panel { padding-bottom: calc(22px + env(safe-area-inset-bottom)); }
+  body:not(.portal-home) .toast { bottom: calc(18px + env(safe-area-inset-bottom)); }
+}
