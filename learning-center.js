@@ -570,6 +570,19 @@ async function saveVideo(currentUser, publish = true){
     toast('请填写阿里云媒体 ID', '请先上传视频或音频，也可以填写已有的媒体 ID。', 'err');
     return;
   }
+  // 只接受阿里云媒体 ID 的格式（32 位 0-9a-f）。以前这里什么都收，课程名称或阿里云里
+  // 显示的"名称"被当成 ID 存进去，播放时阿里云找不到视频，会员只能看到"没有可用的播放源"。
+  if(sourceType === 'aliyun_vod'){
+    const normalizedVid = aliyunVid.toLowerCase();
+    if(!/^[0-9a-f]{32}$/.test(normalizedVid)){
+      toast('阿里云媒体 ID 不正确',
+        '这里只能填 32 位字母和数字（阿里云点播控制台视频标题下方"ID:"后面那一串），不能填视频名称或课程名称。最稳妥的做法是点「上传视频 / 音频」，由系统自动填写。',
+        'err');
+      els.videoAliyunVid?.focus?.();
+      return;
+    }
+    aliyunVid = normalizedVid;
+  }
   if((sourceType === 'external_url' || sourceType === 'bilibili') && !url){
     toast('请填写视频链接', '', 'err');
     return;
@@ -1101,7 +1114,7 @@ async function init(){
               </div>
               <div style="flex:1;min-width:240px" id="videoAliyunVidWrap">
                 <label for="videoAliyunVid">阿里云媒体 ID *</label>
-                <input class="input" id="videoAliyunVid" placeholder="上传后自动填写，或粘贴已有音视频 ID" />
+                <input class="input" id="videoAliyunVid" placeholder="上传后自动填写；手动粘贴时只填 32 位 ID，不要填名称" />
                 <div id="videoAliyunUploadBox" style="margin-top:8px;padding:10px;border:1px dashed rgba(168,85,247,.4);border-radius:8px;background:rgba(168,85,247,.04);">
                   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                     <input type="file" id="videoAliyunFile" accept="${MEDIA_ACCEPT}" style="display:none;" />
