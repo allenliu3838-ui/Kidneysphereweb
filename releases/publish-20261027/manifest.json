@@ -1,0 +1,15 @@
+{
+  "release": "publish-20261027",
+  "source_commit": "3194da5c9b9d9773571ffc4a681f05f7012b63bf",
+  "base_commit": "068f4522bba39823896dbd461cdceebacae1e62d",
+  "files": {
+    "learning-center.js": {
+      "before": "7ec8103c4a2ae7191b3db2699309150755fb8b1fe2875d32326202c0ac9b2542",
+      "after": "73470b0177202001bb9adda1dbfe27a4fa2e48475422921f08f5d50529a7beab"
+    },
+    "learning.html": {
+      "before": "2cbefce06cbbbd64fa5f1ae2260eb406b1dcd0146b2b809cc5e68aeab34ed8fd",
+      "after": "a2aa8e098a2a9b4d1ddd8b3a3277f84d3436d22713f08d5b8d41137e07a06d2f"
+    }
+  }
+}
