@@ -166,10 +166,12 @@ async function aliyunCall(action, extra) {
 //   /api/videos/upload-credentials          -> issueUploadCreds (main)
 //   /api/videos/upload-credentials/refresh  -> refreshUploadCreds
 //   /api/videos/upload-credentials/delete   -> deleteUploadedVideo (cleanup)
+//   /api/videos/upload-credentials/status   -> mediaStatus (admin playback health check)
 exports.handler = async (event) => {
   const p = event.path || '';
   if (p.endsWith('/refresh')) return refreshUploadCreds(event);
   if (p.endsWith('/delete')) return deleteUploadedVideo(event);
+  if (p.endsWith('/status')) return mediaStatus(event);
   return issueUploadCreds(event);
 };
 
@@ -177,6 +179,7 @@ exports.handler = async (event) => {
 // can route each path cleanly without relying on path matching.
 exports.refreshHandler = (event) => refreshUploadCreds(event);
 exports.deleteHandler = (event) => deleteUploadedVideo(event);
+exports.statusHandler = (event) => mediaStatus(event);
 
 async function issueUploadCreds(event) {
   console.log('[video-upload-auth] invoked, path:', event.path, 'method:', event.httpMethod);
@@ -351,6 +354,94 @@ async function refreshUploadCreds(event) {
       uploadAddress: data.UploadAddress,
       region: ALIYUN_VOD_REGION,
     });
+  } catch (e) {
+    return json(500, { error: 'internal_error', message: String(e?.message || e) });
+  }
+}
+
+// ── Playback health check for the admin course list ──
+// Body: { videoIds: [<32-hex VOD id>, ...] } (at most 200). Answers, per id,
+// what Aliyun says about the media: Normal, Uploading/UploadSucc/Transcoding/
+// Checking (still being processed), TranscodeFail/UploadFail/ProduceFail/Blocked,
+// NotFound, or Unknown. Nothing is written anywhere.
+//
+// GetVideoInfos answers 20 ids per call but needs vod:GetVideoInfos. If the
+// AccessKey lacks it, fall back to GetPlayInfo per id, which play-auth already
+// relies on, so the check works with the permissions the site has today.
+const VOD_ID = /^[0-9a-f]{32}$/;
+const MAX_STATUS_IDS = 200;
+
+function playInfoToStatus(data) {
+  if (data && !data.Code) return { status: (data.VideoBase && data.VideoBase.Status) || 'Normal', title: data.VideoBase?.Title || '', duration: Number(data.VideoBase?.Duration) || 0 };
+  const code = String(data?.Code || '');
+  if (/InvalidVideo\.NotFound/i.test(code)) return { status: 'NotFound' };
+  if (/IllegalStatus|NoneStream|NoStream/i.test(code)) return { status: 'Transcoding', code };
+  return { status: 'Unknown', code };
+}
+
+async function mediaStatus(event) {
+  try {
+    if (!rateCheck(getClientIp(event), 30)) return json(429, { error: 'rate_limited', message: '请求过于频繁，请稍后再试。' });
+    if (event.httpMethod !== 'POST') return json(405, { error: 'method_not_allowed' });
+    const token = pickToken(event);
+    if (!token) return json(401, { error: 'unauthorized', message: '请先登录。' });
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return json(500, { error: 'server_not_configured' });
+    if (!ALIYUN_VOD_ACCESS_KEY_ID || !ALIYUN_VOD_ACCESS_KEY_SECRET) {
+      return json(500, { error: 'aliyun_not_configured', message: '阿里云 VOD 未配置。' });
+    }
+
+    let user = null;
+    try {
+      const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+      if (payload.sub && payload.aud === 'authenticated' && payload.exp > Date.now() / 1000) user = { id: payload.sub };
+    } catch {}
+    if (!user) return json(401, { error: 'invalid_token', message: '登录已过期，请重新登录。' });
+
+    // The user's own token goes to Supabase, which verifies its signature.
+    const profRes = await sbQuery(`profiles?id=eq.${encodeURIComponent(user.id)}&select=role&limit=1`, token);
+    if (!profRes.ok) return json(401, { error: 'invalid_token', message: '登录已过期，请重新登录。' });
+    const profile = (await profRes.json())[0];
+    const role = String(profile?.role || '').toLowerCase().trim();
+    if (!['admin', 'super_admin', 'owner'].includes(role)) return json(403, { error: 'admin_required' });
+
+    let body = {};
+    try { body = JSON.parse(event.body || '{}'); } catch {}
+    const ids = [...new Set((Array.isArray(body.videoIds) ? body.videoIds : [])
+      .map(v => String(v || '').trim().toLowerCase()).filter(v => VOD_ID.test(v)))];
+    if (!ids.length) return json(400, { error: 'missing_videoIds' });
+    if (ids.length > MAX_STATUS_IDS) return json(400, { error: 'too_many_videoIds', message: `一次最多检查 ${MAX_STATUS_IDS} 个。` });
+
+    const results = {};
+    let method = 'GetVideoInfos';
+    for (let i = 0; i < ids.length; i += 20) {
+      const chunk = ids.slice(i, i + 20);
+      const data = await aliyunCall('GetVideoInfos', { VideoIds: chunk.join(',') });
+      if (data.Code) {
+        if (/Forbidden|NoPermission|AccessDenied/i.test(String(data.Code))) { method = 'GetPlayInfo'; break; }
+        return json(502, { error: 'aliyun_status_failed', code: data.Code, message: data.Message || '' });
+      }
+      const list = Array.isArray(data.VideoList) ? data.VideoList : (data.VideoList?.Video || []);
+      for (const v of list) {
+        if (v && v.VideoId) results[String(v.VideoId).toLowerCase()] = { status: v.Status || 'Unknown', title: v.Title || '', duration: Number(v.Duration) || 0 };
+      }
+      const missing = Array.isArray(data.NonExistVideoIds) ? data.NonExistVideoIds : (data.NonExistVideoIds?.VideoId || []);
+      for (const id of missing) results[String(id).toLowerCase()] = { status: 'NotFound' };
+    }
+
+    if (method === 'GetPlayInfo') {
+      const queue = ids.filter(id => !results[id]);
+      const worker = async () => {
+        while (queue.length) {
+          const id = queue.shift();
+          try { results[id] = playInfoToStatus(await aliyunCall('GetPlayInfo', { VideoId: id, AuthTimeout: '1800' })); }
+          catch (e) { results[id] = { status: 'Unknown', code: 'request_failed' }; }
+        }
+      };
+      await Promise.all([worker(), worker(), worker(), worker()]);
+    }
+
+    for (const id of ids) if (!results[id]) results[id] = { status: 'Unknown' };
+    return json(200, { results, method, checkedAt: new Date().toISOString() });
   } catch (e) {
     return json(500, { error: 'internal_error', message: String(e?.message || e) });
   }

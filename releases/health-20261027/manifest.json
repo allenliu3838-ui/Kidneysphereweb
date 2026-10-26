@@ -1,0 +1,23 @@
+{
+  "release": "health-20261027",
+  "source_commit": "102def66b5ee8ded6d7ec4a8972e62a3b949eeb4",
+  "base_commit": "94d71e900c4fa0db801fadb5884c248b6b224a82",
+  "files": {
+    "learning-center.js": {
+      "before": "ff85073e07ccbf2d6ceb6133f7075b29115018a58aad0b94f52490f71ea7ba3c",
+      "after": "7ec8103c4a2ae7191b3db2699309150755fb8b1fe2875d32326202c0ac9b2542"
+    },
+    "learning.html": {
+      "before": "bca8d082299723aaea6b5ef9c45061e642be2928b28376c6e52b0ef6fcf2c3c6",
+      "after": "2cbefce06cbbbd64fa5f1ae2260eb406b1dcd0146b2b809cc5e68aeab34ed8fd"
+    },
+    "netlify/functions/video-upload-auth.js": {
+      "before": "0962e28414cb0b5a1ab4105b6accb1e7472286ae53d0db5849faf89338d66a27",
+      "after": "67bbc9bbc04e1225b4aa75856f61760a7694dc391bb16788c7b4015e08ec8401"
+    },
+    "server/index.js": {
+      "before": "52b517f3b03561fe4b8b52534cc440978f3495acf887cfcbab708cf07c4d95cc",
+      "after": "827071334af86013afc2413959eeef7ac28fb75d80dba884ad772e375dd14102"
+    }
+  }
+}
