@@ -1,0 +1,15 @@
+{
+  "release": "vidguard-20261026",
+  "source_commit": "1ab81432aa5b748e61d9472b3579493358ea1552",
+  "base_commit": "04c5d20bd7d4c273e4a758342927da1c8815e4a2",
+  "files": {
+    "learning-center.js": {
+      "before": "b6773d92f6c286caf9b2345fabb37a85f2cabe993bca8920ce63168f7b6af8d5",
+      "after": "ff85073e07ccbf2d6ceb6133f7075b29115018a58aad0b94f52490f71ea7ba3c"
+    },
+    "learning.html": {
+      "before": "5d7f177ea89725cf94ca0c8c1a3f6c6421b0f71b7feebcccd8d7a4815459cb04",
+      "after": "bca8d082299723aaea6b5ef9c45061e642be2928b28376c6e52b0ef6fcf2c3c6"
+    }
+  }
+}
